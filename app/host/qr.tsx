@@ -16,8 +16,16 @@ export default function QRScreen() {
   const insets = useSafeAreaInsets();
   const { id, code } = useLocalSearchParams<{ id: string; code: string }>();
   const [copied, setCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   const eventUrl = `https://guestcam.app/e/${code}`;
+
+  const handleCopyCode = () => {
+    Clipboard.setStringAsync(code);
+    setCodeCopied(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setTimeout(() => setCodeCopied(false), 2000);
+  };
 
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -69,11 +77,17 @@ export default function QRScreen() {
               <View style={[styles.corner, styles.cornerBR]} />
             </View>
 
-            {/* Event code — shown prominently, not as a URL */}
-            <View style={styles.codeBlock}>
+            {/* Event code — tap to copy */}
+            <TouchableOpacity style={styles.codeBlock} onPress={handleCopyCode} activeOpacity={0.7}>
               <Text style={styles.codeLabel}>{t('host.eventCodeLabel')}</Text>
               <Text style={styles.codeValue}>{code}</Text>
-            </View>
+              <View style={styles.codeCopyHint}>
+                <Icon name={codeCopied ? 'check' : 'copy'} size={13} color={codeCopied ? colors.success : colors.text.muted} />
+                <Text style={[styles.codeCopyText, codeCopied && { color: colors.success }]}>
+                  {codeCopied ? t('host.linkCopied') : t('host.copyCode')}
+                </Text>
+              </View>
+            </TouchableOpacity>
           </LinearGradient>
         </Animated.View>
 
@@ -141,7 +155,9 @@ const styles = StyleSheet.create({
   cornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 6 },
   codeBlock: { alignItems: 'center', gap: 4 },
   codeLabel: { fontSize: typography.sizes.xs, fontFamily: fonts.bodySemibold, color: colors.text.muted, letterSpacing: 2, textTransform: 'uppercase' },
-  codeValue: { fontSize: typography.sizes['3xl'], fontFamily: fonts.displayBold, color: colors.text.primary, letterSpacing: 6 },
+  codeValue: { fontSize: typography.sizes['3xl'], fontFamily: fonts.displayBold, color: colors.text.primary, letterSpacing: 8 },
+  codeCopyHint: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
+  codeCopyText: { fontSize: typography.sizes.xs, fontFamily: fonts.bodyMedium, color: colors.text.muted },
   urlRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, width: '100%' },
   urlPill: { flex: 1, backgroundColor: colors.bg.card, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, paddingHorizontal: spacing.md, paddingVertical: 12 },
   urlText: { color: colors.text.secondary, fontSize: typography.sizes.sm },

@@ -116,6 +116,7 @@ export default {
     generateQR: 'QR Kodu Oluştur',
     yourQRCode: 'QR Kodunuz',
     eventCodeLabel: 'Etkinlik Kodu',
+    copyCode: 'Kodu kopyala',
     eventLink: 'Etkinlik Bağlantısı',
     shareQR: 'QR\'ı Paylaş',
     printQR: 'Yazdır',

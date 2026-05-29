@@ -116,6 +116,7 @@ export default {
     generateQR: 'Generate QR Code',
     yourQRCode: 'Your QR Code',
     eventCodeLabel: 'Event Code',
+    copyCode: 'Copy code',
     eventLink: 'Event Link',
     shareQR: 'Share QR',
     printQR: 'Print',
