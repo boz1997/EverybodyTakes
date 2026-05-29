@@ -80,6 +80,7 @@ export default function CameraScreen() {
       setTimeout(() => setUploadStatus('idle'), 1500);
 
     } catch (e) {
+      if (__DEV__) console.warn('capture/upload failed:', e);
       setUploadStatus('error');
       setTimeout(() => setUploadStatus('idle'), 2000);
       if (e instanceof LimitError) {

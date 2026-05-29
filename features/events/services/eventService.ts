@@ -82,6 +82,20 @@ function newestFirst<T extends { createdAt: unknown }>(rows: T[]): T[] {
   return [...rows].sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
 }
 
+// React Native's fetch(uri).blob() doesn't produce a blob the Firebase SDK can
+// upload reliably; XMLHttpRequest with responseType 'blob' is the documented
+// workaround for local file:// URIs.
+function uriToBlob(uri: string): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.onload = () => resolve(xhr.response as Blob);
+    xhr.onerror = () => reject(new Error('Failed to read image file'));
+    xhr.responseType = 'blob';
+    xhr.open('GET', uri, true);
+    xhr.send(null);
+  });
+}
+
 export const EventService = {
   async create(hostId: string, draft: EventDraft, plan: string): Promise<Event> {
     const id = nanoid();
@@ -205,8 +219,7 @@ export const EventService = {
     const path = `events/${eventId}/photos/${photoId}.jpg`;
     const storageRef = ref(storage, path);
 
-    const response = await fetch(uri);
-    const blob = await response.blob();
+    const blob = await uriToBlob(uri);
     await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
     const imageUrl = await getDownloadURL(storageRef);
 
@@ -253,8 +266,7 @@ export const EventService = {
   async uploadCoverImage(eventId: string, uri: string): Promise<string> {
     const path = `events/${eventId}/cover.jpg`;
     const storageRef = ref(storage, path);
-    const response = await fetch(uri);
-    const blob = await response.blob();
+    const blob = await uriToBlob(uri);
     await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
     return getDownloadURL(storageRef);
   },
