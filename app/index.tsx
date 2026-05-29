@@ -57,14 +57,14 @@ export default function WelcomeScreen() {
     <LinearGradient colors={gradients.page} style={styles.container}>
       <View style={[styles.content, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.lg }]}>
 
-        {/* Top — logo + language */}
+        {/* Top — language switcher only */}
         <Animated.View style={[styles.top, kickerStyle]}>
-          <Image source={require('../assets/guestlogo.png')} style={styles.logo} resizeMode="contain" />
           <LanguageToggle />
         </Animated.View>
 
-        {/* Headline */}
+        {/* Logo + headline */}
         <Animated.View style={[styles.headlineBlock, headlineStyle]}>
+          <Image source={require('../assets/guestlogo.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.headline}>{t('welcome.tagline')}</Text>
           <Text style={styles.subtitle}>{t('welcome.subtitle')}</Text>
         </Animated.View>
@@ -101,8 +101,8 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: spacing.lg, justifyContent: 'space-between' },
-  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  logo: { width: 104, height: 57, marginLeft: -8 },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
+  logo: { width: 240, height: 132, marginLeft: -12, marginBottom: spacing.sm },
   headlineBlock: { gap: spacing.sm },
   headline: {
     fontFamily: fonts.displayBold, fontSize: 38, lineHeight: 42,
