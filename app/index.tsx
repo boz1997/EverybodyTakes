@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -56,12 +56,9 @@ export default function WelcomeScreen() {
     <LinearGradient colors={gradients.page} style={styles.container}>
       <View style={[styles.content, { paddingTop: insets.top + height * 0.08, paddingBottom: insets.bottom + spacing.xl }]}>
 
-        {/* Top — wordmark */}
+        {/* Top — logo */}
         <Animated.View style={[styles.top, kickerStyle]}>
-          <View style={styles.logoMark}>
-            <Icon name="camera" size={18} color={colors.text.inverse} strokeWidth={2} />
-          </View>
-          <Text style={styles.kicker}>GUESTCAM</Text>
+          <Image source={require('../assets/guestlogo.png')} style={styles.logo} resizeMode="contain" />
         </Animated.View>
 
         {/* Headline */}
@@ -102,15 +99,8 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: spacing.lg, justifyContent: 'space-between' },
-  top: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  logoMark: {
-    width: 34, height: 34, borderRadius: radius.sm,
-    backgroundColor: colors.text.primary, alignItems: 'center', justifyContent: 'center',
-  },
-  kicker: {
-    fontFamily: fonts.bodySemibold, fontSize: typography.sizes.sm,
-    color: colors.text.primary, letterSpacing: 3,
-  },
+  top: { alignItems: 'flex-start' },
+  logo: { height: 42, aspectRatio: 1.83 },
   headlineBlock: { gap: spacing.md, marginTop: spacing.xl },
   headline: {
     fontFamily: fonts.displayBold, fontSize: 46, lineHeight: 50,

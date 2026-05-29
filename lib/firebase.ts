@@ -1,7 +1,11 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+// getReactNativePersistence ships in firebase's react-native build (Metro
+// resolves it); the node/browser typings omit it, hence the suppression.
+// @ts-expect-error - RN-only export, present at runtime under Metro
+import { initializeAuth, getReactNativePersistence, getAuth, Auth } from 'firebase/auth';
 import { initializeFirestore, getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY!,
@@ -14,11 +18,15 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// NOTE: firebase v12 no longer exports getReactNativePersistence, so auth
-// uses in-memory persistence. Anonymous guests re-auth per launch (fine for
-// an event-camera flow); persisting host sessions across restarts is a
-// follow-up (custom AsyncStorage persistence or @react-native-firebase).
-export const auth = getAuth(app);
+// Persist auth across launches via AsyncStorage (v2 API: pass the store
+// directly). initializeAuth throws if called twice on hot reload, so fall
+// back to the existing instance.
+let auth: Auth;
+try {
+  auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
+} catch {
+  auth = getAuth(app);
+}
 
 let db: Firestore;
 try {
@@ -29,5 +37,5 @@ try {
 }
 
 export const storage = getStorage(app);
-export { db };
+export { auth, db };
 export default app;

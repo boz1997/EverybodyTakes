@@ -8,6 +8,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -89,11 +90,7 @@ export default function AuthScreen() {
 
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.logoMini}>
-              <LinearGradient colors={gradients.amber} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radius.lg }}>
-                <Icon name="camera" size={24} color={colors.text.inverse} strokeWidth={2.2} />
-              </LinearGradient>
-            </View>
+            <Image source={require('../assets/guestlogo.png')} style={styles.logo} resizeMode="contain" />
             <Text style={styles.title}>
               {step === 'sent' ? t('auth.magicLinkSent') : t('auth.signIn')}
             </Text>
@@ -206,7 +203,7 @@ const styles = StyleSheet.create({
   backBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6 },
   backText: { color: colors.text.secondary, fontSize: typography.sizes.base },
   header: { alignItems: 'center', gap: spacing.sm },
-  logoMini: { width: 56, height: 56, borderRadius: radius.lg, overflow: 'hidden' },
+  logo: { height: 48, aspectRatio: 1.83, marginBottom: spacing.xs },
   title: { fontSize: typography.sizes['3xl'], fontFamily: fonts.displayBold, color: colors.text.primary, textAlign: 'center' },
   subtitle: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted, textAlign: 'center', lineHeight: 20, paddingHorizontal: spacing.lg },
   options: { gap: spacing.md },

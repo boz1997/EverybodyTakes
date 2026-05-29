@@ -195,7 +195,8 @@ export default function CreateEvent() {
                         value={draft.date ?? new Date()}
                         mode="date"
                         display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                        themeVariant="dark"
+                        themeVariant="light"
+                        textColor={colors.text.primary}
                         accentColor={colors.brand.DEFAULT}
                         minimumDate={new Date()}
                         onChange={(_, selected) => {
@@ -395,8 +396,8 @@ const styles = StyleSheet.create({
   dateText: { flex: 1, fontSize: typography.sizes.base, color: colors.text.primary },
   datePlaceholder: { color: colors.text.muted },
   pickerWrap: { marginTop: spacing.sm, backgroundColor: colors.bg.card, borderRadius: radius.xl, overflow: 'hidden', borderWidth: 1, borderColor: colors.border.DEFAULT },
-  shotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
-  shotChip: { alignItems: 'center', padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card, minWidth: 86 },
+  shotGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing.sm, marginTop: spacing.xs },
+  shotChip: { width: '31.5%', alignItems: 'center', paddingVertical: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card },
   shotChipActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
   shotNumber: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: colors.text.muted },
   shotNumberActive: { color: colors.brand.DEFAULT },
