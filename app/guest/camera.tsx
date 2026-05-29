@@ -15,6 +15,7 @@ import Animated, {
 import { EventService } from '@features/events/services/eventService';
 import { useAuthStore } from '@store/authStore';
 import { useEventStore } from '@store/eventStore';
+import { Icon } from '@shared/components/Icon';
 import { colors, typography, spacing, radius } from '@constants/theme';
 
 const { width, height } = Dimensions.get('window');
@@ -86,7 +87,7 @@ export default function CameraScreen() {
     return (
       <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
         <View style={styles.permContent}>
-          <Text style={styles.permEmoji}>📷</Text>
+          <Icon name="camera" size={56} color={colors.brand.light} strokeWidth={1.6} />
           <Text style={styles.permTitle}>{t('errors.cameraPermission')}</Text>
           <TouchableOpacity onPress={requestPermission} style={styles.permBtn}>
             <Text style={styles.permBtnText}>{t('errors.cameraPermissionDesc')}</Text>
@@ -114,14 +115,13 @@ export default function CameraScreen() {
       {/* Top Bar */}
       <View style={[styles.topBar, { paddingTop: insets.top + spacing.sm }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.topBtn}>
-          <Text style={styles.topBtnText}>✕</Text>
+          <Icon name="close" size={22} color="#fff" />
         </TouchableOpacity>
 
         {/* Shot Counter — Film Roll */}
         <View style={styles.shotCounter}>
-          <Text style={styles.shotCounterText}>
-            {isEmpty ? '🎞️ 0' : `🎞️ ${shotsRemaining}`}
-          </Text>
+          <Icon name="film" size={16} color="#fff" />
+          <Text style={styles.shotCounterText}>{shotsRemaining}</Text>
           {isLast && (
             <Animated.View entering={FadeIn} style={styles.lastShotBadge}>
               <Text style={styles.lastShotText}>{t('guest.lastShot')}</Text>
@@ -133,7 +133,7 @@ export default function CameraScreen() {
           onPress={() => setFlash(f => f === 'off' ? 'on' : 'off')}
           style={[styles.topBtn, flash === 'on' && styles.topBtnActive]}
         >
-          <Text style={styles.topBtnText}>{flash === 'on' ? '⚡' : '⚡'}</Text>
+          <Icon name="flash" size={20} color={flash === 'on' ? '#000' : '#fff'} />
         </TouchableOpacity>
       </View>
 
@@ -144,10 +144,15 @@ export default function CameraScreen() {
           exiting={FadeOut}
           style={styles.uploadBanner}
         >
+          <Icon
+            name={uploadStatus === 'success' ? 'check' : uploadStatus === 'error' ? 'alert' : 'download'}
+            size={18}
+            color={uploadStatus === 'success' ? colors.success : uploadStatus === 'error' ? colors.error : '#fff'}
+          />
           <Text style={styles.uploadBannerText}>
-            {uploadStatus === 'uploading' && `⬆️ ${t('guest.uploading')}`}
-            {uploadStatus === 'success' && `✅ ${t('guest.uploadSuccess')}`}
-            {uploadStatus === 'error' && `❌ ${t('guest.uploadError')}`}
+            {uploadStatus === 'uploading' && t('guest.uploading')}
+            {uploadStatus === 'success' && t('guest.uploadSuccess')}
+            {uploadStatus === 'error' && t('guest.uploadError')}
           </Text>
         </Animated.View>
       )}
@@ -160,7 +165,7 @@ export default function CameraScreen() {
           onPress={() => router.push({ pathname: '/guest/gallery', params: { id } })}
           style={styles.sideBtn}
         >
-          <Text style={styles.sideBtnText}>🖼️</Text>
+          <Icon name="gallery" size={24} color="#fff" />
         </TouchableOpacity>
 
         {/* Shutter */}
@@ -175,7 +180,7 @@ export default function CameraScreen() {
               colors={isEmpty ? ['#333', '#222'] : ['#fff', '#ddd']}
               style={styles.shutterInner}
             >
-              {isEmpty && <Text style={styles.noShotsText}>🚫</Text>}
+              {isEmpty && <Icon name="lock" size={26} color="#888" />}
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
@@ -185,14 +190,14 @@ export default function CameraScreen() {
           onPress={() => setFacing(f => f === 'back' ? 'front' : 'back')}
           style={styles.sideBtn}
         >
-          <Text style={styles.sideBtnText}>🔄</Text>
+          <Icon name="flip" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
 
       {/* Empty state overlay */}
       {isEmpty && (
         <View style={styles.emptyOverlay} pointerEvents="none">
-          <Text style={styles.emptyEmoji}>🎞️</Text>
+          <Icon name="film" size={44} color="rgba(255,255,255,0.7)" strokeWidth={1.6} />
           <Text style={styles.emptyTitle}>{t('guest.noShotsLeft')}</Text>
           <Text style={styles.emptySubtitle}>{t('guest.viewGallery')}</Text>
         </View>
@@ -204,7 +209,6 @@ export default function CameraScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   permContent: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, padding: spacing.lg },
-  permEmoji: { fontSize: 64 },
   permTitle: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: '#fff', textAlign: 'center' },
   permBtn: { backgroundColor: colors.brand.DEFAULT, borderRadius: radius.xl, paddingHorizontal: spacing.xl, paddingVertical: 14 },
   permBtnText: { color: '#fff', fontWeight: typography.weights.semibold },
@@ -215,16 +219,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, paddingBottom: spacing.md, zIndex: 10,
   },
   topBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
-  topBtnActive: { backgroundColor: 'rgba(245,158,11,0.6)' },
-  topBtnText: { fontSize: 20, color: '#fff' },
+  topBtnActive: { backgroundColor: colors.gold.DEFAULT },
   shotCounter: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: radius.full, paddingHorizontal: 16, paddingVertical: 8 },
   shotCounterText: { fontSize: typography.sizes.base, fontWeight: typography.weights.bold, color: '#fff' },
   lastShotBadge: { backgroundColor: colors.warning, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2 },
   lastShotText: { fontSize: typography.sizes.xs, fontWeight: typography.weights.bold, color: '#000' },
   uploadBanner: {
-    position: 'absolute', top: '40%', left: '20%', right: '20%',
-    backgroundColor: 'rgba(0,0,0,0.85)', borderRadius: radius.xl,
-    padding: spacing.md, alignItems: 'center', zIndex: 20,
+    position: 'absolute', top: '40%', alignSelf: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.85)', borderRadius: radius.full,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md, zIndex: 20,
     borderWidth: 1, borderColor: colors.border.DEFAULT,
   },
   uploadBannerText: { color: '#fff', fontSize: typography.sizes.sm, fontWeight: typography.weights.medium },
@@ -234,16 +238,13 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg, zIndex: 10,
   },
   sideBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
-  sideBtnText: { fontSize: 22 },
   shutter: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: '#fff', overflow: 'hidden', padding: 4 },
   shutterDisabled: { opacity: 0.4, borderColor: '#555' },
   shutterInner: { flex: 1, borderRadius: 34, alignItems: 'center', justifyContent: 'center' },
-  noShotsText: { fontSize: 28 },
   emptyOverlay: {
     position: 'absolute', bottom: 160, left: 0, right: 0,
     alignItems: 'center', gap: spacing.sm, zIndex: 5,
   },
-  emptyEmoji: { fontSize: 48 },
-  emptyTitle: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: '#fff' },
+  emptyTitle: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: '#fff', marginTop: spacing.sm },
   emptySubtitle: { fontSize: typography.sizes.sm, color: 'rgba(255,255,255,0.6)' },
 });

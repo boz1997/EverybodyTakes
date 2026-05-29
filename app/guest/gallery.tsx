@@ -11,6 +11,7 @@ import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { EventService, Photo } from '@features/events/services/eventService';
 import { useAuthStore } from '@store/authStore';
+import { Icon } from '@shared/components/Icon';
 import { colors, typography, spacing, radius } from '@constants/theme';
 
 const { width } = Dimensions.get('window');
@@ -46,7 +47,7 @@ export default function GalleryScreen() {
         <Image source={{ uri: item.imageUrl }} style={styles.photo} />
         {item.uploadedBy === user?.uid && (
           <View style={styles.myBadge}>
-            <Text style={styles.myBadgeText}>✓</Text>
+            <Icon name="check" size={11} color="#fff" strokeWidth={3} />
           </View>
         )}
       </TouchableOpacity>
@@ -57,8 +58,8 @@ export default function GalleryScreen() {
     <LinearGradient colors={['#0A0A0F', '#13131A']} style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>←</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Icon name="arrowLeft" size={24} color={colors.text.secondary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('gallery.title')}</Text>
         <Text style={styles.photoCount}>{photos.length}</Text>
@@ -93,7 +94,9 @@ export default function GalleryScreen() {
         contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + spacing.xl }]}
         ListEmptyComponent={
           <Animated.View entering={FadeInDown} style={styles.empty}>
-            <Text style={styles.emptyEmoji}>📷</Text>
+            <View style={styles.emptyIconWrap}>
+              <Icon name="camera" size={36} color={colors.brand.light} strokeWidth={1.6} />
+            </View>
             <Text style={styles.emptyTitle}>{t('gallery.empty')}</Text>
             <Text style={styles.emptySubtitle}>{t('gallery.emptySubtitle')}</Text>
           </Animated.View>
@@ -127,7 +130,10 @@ export default function GalleryScreen() {
                     {t('gallery.by')} {selected.uploaderName}
                   </Text>
                 )}
-                <Text style={styles.lightboxClose}>✕ {t('common.close')}</Text>
+                <View style={styles.lightboxClose}>
+                  <Icon name="close" size={14} color="rgba(255,255,255,0.5)" />
+                  <Text style={styles.lightboxCloseText}>{t('common.close')}</Text>
+                </View>
               </View>
             </>
           )}
@@ -144,7 +150,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, paddingBottom: spacing.md,
     borderBottomWidth: 1, borderBottomColor: colors.border.subtle,
   },
-  backText: { fontSize: 24, color: colors.text.secondary },
+  backBtn: { width: 32, height: 32, justifyContent: 'center' },
   headerTitle: { fontSize: typography.sizes.lg, fontWeight: typography.weights.bold, color: colors.text.primary },
   photoCount: { fontSize: typography.sizes.base, fontWeight: typography.weights.bold, color: colors.brand.DEFAULT },
   filterRow: { flexDirection: 'row', gap: spacing.sm, padding: spacing.lg, paddingBottom: spacing.sm },
@@ -156,14 +162,14 @@ const styles = StyleSheet.create({
   photoCell: { width: PHOTO_SIZE, height: PHOTO_SIZE, borderRadius: radius.md, overflow: 'hidden', margin: spacing.xs / 2 },
   photo: { width: '100%', height: '100%' },
   myBadge: { position: 'absolute', top: 6, right: 6, width: 20, height: 20, borderRadius: 10, backgroundColor: colors.brand.DEFAULT, alignItems: 'center', justifyContent: 'center' },
-  myBadgeText: { color: '#fff', fontSize: 10, fontWeight: typography.weights.bold },
   empty: { alignItems: 'center', gap: spacing.md, paddingTop: spacing['3xl'] },
-  emptyEmoji: { fontSize: 48 },
+  emptyIconWrap: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand.glow, borderWidth: 1, borderColor: colors.border.brand },
   emptyTitle: { fontSize: typography.sizes.lg, fontWeight: typography.weights.bold, color: colors.text.primary },
   emptySubtitle: { fontSize: typography.sizes.sm, color: colors.text.muted },
   lightbox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', alignItems: 'center', justifyContent: 'center' },
   lightboxImage: { width, height: width, maxHeight: '80%' },
   lightboxMeta: { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center', gap: spacing.sm },
   lightboxUploader: { color: 'rgba(255,255,255,0.6)', fontSize: typography.sizes.sm },
-  lightboxClose: { color: 'rgba(255,255,255,0.4)', fontSize: typography.sizes.sm },
+  lightboxClose: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  lightboxCloseText: { color: 'rgba(255,255,255,0.5)', fontSize: typography.sizes.sm },
 });

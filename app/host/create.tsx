@@ -16,26 +16,27 @@ import { useEventStore, EventType, RevealTiming } from '@store/eventStore';
 import { StepIndicator } from '@shared/components/StepIndicator';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
+import { Icon, IconName, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { colors, typography, spacing, radius } from '@constants/theme';
 
 const TOTAL_STEPS = 5;
 
-const EVENT_TYPES: { key: EventType; icon: string; labelKey: string }[] = [
-  { key: 'wedding', icon: '💍', labelKey: 'host.eventTypes.wedding' },
-  { key: 'birthday', icon: '🎂', labelKey: 'host.eventTypes.birthday' },
-  { key: 'party', icon: '🎉', labelKey: 'host.eventTypes.party' },
-  { key: 'yacht', icon: '⛵', labelKey: 'host.eventTypes.yacht' },
-  { key: 'club', icon: '🎵', labelKey: 'host.eventTypes.club' },
-  { key: 'festival', icon: '🎪', labelKey: 'host.eventTypes.festival' },
-  { key: 'corporate', icon: '🏢', labelKey: 'host.eventTypes.corporate' },
-  { key: 'other', icon: '✨', labelKey: 'host.eventTypes.other' },
+const EVENT_TYPES: { key: EventType; labelKey: string }[] = [
+  { key: 'wedding', labelKey: 'host.eventTypes.wedding' },
+  { key: 'birthday', labelKey: 'host.eventTypes.birthday' },
+  { key: 'party', labelKey: 'host.eventTypes.party' },
+  { key: 'yacht', labelKey: 'host.eventTypes.yacht' },
+  { key: 'club', labelKey: 'host.eventTypes.club' },
+  { key: 'festival', labelKey: 'host.eventTypes.festival' },
+  { key: 'corporate', labelKey: 'host.eventTypes.corporate' },
+  { key: 'other', labelKey: 'host.eventTypes.other' },
 ];
 
 const SHOT_OPTIONS = [10, 12, 24, 36, 48, 72];
-const REVEAL_OPTIONS: { key: RevealTiming; icon: string; labelKey: string; descKey: string }[] = [
-  { key: 'instant', icon: '⚡', labelKey: 'host.revealInstant', descKey: 'host.revealInstantDesc' },
-  { key: 'after_event', icon: '🌅', labelKey: 'host.revealAfterEvent', descKey: 'host.revealAfterEventDesc' },
-  { key: '24h', icon: '⏳', labelKey: 'host.reveal24h', descKey: 'host.reveal24hDesc' },
+const REVEAL_OPTIONS: { key: RevealTiming; icon: IconName; labelKey: string; descKey: string }[] = [
+  { key: 'instant', icon: 'flash', labelKey: 'host.revealInstant', descKey: 'host.revealInstantDesc' },
+  { key: 'after_event', icon: 'calendar', labelKey: 'host.revealAfterEvent', descKey: 'host.revealAfterEventDesc' },
+  { key: '24h', icon: 'film', labelKey: 'host.reveal24h', descKey: 'host.reveal24hDesc' },
 ];
 
 export default function CreateEvent() {
@@ -91,7 +92,7 @@ export default function CreateEvent() {
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
           <TouchableOpacity onPress={() => step > 0 ? setStep(step - 1) : router.back()} style={styles.headerBtn}>
-            <Text style={styles.backText}>←</Text>
+            <Icon name="arrowLeft" size={22} color={colors.text.secondary} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.stepLabel}>{stepTitles[step]}</Text>
@@ -120,7 +121,7 @@ export default function CreateEvent() {
                       <Animated.Image source={{ uri: draft.coverImageUri }} style={styles.coverImage} />
                     ) : (
                       <LinearGradient colors={['rgba(168,85,247,0.15)', 'rgba(168,85,247,0.05)']} style={styles.coverEmpty}>
-                        <Text style={{ fontSize: 32 }}>📸</Text>
+                        <Icon name="image" size={30} color={colors.brand.light} strokeWidth={1.8} />
                         <Text style={styles.coverEmptyText}>{t('host.addCoverPhoto')}</Text>
                       </LinearGradient>
                     )}
@@ -159,7 +160,11 @@ export default function CreateEvent() {
                         onPress={() => updateDraft({ type: et.key })}
                         activeOpacity={0.7}
                       >
-                        <Text style={styles.typeIcon}>{et.icon}</Text>
+                        <Icon
+                          name={EVENT_TYPE_ICON[et.key]}
+                          size={16}
+                          color={draft.type === et.key ? colors.brand.DEFAULT : colors.text.muted}
+                        />
                         <Text style={[styles.typeLabel, draft.type === et.key && styles.typeLabelActive]}>
                           {t(et.labelKey)}
                         </Text>
@@ -175,13 +180,13 @@ export default function CreateEvent() {
                     onPress={() => setShowPicker((s) => !s)}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.dateIcon}>📅</Text>
+                    <Icon name="calendar" size={20} color={colors.brand.light} />
                     <Text style={[styles.dateText, !draft.date && styles.datePlaceholder]}>
                       {draft.date
                         ? format(draft.date, 'd MMMM yyyy, EEEE', { locale: trLocale })
                         : t('common.optional')}
                     </Text>
-                    <Text style={styles.dateChevron}>{showPicker ? '▲' : '▼'}</Text>
+                    <Icon name={showPicker ? 'chevronUp' : 'chevronDown'} size={16} color={colors.text.muted} />
                   </TouchableOpacity>
 
                   {showPicker && (
@@ -234,7 +239,9 @@ export default function CreateEvent() {
                     activeOpacity={0.8}
                   >
                     <View style={styles.toggleInfo}>
-                      <Text style={styles.toggleIcon}>📽️</Text>
+                      <View style={styles.toggleIconWrap}>
+                        <Icon name="film" size={20} color={draft.disposableMode ? colors.brand.DEFAULT : colors.text.muted} />
+                      </View>
                       <View style={styles.toggleText}>
                         <Text style={styles.toggleTitle}>{t('host.disposableMode')}</Text>
                         <Text style={styles.toggleDesc}>{t('host.disposableModeDesc')}</Text>
@@ -261,7 +268,9 @@ export default function CreateEvent() {
                         onPress={() => updateDraft({ revealTiming: opt.key })}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.revealIcon}>{opt.icon}</Text>
+                        <View style={styles.revealIconWrap}>
+                          <Icon name={opt.icon} size={20} color={draft.revealTiming === opt.key ? colors.brand.DEFAULT : colors.text.muted} />
+                        </View>
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.revealTitle, draft.revealTiming === opt.key && styles.revealTitleActive]}>
                             {t(opt.labelKey)}
@@ -283,7 +292,9 @@ export default function CreateEvent() {
                     activeOpacity={0.8}
                   >
                     <View style={styles.toggleInfo}>
-                      <Text style={styles.toggleIcon}>🖼️</Text>
+                      <View style={styles.toggleIconWrap}>
+                        <Icon name="image" size={20} color={draft.allowGalleryUpload ? colors.brand.DEFAULT : colors.text.muted} />
+                      </View>
                       <View style={styles.toggleText}>
                         <Text style={styles.toggleTitle}>{t('host.allowGalleryUpload')}</Text>
                       </View>
@@ -378,14 +389,11 @@ const styles = StyleSheet.create({
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
   typeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.full, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card },
   typeChipActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
-  typeIcon: { fontSize: 16 },
   typeLabel: { fontSize: typography.sizes.sm, color: colors.text.muted },
   typeLabelActive: { color: colors.brand.DEFAULT, fontWeight: typography.weights.medium },
   dateRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.bg.card, borderWidth: 1, borderColor: colors.border.DEFAULT, borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingVertical: 16, marginTop: spacing.xs },
-  dateIcon: { fontSize: 20 },
   dateText: { flex: 1, fontSize: typography.sizes.base, color: colors.text.primary },
   datePlaceholder: { color: colors.text.muted },
-  dateChevron: { fontSize: 12, color: colors.text.muted },
   pickerWrap: { marginTop: spacing.sm, backgroundColor: colors.bg.card, borderRadius: radius.xl, overflow: 'hidden', borderWidth: 1, borderColor: colors.border.DEFAULT },
   shotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
   shotChip: { alignItems: 'center', padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card, minWidth: 86 },
@@ -397,7 +405,7 @@ const styles = StyleSheet.create({
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card },
   toggleRowActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
   toggleInfo: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1 },
-  toggleIcon: { fontSize: 24 },
+  toggleIconWrap: { width: 36, height: 36, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg.elevated },
   toggleText: { flex: 1, gap: 2 },
   toggleTitle: { fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.text.primary },
   toggleDesc: { fontSize: typography.sizes.xs, color: colors.text.muted },
@@ -408,7 +416,7 @@ const styles = StyleSheet.create({
   revealOptions: { gap: spacing.sm, marginTop: spacing.xs },
   revealCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card },
   revealCardActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
-  revealIcon: { fontSize: 24 },
+  revealIconWrap: { width: 36, height: 36, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg.elevated },
   revealTitle: { fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text.secondary },
   revealTitleActive: { color: colors.brand.DEFAULT },
   revealDesc: { fontSize: typography.sizes.xs, color: colors.text.muted, marginTop: 2 },

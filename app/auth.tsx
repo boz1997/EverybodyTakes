@@ -18,6 +18,7 @@ import { AuthService } from '@features/auth/services/authService';
 import { useAuthStore } from '@store/authStore';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
+import { Icon, BrandIcon } from '@shared/components/Icon';
 import { colors, typography, spacing, radius } from '@constants/theme';
 
 type AuthStep = 'options' | 'email' | 'sent';
@@ -82,14 +83,15 @@ export default function AuthScreen() {
         >
           {/* Back */}
           <TouchableOpacity onPress={() => (step === 'options' ? router.back() : setStep('options'))} style={styles.backBtn}>
-            <Text style={styles.backText}>← {t('common.back')}</Text>
+            <Icon name="arrowLeft" size={18} color={colors.text.secondary} />
+            <Text style={styles.backText}>{t('common.back')}</Text>
           </TouchableOpacity>
 
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoMini}>
               <LinearGradient colors={['#A855F7', '#7C3AED']} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radius.lg }}>
-                <Text style={{ fontSize: 22, color: '#fff' }}>◉</Text>
+                <Icon name="camera" size={24} color="#fff" strokeWidth={2.2} />
               </LinearGradient>
             </View>
             <Text style={styles.title}>
@@ -108,13 +110,17 @@ export default function AuthScreen() {
             <View style={styles.options}>
               {/* Apple */}
               <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8}>
-                <Text style={styles.socialIcon}>🍎</Text>
+                <View style={styles.socialIconWrap}>
+                  <BrandIcon brand="apple" size={20} color={colors.text.primary} />
+                </View>
                 <Text style={styles.socialLabel}>{t('auth.continueWithApple')}</Text>
               </TouchableOpacity>
 
               {/* Google */}
               <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8}>
-                <Text style={styles.socialIcon}>G</Text>
+                <View style={styles.socialIconWrap}>
+                  <BrandIcon brand="google" size={18} color={colors.text.primary} />
+                </View>
                 <Text style={styles.socialLabel}>{t('auth.continueWithGoogle')}</Text>
               </TouchableOpacity>
 
@@ -130,7 +136,9 @@ export default function AuthScreen() {
                 onPress={() => setStep('email')}
                 activeOpacity={0.8}
               >
-                <Text style={styles.socialIcon}>✉️</Text>
+                <View style={styles.socialIconWrap}>
+                  <Icon name="mail" size={20} color={colors.brand.light} />
+                </View>
                 <Text style={styles.socialLabel}>{t('auth.continueWithMagicLink')}</Text>
               </TouchableOpacity>
 
@@ -173,7 +181,9 @@ export default function AuthScreen() {
 
           {step === 'sent' && (
             <View style={styles.sentContainer}>
-              <Text style={styles.sentEmoji}>📨</Text>
+              <View style={styles.sentIconWrap}>
+                <Icon name="mail" size={40} color={colors.brand.light} strokeWidth={1.8} />
+              </View>
               <Text style={styles.sentHint}>Gelen kutunu veya spam klasörünü kontrol et.</Text>
               <PrimaryButton
                 label={t('common.back')}
@@ -193,7 +203,7 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { paddingHorizontal: spacing.lg, gap: spacing.xl },
-  backBtn: { alignSelf: 'flex-start' },
+  backBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6 },
   backText: { color: colors.text.secondary, fontSize: typography.sizes.base },
   header: { alignItems: 'center', gap: spacing.sm },
   logoMini: { width: 56, height: 56, borderRadius: radius.lg, overflow: 'hidden' },
@@ -212,14 +222,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   emailBtn: { borderColor: colors.border.brand },
-  socialIcon: { fontSize: 20, width: 28, textAlign: 'center', color: colors.text.primary, fontWeight: typography.weights.bold },
+  socialIconWrap: { width: 28, alignItems: 'center', justifyContent: 'center' },
   socialLabel: { fontSize: typography.sizes.base, fontWeight: typography.weights.medium, color: colors.text.primary },
   divider: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.border.subtle },
   dividerText: { color: colors.text.muted, fontSize: typography.sizes.sm },
   anonNote: { textAlign: 'center', color: colors.text.muted, fontSize: typography.sizes.xs },
   sentContainer: { alignItems: 'center', gap: spacing.lg },
-  sentEmoji: { fontSize: 64 },
+  sentIconWrap: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand.glow, borderWidth: 1, borderColor: colors.border.brand },
   sentHint: { color: colors.text.secondary, textAlign: 'center', fontSize: typography.sizes.sm },
   terms: { textAlign: 'center', color: colors.text.muted, fontSize: typography.sizes.xs, lineHeight: 18 },
 });

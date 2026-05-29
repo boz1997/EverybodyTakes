@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Image, Alert,
+  View, Text, StyleSheet, TouchableOpacity, Image, Alert, ActivityIndicator,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +14,8 @@ import { useAuthStore } from '@store/authStore';
 import { useEventStore } from '@store/eventStore';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
+import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
+import { EventType } from '@store/eventStore';
 import { colors, typography, spacing, radius } from '@constants/theme';
 import { format } from 'date-fns';
 
@@ -71,15 +73,12 @@ export default function JoinScreen() {
     }
   };
 
-  const typeEmojis: Record<string, string> = {
-    wedding: '💍', birthday: '🎂', party: '🎉', yacht: '⛵', club: '🎵', festival: '🎪', corporate: '🏢', other: '✨',
-  };
 
   if (loading) {
     return (
       <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
         <View style={styles.centerContent}>
-          <Text style={styles.loadingEmoji}>📷</Text>
+          <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
           <Text style={styles.loadingText}>{t('guest.joiningEvent')}</Text>
         </View>
       </LinearGradient>
@@ -90,7 +89,9 @@ export default function JoinScreen() {
     return (
       <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
         <View style={styles.centerContent}>
-          <Text style={styles.errorEmoji}>❌</Text>
+          <View style={styles.errorIconWrap}>
+            <Icon name="alert" size={36} color={colors.error} strokeWidth={1.8} />
+          </View>
           <Text style={styles.errorTitle}>{error}</Text>
           <PrimaryButton label={t('common.back')} onPress={() => router.back()} variant="ghost" />
         </View>
@@ -110,7 +111,7 @@ export default function JoinScreen() {
             <Image source={{ uri: event.coverImageUrl }} style={styles.coverImage} />
           ) : (
             <LinearGradient colors={['rgba(168,85,247,0.2)', 'rgba(168,85,247,0.05)']} style={styles.coverEmpty}>
-              <Text style={styles.coverEmoji}>{typeEmojis[event.type] ?? '🎉'}</Text>
+              <Icon name={EVENT_TYPE_ICON[event.type as EventType] ?? 'party'} size={64} color={colors.brand.light} strokeWidth={1.4} />
             </LinearGradient>
           )}
           <LinearGradient
@@ -132,18 +133,18 @@ export default function JoinScreen() {
           {/* Stats */}
           <View style={styles.stats}>
             <View style={styles.statChip}>
-              <Text style={styles.statIcon}>📷</Text>
+              <Icon name="camera" size={14} color={colors.text.secondary} />
               <Text style={styles.statText}>{event.shotsPerGuest} çekim</Text>
             </View>
             {event.disposableMode && (
               <View style={styles.statChip}>
-                <Text style={styles.statIcon}>🎞️</Text>
+                <Icon name="film" size={14} color={colors.text.secondary} />
                 <Text style={styles.statText}>Disposable</Text>
               </View>
             )}
             {event.maxGuests && (
               <View style={styles.statChip}>
-                <Text style={styles.statIcon}>👥</Text>
+                <Icon name="users" size={14} color={colors.text.secondary} />
                 <Text style={styles.statText}>{event.maxGuests} kişi</Text>
               </View>
             )}
@@ -179,22 +180,19 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   glow: { position: 'absolute', top: 100, left: '20%', width: '60%', height: 200, borderRadius: 200, backgroundColor: 'rgba(168,85,247,0.15)' },
   centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, paddingHorizontal: spacing.lg },
-  loadingEmoji: { fontSize: 48 },
   loadingText: { fontSize: typography.sizes.lg, color: colors.text.secondary },
-  errorEmoji: { fontSize: 48 },
+  errorIconWrap: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' },
   errorTitle: { fontSize: typography.sizes.lg, fontWeight: typography.weights.bold, color: colors.text.primary, textAlign: 'center' },
   content: { flex: 1, paddingHorizontal: spacing.lg, gap: spacing.lg },
   coverWrap: { height: 220, borderRadius: radius['2xl'], overflow: 'hidden' },
   coverImage: { width: '100%', height: '100%' },
   coverEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  coverEmoji: { fontSize: 72 },
   coverFade: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 80 },
   infoSection: { gap: spacing.sm },
   eventName: { fontSize: typography.sizes['2xl'], fontWeight: typography.weights.extrabold, color: colors.text.primary },
   eventDate: { fontSize: typography.sizes.sm, color: colors.text.muted },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
   statChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.bg.card, borderRadius: radius.full, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: colors.border.DEFAULT },
-  statIcon: { fontSize: 14 },
   statText: { fontSize: typography.sizes.sm, color: colors.text.secondary },
   nicknameSection: {},
   ctaSection: { gap: spacing.sm, marginTop: 'auto' },

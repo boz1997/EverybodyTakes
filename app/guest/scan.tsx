@@ -12,6 +12,7 @@ import * as Haptics from 'expo-haptics';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { InputField } from '@shared/components/InputField';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
+import { Icon } from '@shared/components/Icon';
 import { colors, typography, spacing, radius } from '@constants/theme';
 
 const { width, height } = Dimensions.get('window');
@@ -61,7 +62,7 @@ export default function ScanScreen() {
     return (
       <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
         <View style={[styles.permContent, { paddingTop: insets.top + spacing.lg }]}>
-          <Text style={styles.permEmoji}>📷</Text>
+          <Icon name="camera" size={56} color={colors.brand.light} strokeWidth={1.6} />
           <Text style={styles.permTitle}>{t('errors.cameraPermission')}</Text>
           <Text style={styles.permDesc}>{t('errors.cameraPermissionDesc')}</Text>
           <PrimaryButton label={t('errors.cameraPermission')} onPress={requestPermission} />
@@ -91,12 +92,12 @@ export default function ScanScreen() {
 
       {/* Top Bar */}
       <View style={[styles.topBar, { paddingTop: insets.top + spacing.sm }]}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>←</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.topIconBtn}>
+          <Icon name="arrowLeft" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.topTitle}>{t('guest.scanQR')}</Text>
-        <TouchableOpacity onPress={() => setMode(mode === 'scan' ? 'code' : 'scan')}>
-          <Text style={styles.modeToggle}>{mode === 'scan' ? '⌨️' : '📷'}</Text>
+        <TouchableOpacity onPress={() => setMode(mode === 'scan' ? 'code' : 'scan')} style={styles.topIconBtn}>
+          <Icon name={mode === 'scan' ? 'keyboard' : 'camera'} size={22} color="#fff" />
         </TouchableOpacity>
       </View>
 
@@ -150,7 +151,6 @@ export default function ScanScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   permContent: { flex: 1, paddingHorizontal: spacing.lg, alignItems: 'center', justifyContent: 'center', gap: spacing.lg },
-  permEmoji: { fontSize: 64 },
   permTitle: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: colors.text.primary, textAlign: 'center' },
   permDesc: { fontSize: typography.sizes.sm, color: colors.text.muted, textAlign: 'center' },
   topBar: {
@@ -158,9 +158,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: spacing.lg, paddingBottom: spacing.md, zIndex: 10,
   },
-  backText: { fontSize: 24, color: '#fff' },
+  topIconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   topTitle: { fontSize: typography.sizes.lg, fontWeight: typography.weights.semibold, color: '#fff' },
-  modeToggle: { fontSize: 24 },
   frameWrapper: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   frame: { width: FRAME_SIZE, height: FRAME_SIZE, overflow: 'hidden' },
   corner: { position: 'absolute', width: 28, height: 28, borderColor: colors.brand.DEFAULT, borderWidth: 3 },

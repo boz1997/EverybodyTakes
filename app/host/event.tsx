@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { EventService, Event, Photo } from '@features/events/services/eventService';
+import { Icon } from '@shared/components/Icon';
 import { colors, typography, spacing, radius } from '@constants/theme';
 
 const { width } = Dimensions.get('window');
@@ -52,7 +53,7 @@ export default function EventManage() {
       {selectedPhoto?.id === item.id && (
         <View style={styles.photoOverlay}>
           <TouchableOpacity onPress={() => handleDeletePhoto(item)} style={styles.deleteBtn}>
-            <Text style={styles.deleteBtnText}>🗑️</Text>
+            <Icon name="trash" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
       )}
@@ -63,8 +64,9 @@ export default function EventManage() {
     <LinearGradient colors={['#0A0A0F', '#13131A']} style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>← {t('common.back')}</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Icon name="arrowLeft" size={20} color={colors.text.secondary} />
+          <Text style={styles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{event?.name ?? '...'}</Text>
         <TouchableOpacity onPress={() => router.push({ pathname: '/host/qr', params: { id, code: event?.shortCode } })}>
@@ -104,7 +106,9 @@ export default function EventManage() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>📸</Text>
+            <View style={styles.emptyIconWrap}>
+              <Icon name="camera" size={32} color={colors.brand.light} strokeWidth={1.6} />
+            </View>
             <Text style={styles.emptyText}>Henüz fotoğraf yok</Text>
             <Text style={styles.emptySubText}>Misafirlerin fotoğraf çektikçe burada görünür</Text>
           </View>
@@ -121,6 +125,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, paddingBottom: spacing.md,
     borderBottomWidth: 1, borderBottomColor: colors.border.subtle,
   },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   backText: { color: colors.text.secondary, fontSize: typography.sizes.base },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: typography.sizes.base, fontWeight: typography.weights.semibold, color: colors.text.primary },
   qrLink: { color: colors.brand.DEFAULT, fontSize: typography.sizes.base, fontWeight: typography.weights.semibold },
@@ -143,9 +148,8 @@ const styles = StyleSheet.create({
   photo: { width: '100%', height: '100%' },
   photoOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
   deleteBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(239,68,68,0.8)', alignItems: 'center', justifyContent: 'center' },
-  deleteBtnText: { fontSize: 20 },
   empty: { alignItems: 'center', gap: spacing.sm, paddingTop: spacing['2xl'] },
-  emptyEmoji: { fontSize: 48 },
+  emptyIconWrap: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand.glow, borderWidth: 1, borderColor: colors.border.brand },
   emptyText: { fontSize: typography.sizes.base, fontWeight: typography.weights.semibold, color: colors.text.primary },
   emptySubText: { fontSize: typography.sizes.sm, color: colors.text.muted, textAlign: 'center' },
 });

@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import QRCode from 'react-native-qrcode-svg';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { Icon } from '@shared/components/Icon';
 import { colors, typography, spacing, radius } from '@constants/theme';
 
 export default function QRScreen() {
@@ -42,7 +43,9 @@ export default function QRScreen() {
 
         {/* Header */}
         <Animated.View entering={FadeInUp.delay(100)} style={styles.header}>
-          <Text style={styles.checkmark}>✅</Text>
+          <View style={styles.checkmark}>
+            <Icon name="check" size={32} color={colors.success} strokeWidth={2.4} />
+          </View>
           <Text style={styles.title}>{t('host.eventCreated')}</Text>
           <Text style={styles.subtitle}>{t('host.eventCreatedSubtitle')}</Text>
         </Animated.View>
@@ -58,9 +61,6 @@ export default function QRScreen() {
                   size={220}
                   backgroundColor="transparent"
                   color="#fff"
-                  logo={{ uri: '' }}
-                  logoBorderRadius={8}
-                  logoBackgroundColor={colors.brand.DEFAULT}
                 />
               </View>
               {/* Corner decorations */}
@@ -85,7 +85,7 @@ export default function QRScreen() {
           </View>
           <TouchableOpacity onPress={handleCopy} style={styles.copyBtn} activeOpacity={0.8}>
             <LinearGradient colors={copied ? ['#22C55E', '#16A34A'] : ['#2A2A3A', '#1A1A24']} style={styles.copyBtnGradient}>
-              <Text style={styles.copyIcon}>{copied ? '✓' : '⧉'}</Text>
+              <Icon name={copied ? 'check' : 'copy'} size={18} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
@@ -94,7 +94,7 @@ export default function QRScreen() {
         <Animated.View entering={FadeInDown.delay(600)} style={styles.actions}>
           <TouchableOpacity onPress={handleShare} style={styles.actionBtn} activeOpacity={0.85}>
             <LinearGradient colors={['#A855F7', '#7C3AED']} style={styles.actionBtnGradient}>
-              <Text style={styles.actionIcon}>↑</Text>
+              <Icon name="share" size={18} color="#fff" />
               <Text style={styles.actionText}>{t('host.shareQR')}</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -105,7 +105,7 @@ export default function QRScreen() {
             activeOpacity={0.85}
           >
             <View style={styles.actionBtnOutline}>
-              <Text style={styles.actionIcon}>📊</Text>
+              <Icon name="settings" size={18} color={colors.text.primary} />
               <Text style={styles.actionTextOutline}>{t('host.manageEvent')}</Text>
             </View>
           </TouchableOpacity>
@@ -113,7 +113,10 @@ export default function QRScreen() {
 
         {/* Dashboard */}
         <TouchableOpacity onPress={() => router.replace('/host/dashboard')} activeOpacity={0.7}>
-          <Text style={styles.dashboardLink}>{t('host.dashboard')} →</Text>
+          <View style={styles.dashboardLinkRow}>
+            <Text style={styles.dashboardLink}>{t('host.dashboard')}</Text>
+            <Icon name="arrowRight" size={16} color={colors.text.muted} />
+          </View>
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -125,7 +128,7 @@ const styles = StyleSheet.create({
   glow: { position: 'absolute', top: -30, left: '20%', width: '60%', height: 250, borderRadius: 250, backgroundColor: 'rgba(168,85,247,0.18)' },
   content: { flex: 1, paddingHorizontal: spacing.lg, alignItems: 'center', justifyContent: 'space-between' },
   header: { alignItems: 'center', gap: spacing.sm },
-  checkmark: { fontSize: 48 },
+  checkmark: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(34,197,94,0.12)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.3)' },
   title: { fontSize: typography.sizes['2xl'], fontWeight: typography.weights.extrabold, color: colors.text.primary, textAlign: 'center' },
   subtitle: { fontSize: typography.sizes.sm, color: colors.text.muted, textAlign: 'center' },
   qrCard: { width: '100%', borderRadius: radius['2xl'], overflow: 'hidden', borderWidth: 1, borderColor: colors.border.brand },
@@ -150,8 +153,8 @@ const styles = StyleSheet.create({
   actionBtn: { flex: 1, borderRadius: radius.xl, overflow: 'hidden', height: 52 },
   actionBtnGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   actionBtnOutline: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: colors.border.DEFAULT, borderRadius: radius.xl, height: 52 },
-  actionIcon: { fontSize: 18, color: '#fff' },
   actionText: { fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: '#fff' },
   actionTextOutline: { fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text.primary },
+  dashboardLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dashboardLink: { color: colors.text.muted, fontSize: typography.sizes.sm },
 });

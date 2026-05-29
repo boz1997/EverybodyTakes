@@ -11,6 +11,7 @@ import { useEventStore } from '@store/eventStore';
 import { useAuthStore } from '@store/authStore';
 import { EventService } from '@features/events/services/eventService';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
+import { Icon, IconName, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { colors, typography, spacing, radius } from '@constants/theme';
 
 type Plan = 'free' | 'starter' | 'pro';
@@ -35,7 +36,7 @@ export default function PaywallScreen() {
       name: t('paywall.free.name'),
       price: t('paywall.free.price'),
       period: '',
-      icon: '🎁',
+      icon: 'gift' as IconName,
       features: (t('paywall.free.features', { returnObjects: true }) as string[]).map((f) => ({ text: f, included: true })),
       color: colors.text.muted,
       gradient: ['#1A1A24', '#13131A'] as [string, string],
@@ -45,7 +46,7 @@ export default function PaywallScreen() {
       name: t('paywall.starter.name'),
       price: t('paywall.starter.price'),
       period: t('paywall.starter.period'),
-      icon: '⚡',
+      icon: 'flash' as IconName,
       features: (t('paywall.starter.features', { returnObjects: true }) as string[]).map((f) => ({ text: f, included: true })),
       color: colors.brand.DEFAULT,
       gradient: ['rgba(168,85,247,0.15)', 'rgba(168,85,247,0.03)'] as [string, string],
@@ -56,7 +57,7 @@ export default function PaywallScreen() {
       name: t('paywall.pro.name'),
       price: t('paywall.pro.price'),
       period: t('paywall.pro.period'),
-      icon: '👑',
+      icon: 'crown' as IconName,
       features: (t('paywall.pro.features', { returnObjects: true }) as string[]).map((f) => ({ text: f, included: true })),
       color: colors.gold.DEFAULT,
       gradient: ['rgba(245,158,11,0.15)', 'rgba(245,158,11,0.03)'] as [string, string],
@@ -95,11 +96,14 @@ export default function PaywallScreen() {
       >
         {/* Header */}
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>← {t('common.back')}</Text>
+          <Icon name="arrowLeft" size={18} color={colors.text.secondary} />
+          <Text style={styles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <Text style={styles.crown}>👑</Text>
+          <View style={styles.crownWrap}>
+            <Icon name="crown" size={32} color={colors.gold.DEFAULT} strokeWidth={1.8} />
+          </View>
           <Text style={styles.title}>{t('paywall.title')}</Text>
           <Text style={styles.subtitle}>{t('paywall.subtitle')}</Text>
         </View>
@@ -107,7 +111,7 @@ export default function PaywallScreen() {
         {/* Event Summary Pill */}
         <View style={styles.eventPill}>
           <LinearGradient colors={['rgba(168,85,247,0.2)', 'rgba(168,85,247,0.05)']} style={styles.eventPillGradient}>
-            <Text style={styles.eventPillIcon}>🎉</Text>
+            <Icon name={EVENT_TYPE_ICON[draft.type]} size={18} color={colors.brand.light} />
             <Text style={styles.eventPillName} numberOfLines={1}>{draft.name || 'Etkinlik'}</Text>
             <Text style={styles.eventPillDetail}>{draft.shotsPerGuest} çekim/kişi</Text>
           </LinearGradient>
@@ -131,7 +135,9 @@ export default function PaywallScreen() {
 
                 <View style={styles.planTop}>
                   <View style={styles.planLeft}>
-                    <Text style={styles.planIcon}>{plan.icon}</Text>
+                    <View style={[styles.planIconWrap, { backgroundColor: plan.color + '22' }]}>
+                      <Icon name={plan.icon} size={22} color={plan.color} />
+                    </View>
                     <View>
                       <Text style={[styles.planName, { color: plan.color }]}>{plan.name}</Text>
                       {plan.period ? (
@@ -147,7 +153,7 @@ export default function PaywallScreen() {
                 <View style={styles.featureList}>
                   {plan.features.map((f, i) => (
                     <View key={i} style={styles.featureRow}>
-                      <Text style={[styles.featureCheck, { color: plan.color }]}>✓</Text>
+                      <Icon name="check" size={15} color={plan.color} strokeWidth={2.6} />
                       <Text style={styles.featureText}>{f.text}</Text>
                     </View>
                   ))}
@@ -194,15 +200,14 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   glow: { position: 'absolute', top: -50, left: '20%', width: '60%', height: 200, borderRadius: 200, backgroundColor: 'rgba(168,85,247,0.15)' },
   scroll: { paddingHorizontal: spacing.lg, gap: spacing.lg },
-  backBtn: { alignSelf: 'flex-start' },
+  backBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6 },
   backText: { color: colors.text.secondary, fontSize: typography.sizes.base },
   header: { alignItems: 'center', gap: spacing.sm },
-  crown: { fontSize: 48 },
+  crownWrap: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.3)' },
   title: { fontSize: typography.sizes['2xl'], fontWeight: typography.weights.extrabold, color: colors.text.primary, textAlign: 'center' },
   subtitle: { fontSize: typography.sizes.sm, color: colors.text.muted, textAlign: 'center' },
   eventPill: { borderRadius: radius.full, overflow: 'hidden', borderWidth: 1, borderColor: colors.border.brand },
   eventPillGradient: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: 12, gap: spacing.sm },
-  eventPillIcon: { fontSize: 20 },
   eventPillName: { flex: 1, fontSize: typography.sizes.base, fontWeight: typography.weights.semibold, color: colors.text.primary },
   eventPillDetail: { fontSize: typography.sizes.sm, color: colors.text.muted },
   plans: { gap: spacing.md },
@@ -211,15 +216,14 @@ const styles = StyleSheet.create({
   badge: { alignSelf: 'flex-start', backgroundColor: colors.brand.DEFAULT, borderRadius: radius.full, paddingHorizontal: 12, paddingVertical: 4, marginBottom: -spacing.xs },
   badgeText: { color: '#fff', fontSize: typography.sizes.xs, fontWeight: typography.weights.bold },
   planTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  planLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  planIcon: { fontSize: 28 },
+  planLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  planIconWrap: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   planName: { fontSize: typography.sizes.lg, fontWeight: typography.weights.bold },
   planPeriod: { fontSize: typography.sizes.xs, color: colors.text.muted },
   planPriceWrap: { alignItems: 'flex-end' },
   planPrice: { fontSize: typography.sizes['2xl'], fontWeight: typography.weights.extrabold },
   featureList: { gap: 8 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  featureCheck: { fontSize: typography.sizes.sm, fontWeight: typography.weights.bold, width: 16 },
   featureText: { fontSize: typography.sizes.sm, color: colors.text.secondary },
   selector: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.border.DEFAULT, alignSelf: 'flex-end', alignItems: 'center', justifyContent: 'center' },
   selectorDot: { width: 12, height: 12, borderRadius: 6 },

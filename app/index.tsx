@@ -13,6 +13,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useAuthStore } from '@store/authStore';
+import { Icon } from '@shared/components/Icon';
 import { colors, typography, spacing, radius } from '@constants/theme';
 
 const { width, height } = Dimensions.get('window');
@@ -82,7 +83,7 @@ export default function WelcomeScreen() {
               colors={['#A855F7', '#7C3AED']}
               style={styles.logoGradient}
             >
-              <Text style={styles.logoIcon}>◉</Text>
+              <Icon name="camera" size={36} color="#fff" strokeWidth={2.2} />
             </LinearGradient>
           </View>
           <Text style={styles.brandName}>GuestCam</Text>
@@ -108,13 +109,13 @@ export default function WelcomeScreen() {
               style={styles.roleCardGradient}
             >
               <View style={styles.roleIconWrap}>
-                <Text style={styles.roleIcon}>📷</Text>
+                <Icon name="camera" size={24} color={colors.brand.light} />
               </View>
               <View style={styles.roleTextWrap}>
                 <Text style={styles.roleTitle}>{t('welcome.iAmGuest')}</Text>
                 <Text style={styles.roleSubtitle}>{t('welcome.guestSubtitle')}</Text>
               </View>
-              <Text style={styles.roleArrow}>→</Text>
+              <Icon name="arrowRight" size={20} color={colors.text.muted} />
             </LinearGradient>
           </TouchableOpacity>
 
@@ -129,13 +130,13 @@ export default function WelcomeScreen() {
               style={styles.roleCardGradient}
             >
               <View style={[styles.roleIconWrap, styles.hostIconBg]}>
-                <Text style={styles.roleIcon}>🎉</Text>
+                <Icon name="party" size={24} color={colors.gold.light} />
               </View>
               <View style={styles.roleTextWrap}>
                 <Text style={styles.roleTitle}>{t('welcome.iAmHost')}</Text>
                 <Text style={styles.roleSubtitle}>{t('welcome.hostSubtitle')}</Text>
               </View>
-              <Text style={styles.roleArrow}>→</Text>
+              <Icon name="arrowRight" size={20} color={colors.text.muted} />
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>

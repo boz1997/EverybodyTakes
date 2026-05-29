@@ -11,6 +11,8 @@ import { format } from 'date-fns';
 import { tr as trLocale } from 'date-fns/locale';
 import { useAuthStore } from '@store/authStore';
 import { EventService, Event } from '@features/events/services/eventService';
+import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
+import { EventType } from '@store/eventStore';
 import { colors, typography, spacing, radius } from '@constants/theme';
 
 export default function HostDashboard() {
@@ -49,9 +51,7 @@ export default function HostDashboard() {
           <Image source={{ uri: item.coverImageUrl }} style={styles.cardCover} />
         ) : (
           <View style={[styles.cardCover, styles.cardCoverEmpty]}>
-            <Text style={{ fontSize: 28 }}>
-              {item.type === 'wedding' ? '💍' : item.type === 'birthday' ? '🎂' : item.type === 'yacht' ? '⛵' : item.type === 'club' ? '🎵' : '🎉'}
-            </Text>
+            <Icon name={EVENT_TYPE_ICON[item.type as EventType] ?? 'party'} size={32} color={colors.brand.light} strokeWidth={1.6} />
           </View>
         )}
 
@@ -98,7 +98,8 @@ export default function HostDashboard() {
         </View>
         <TouchableOpacity onPress={() => router.push('/host/create')} style={styles.createBtn} activeOpacity={0.85}>
           <LinearGradient colors={['#A855F7', '#7C3AED']} style={styles.createBtnGradient}>
-            <Text style={styles.createBtnText}>+ {t('host.createEvent')}</Text>
+            <Icon name="plus" size={16} color="#fff" strokeWidth={2.6} />
+            <Text style={styles.createBtnText}>{t('host.createEvent')}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -118,7 +119,9 @@ export default function HostDashboard() {
         ListEmptyComponent={
           !loading ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>📷</Text>
+              <View style={styles.emptyIconWrap}>
+                <Icon name="camera" size={36} color={colors.brand.light} strokeWidth={1.6} />
+              </View>
               <Text style={styles.emptyTitle}>{t('host.noEvents')}</Text>
               <Text style={styles.emptySubtitle}>{t('host.noEventsSubtitle')}</Text>
               <TouchableOpacity onPress={() => router.push('/host/create')} style={styles.emptyBtn} activeOpacity={0.85}>
@@ -148,7 +151,7 @@ const styles = StyleSheet.create({
   greeting: { fontSize: typography.sizes.xs, color: colors.brand.DEFAULT, fontWeight: typography.weights.semibold, letterSpacing: 1 },
   headerTitle: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: colors.text.primary },
   createBtn: { borderRadius: radius.xl, overflow: 'hidden' },
-  createBtnGradient: { paddingHorizontal: spacing.md, paddingVertical: 10 },
+  createBtnGradient: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, paddingVertical: 10 },
   createBtnText: { color: '#fff', fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold },
   list: { padding: spacing.lg, gap: spacing.md },
   listEmpty: { flex: 1, justifyContent: 'center' },
@@ -170,7 +173,7 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: typography.sizes.xs, color: colors.text.muted },
   statDivider: { width: 1, height: 28, backgroundColor: colors.border.subtle },
   empty: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing['3xl'] },
-  emptyEmoji: { fontSize: 64 },
+  emptyIconWrap: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand.glow, borderWidth: 1, borderColor: colors.border.brand },
   emptyTitle: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: colors.text.primary },
   emptySubtitle: { fontSize: typography.sizes.sm, color: colors.text.muted, textAlign: 'center' },
   emptyBtn: { borderRadius: radius.xl, overflow: 'hidden', marginTop: spacing.sm },
