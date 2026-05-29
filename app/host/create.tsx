@@ -1,21 +1,24 @@
 import { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  KeyboardAvoidingView, Platform, Alert,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { format } from 'date-fns';
+import { tr as trLocale } from 'date-fns/locale';
 import { useEventStore, EventType, RevealTiming } from '@store/eventStore';
 import { StepIndicator } from '@shared/components/StepIndicator';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
 import { colors, typography, spacing, radius } from '@constants/theme';
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 5;
 
 const EVENT_TYPES: { key: EventType; icon: string; labelKey: string }[] = [
   { key: 'wedding', icon: '💍', labelKey: 'host.eventTypes.wedding' },
@@ -42,12 +45,19 @@ export default function CreateEvent() {
 
   const [step, setStep] = useState(0);
   const [nameError, setNameError] = useState('');
+  const [showPicker, setShowPicker] = useState(false);
 
-  const stepTitles = [t('host.createStep1'), t('host.createStep2'), t('host.createStep3')];
+  const stepTitles = [
+    t('host.createStep1'),   // Event Details
+    t('host.eventType'),     // Type & Date
+    t('host.photoSettings'), // Photo
+    t('host.revealTiming'),  // Reveal
+    t('host.guestSettings'), // Guests
+  ];
 
   const pickCover = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [16, 9],
       quality: 0.9,
@@ -80,209 +90,254 @@ export default function CreateEvent() {
 
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-          <TouchableOpacity onPress={() => step > 0 ? setStep(step - 1) : router.back()}>
+          <TouchableOpacity onPress={() => step > 0 ? setStep(step - 1) : router.back()} style={styles.headerBtn}>
             <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.stepLabel}>{stepTitles[step]}</Text>
             <StepIndicator total={TOTAL_STEPS} current={step} />
           </View>
-          <TouchableOpacity onPress={() => { resetDraft(); router.back(); }}>
+          <TouchableOpacity onPress={() => { resetDraft(); router.back(); }} style={styles.headerBtn}>
             <Text style={styles.cancelText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 100 }]}
+          contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 110 }]}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {/* STEP 0: Event Details */}
-          {step === 0 && (
-            <View style={styles.section}>
-              {/* Cover Photo */}
-              <TouchableOpacity onPress={pickCover} style={styles.coverPicker} activeOpacity={0.8}>
-                {draft.coverImageUri ? (
-                  <Animated.Image source={{ uri: draft.coverImageUri }} style={styles.coverImage} />
-                ) : (
-                  <LinearGradient colors={['rgba(168,85,247,0.15)', 'rgba(168,85,247,0.05)']} style={styles.coverEmpty}>
-                    <Text style={{ fontSize: 32 }}>📸</Text>
-                    <Text style={styles.coverEmptyText}>{t('host.addCoverPhoto')}</Text>
-                  </LinearGradient>
-                )}
-                {draft.coverImageUri && (
-                  <View style={styles.coverChange}>
-                    <Text style={styles.coverChangeText}>{t('host.changeCoverPhoto')}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
+          <Animated.View key={step} entering={FadeIn.duration(250)} style={styles.section}>
 
-              <InputField
-                label={t('host.eventName')}
-                placeholder={t('host.eventNamePlaceholder')}
-                value={draft.name}
-                onChangeText={(v) => { updateDraft({ name: v }); setNameError(''); }}
-                error={nameError}
-                maxLength={80}
-              />
-
-              <Text style={styles.sectionTitle}>{t('host.eventType')}</Text>
-              <View style={styles.typeGrid}>
-                {EVENT_TYPES.map((et) => (
-                  <TouchableOpacity
-                    key={et.key}
-                    style={[styles.typeChip, draft.type === et.key && styles.typeChipActive]}
-                    onPress={() => updateDraft({ type: et.key })}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.typeIcon}>{et.icon}</Text>
-                    <Text style={[styles.typeLabel, draft.type === et.key && styles.typeLabelActive]}>
-                      {t(et.labelKey)}
-                    </Text>
+            {/* STEP 0: Cover + Name */}
+            {step === 0 && (
+              <>
+                <View style={styles.questionBlock}>
+                  <Text style={styles.questionTitle}>{t('host.eventCover')}</Text>
+                  <Text style={styles.questionHint}>{t('common.optional')}</Text>
+                  <TouchableOpacity onPress={pickCover} style={styles.coverPicker} activeOpacity={0.8}>
+                    {draft.coverImageUri ? (
+                      <Animated.Image source={{ uri: draft.coverImageUri }} style={styles.coverImage} />
+                    ) : (
+                      <LinearGradient colors={['rgba(168,85,247,0.15)', 'rgba(168,85,247,0.05)']} style={styles.coverEmpty}>
+                        <Text style={{ fontSize: 32 }}>📸</Text>
+                        <Text style={styles.coverEmptyText}>{t('host.addCoverPhoto')}</Text>
+                      </LinearGradient>
+                    )}
+                    {draft.coverImageUri && (
+                      <View style={styles.coverChange}>
+                        <Text style={styles.coverChangeText}>{t('host.changeCoverPhoto')}</Text>
+                      </View>
+                    )}
                   </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
+                </View>
 
-          {/* STEP 1: Photo Settings */}
-          {step === 1 && (
-            <View style={styles.section}>
-              {/* Shots per guest */}
-              <Text style={styles.sectionTitle}>{t('host.shotsPerGuest')}</Text>
-              <Text style={styles.sectionHint}>{t('host.shotsPerGuestHint')}</Text>
-              <View style={styles.shotGrid}>
-                {SHOT_OPTIONS.map((n) => (
-                  <TouchableOpacity
-                    key={n}
-                    style={[styles.shotChip, draft.shotsPerGuest === n && styles.shotChipActive]}
-                    onPress={() => updateDraft({ shotsPerGuest: n })}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.shotNumber, draft.shotsPerGuest === n && styles.shotNumberActive]}>{n}</Text>
-                    <Text style={[styles.shotLabel, draft.shotsPerGuest === n && styles.shotLabelActive]}>
-                      {t('guest.shot')}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                <View style={styles.questionBlock}>
+                  <InputField
+                    label={t('host.eventName')}
+                    placeholder={t('host.eventNamePlaceholder')}
+                    value={draft.name}
+                    onChangeText={(v) => { updateDraft({ name: v }); setNameError(''); }}
+                    error={nameError}
+                    maxLength={80}
+                    autoFocus
+                  />
+                </View>
+              </>
+            )}
 
-              {/* Disposable mode */}
-              <TouchableOpacity
-                style={[styles.toggleRow, draft.disposableMode && styles.toggleRowActive]}
-                onPress={() => updateDraft({ disposableMode: !draft.disposableMode })}
-                activeOpacity={0.8}
-              >
-                <View style={styles.toggleInfo}>
-                  <Text style={styles.toggleIcon}>📽️</Text>
-                  <View style={styles.toggleText}>
-                    <Text style={styles.toggleTitle}>{t('host.disposableMode')}</Text>
-                    <Text style={styles.toggleDesc}>{t('host.disposableModeDesc')}</Text>
+            {/* STEP 1: Event Type + Date */}
+            {step === 1 && (
+              <>
+                <View style={styles.questionBlock}>
+                  <Text style={styles.questionTitle}>{t('host.eventType')}</Text>
+                  <View style={styles.typeGrid}>
+                    {EVENT_TYPES.map((et) => (
+                      <TouchableOpacity
+                        key={et.key}
+                        style={[styles.typeChip, draft.type === et.key && styles.typeChipActive]}
+                        onPress={() => updateDraft({ type: et.key })}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.typeIcon}>{et.icon}</Text>
+                        <Text style={[styles.typeLabel, draft.type === et.key && styles.typeLabelActive]}>
+                          {t(et.labelKey)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 </View>
-                <View style={[styles.toggle, draft.disposableMode && styles.toggleOn]}>
-                  <View style={[styles.toggleThumb, draft.disposableMode && styles.toggleThumbOn]} />
-                </View>
-              </TouchableOpacity>
 
-              {/* Reveal timing */}
-              <Text style={styles.sectionTitle}>{t('host.revealTiming')}</Text>
-              <View style={styles.revealOptions}>
-                {REVEAL_OPTIONS.map((opt) => (
+                <View style={styles.questionBlock}>
+                  <Text style={styles.questionTitle}>{t('host.eventDate')}</Text>
                   <TouchableOpacity
-                    key={opt.key}
-                    style={[styles.revealCard, draft.revealTiming === opt.key && styles.revealCardActive]}
-                    onPress={() => updateDraft({ revealTiming: opt.key })}
+                    style={styles.dateRow}
+                    onPress={() => setShowPicker((s) => !s)}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.revealIcon}>{opt.icon}</Text>
-                    <Text style={[styles.revealTitle, draft.revealTiming === opt.key && styles.revealTitleActive]}>
-                      {t(opt.labelKey)}
+                    <Text style={styles.dateIcon}>📅</Text>
+                    <Text style={[styles.dateText, !draft.date && styles.datePlaceholder]}>
+                      {draft.date
+                        ? format(draft.date, 'd MMMM yyyy, EEEE', { locale: trLocale })
+                        : t('common.optional')}
                     </Text>
-                    <Text style={styles.revealDesc}>{t(opt.descKey)}</Text>
+                    <Text style={styles.dateChevron}>{showPicker ? '▲' : '▼'}</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
 
-              {/* Gallery upload */}
-              <TouchableOpacity
-                style={[styles.toggleRow, draft.allowGalleryUpload && styles.toggleRowActive]}
-                onPress={() => updateDraft({ allowGalleryUpload: !draft.allowGalleryUpload })}
-                activeOpacity={0.8}
-              >
-                <View style={styles.toggleInfo}>
-                  <Text style={styles.toggleIcon}>🖼️</Text>
-                  <View style={styles.toggleText}>
-                    <Text style={styles.toggleTitle}>{t('host.allowGalleryUpload')}</Text>
+                  {showPicker && (
+                    <View style={styles.pickerWrap}>
+                      <DateTimePicker
+                        value={draft.date ?? new Date()}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                        themeVariant="dark"
+                        accentColor={colors.brand.DEFAULT}
+                        minimumDate={new Date()}
+                        onChange={(_, selected) => {
+                          if (Platform.OS !== 'ios') setShowPicker(false);
+                          if (selected) updateDraft({ date: selected });
+                        }}
+                      />
+                    </View>
+                  )}
+                </View>
+              </>
+            )}
+
+            {/* STEP 2: Shots per guest + Disposable */}
+            {step === 2 && (
+              <>
+                <View style={styles.questionBlock}>
+                  <Text style={styles.questionTitle}>{t('host.shotsPerGuest')}</Text>
+                  <Text style={styles.questionHint}>{t('host.shotsPerGuestHint')}</Text>
+                  <View style={styles.shotGrid}>
+                    {SHOT_OPTIONS.map((n) => (
+                      <TouchableOpacity
+                        key={n}
+                        style={[styles.shotChip, draft.shotsPerGuest === n && styles.shotChipActive]}
+                        onPress={() => updateDraft({ shotsPerGuest: n })}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.shotNumber, draft.shotsPerGuest === n && styles.shotNumberActive]}>{n}</Text>
+                        <Text style={[styles.shotLabel, draft.shotsPerGuest === n && styles.shotLabelActive]}>
+                          {t('guest.shot')}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 </View>
-                <View style={[styles.toggle, draft.allowGalleryUpload && styles.toggleOn]}>
-                  <View style={[styles.toggleThumb, draft.allowGalleryUpload && styles.toggleThumbOn]} />
+
+                <View style={styles.questionBlock}>
+                  <TouchableOpacity
+                    style={[styles.toggleRow, draft.disposableMode && styles.toggleRowActive]}
+                    onPress={() => updateDraft({ disposableMode: !draft.disposableMode })}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.toggleInfo}>
+                      <Text style={styles.toggleIcon}>📽️</Text>
+                      <View style={styles.toggleText}>
+                        <Text style={styles.toggleTitle}>{t('host.disposableMode')}</Text>
+                        <Text style={styles.toggleDesc}>{t('host.disposableModeDesc')}</Text>
+                      </View>
+                    </View>
+                    <View style={[styles.toggle, draft.disposableMode && styles.toggleOn]}>
+                      <View style={[styles.toggleThumb, draft.disposableMode && styles.toggleThumbOn]} />
+                    </View>
+                  </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
-            </View>
-          )}
+              </>
+            )}
 
-          {/* STEP 2: Guest Settings */}
-          {step === 2 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('host.maxGuests')}</Text>
-              <Text style={styles.sectionHint}>{t('host.maxGuestsHint')}</Text>
+            {/* STEP 3: Reveal timing + Gallery upload */}
+            {step === 3 && (
+              <>
+                <View style={styles.questionBlock}>
+                  <Text style={styles.questionTitle}>{t('host.revealTiming')}</Text>
+                  <View style={styles.revealOptions}>
+                    {REVEAL_OPTIONS.map((opt) => (
+                      <TouchableOpacity
+                        key={opt.key}
+                        style={[styles.revealCard, draft.revealTiming === opt.key && styles.revealCardActive]}
+                        onPress={() => updateDraft({ revealTiming: opt.key })}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.revealIcon}>{opt.icon}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.revealTitle, draft.revealTiming === opt.key && styles.revealTitleActive]}>
+                            {t(opt.labelKey)}
+                          </Text>
+                          <Text style={styles.revealDesc}>{t(opt.descKey)}</Text>
+                        </View>
+                        <View style={[styles.radio, draft.revealTiming === opt.key && styles.radioActive]}>
+                          {draft.revealTiming === opt.key && <View style={styles.radioDot} />}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
 
-              <View style={styles.guestGrid}>
-                {[null, 25, 50, 100, 200, 500].map((n) => (
+                <View style={styles.questionBlock}>
                   <TouchableOpacity
-                    key={String(n)}
-                    style={[styles.guestChip, draft.maxGuests === n && styles.guestChipActive]}
-                    onPress={() => updateDraft({ maxGuests: n })}
-                    activeOpacity={0.7}
+                    style={[styles.toggleRow, draft.allowGalleryUpload && styles.toggleRowActive]}
+                    onPress={() => updateDraft({ allowGalleryUpload: !draft.allowGalleryUpload })}
+                    activeOpacity={0.8}
                   >
-                    <Text style={[styles.guestChipText, draft.maxGuests === n && styles.guestChipTextActive]}>
-                      {n === null ? t('host.unlimited') : String(n)}
-                    </Text>
+                    <View style={styles.toggleInfo}>
+                      <Text style={styles.toggleIcon}>🖼️</Text>
+                      <View style={styles.toggleText}>
+                        <Text style={styles.toggleTitle}>{t('host.allowGalleryUpload')}</Text>
+                      </View>
+                    </View>
+                    <View style={[styles.toggle, draft.allowGalleryUpload && styles.toggleOn]}>
+                      <View style={[styles.toggleThumb, draft.allowGalleryUpload && styles.toggleThumbOn]} />
+                    </View>
                   </TouchableOpacity>
-                ))}
-              </View>
+                </View>
+              </>
+            )}
 
-              <Text style={styles.sectionTitle}>{t('host.reminderBefore')}</Text>
-              <View style={styles.reminderOptions}>
-                {[{ key: null, label: t('host.noReminder') }, { key: '1h', label: t('host.reminder1h') }, { key: '24h', label: t('host.reminder24h') }].map((opt) => (
-                  <TouchableOpacity
-                    key={String(opt.key)}
-                    style={[styles.reminderChip, draft.reminderBefore === opt.key && styles.reminderChipActive]}
-                    onPress={() => updateDraft({ reminderBefore: opt.key as any })}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.reminderText, draft.reminderBefore === opt.key && styles.reminderTextActive]}>
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+            {/* STEP 4: Max guests + Reminder */}
+            {step === 4 && (
+              <>
+                <View style={styles.questionBlock}>
+                  <Text style={styles.questionTitle}>{t('host.maxGuests')}</Text>
+                  <Text style={styles.questionHint}>{t('host.maxGuestsHint')}</Text>
+                  <View style={styles.guestGrid}>
+                    {[null, 25, 50, 100, 200, 500].map((n) => (
+                      <TouchableOpacity
+                        key={String(n)}
+                        style={[styles.guestChip, draft.maxGuests === n && styles.guestChipActive]}
+                        onPress={() => updateDraft({ maxGuests: n })}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.guestChipText, draft.maxGuests === n && styles.guestChipTextActive]}>
+                          {n === null ? t('host.unlimited') : String(n)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
 
-              {/* Summary Card */}
-              <View style={styles.summary}>
-                <LinearGradient colors={['rgba(168,85,247,0.1)', 'rgba(168,85,247,0.03)']} style={styles.summaryGradient}>
-                  <Text style={styles.summaryTitle}>Özet</Text>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Etkinlik</Text>
-                    <Text style={styles.summaryValue}>{draft.name || '—'}</Text>
+                <View style={styles.questionBlock}>
+                  <Text style={styles.questionTitle}>{t('host.reminderBefore')}</Text>
+                  <View style={styles.reminderOptions}>
+                    {[{ key: null, label: t('host.noReminder') }, { key: '1h', label: t('host.reminder1h') }, { key: '24h', label: t('host.reminder24h') }].map((opt) => (
+                      <TouchableOpacity
+                        key={String(opt.key)}
+                        style={[styles.reminderChip, draft.reminderBefore === opt.key && styles.reminderChipActive]}
+                        onPress={() => updateDraft({ reminderBefore: opt.key as any })}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.reminderText, draft.reminderBefore === opt.key && styles.reminderTextActive]}>
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Çekim/kişi</Text>
-                    <Text style={styles.summaryValue}>{draft.shotsPerGuest}</Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Gösterim</Text>
-                    <Text style={styles.summaryValue}>{t(`host.reveal${draft.revealTiming === 'instant' ? 'Instant' : draft.revealTiming === 'after_event' ? 'AfterEvent' : '24h'}`)}</Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Misafir limiti</Text>
-                    <Text style={styles.summaryValue}>{draft.maxGuests ?? t('host.unlimited')}</Text>
-                  </View>
-                </LinearGradient>
-              </View>
-            </View>
-          )}
+                </View>
+              </>
+            )}
+          </Animated.View>
         </ScrollView>
 
         {/* Bottom CTA */}
@@ -304,28 +359,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, paddingBottom: spacing.md,
     borderBottomWidth: 1, borderBottomColor: colors.border.subtle,
   },
+  headerBtn: { minWidth: 56 },
   backText: { fontSize: 24, color: colors.text.secondary },
-  headerCenter: { alignItems: 'center', gap: 6 },
+  headerCenter: { alignItems: 'center', gap: 8 },
   stepLabel: { fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text.secondary },
-  cancelText: { fontSize: typography.sizes.sm, color: colors.text.muted },
-  scroll: { padding: spacing.lg, gap: spacing.lg },
-  section: { gap: spacing.lg },
-  sectionTitle: { fontSize: typography.sizes.base, fontWeight: typography.weights.semibold, color: colors.text.primary },
-  sectionHint: { fontSize: typography.sizes.sm, color: colors.text.muted, marginTop: -spacing.sm },
-  coverPicker: { width: '100%', height: 180, borderRadius: radius['2xl'], overflow: 'hidden' },
+  cancelText: { fontSize: typography.sizes.sm, color: colors.text.muted, textAlign: 'right' },
+  scroll: { padding: spacing.lg },
+  section: { gap: spacing.xl },
+  questionBlock: { gap: spacing.sm },
+  questionTitle: { fontSize: typography.sizes.lg, fontWeight: typography.weights.bold, color: colors.text.primary },
+  questionHint: { fontSize: typography.sizes.sm, color: colors.text.muted, marginTop: -4 },
+  coverPicker: { width: '100%', height: 180, borderRadius: radius['2xl'], overflow: 'hidden', marginTop: spacing.xs },
   coverImage: { width: '100%', height: '100%' },
   coverEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.border.brand, borderRadius: radius['2xl'], borderStyle: 'dashed' },
   coverEmptyText: { color: colors.text.muted, fontSize: typography.sizes.sm },
   coverChange: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.5)', padding: spacing.sm, alignItems: 'center' },
   coverChangeText: { color: '#fff', fontSize: typography.sizes.sm },
-  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
   typeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.full, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card },
   typeChipActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
   typeIcon: { fontSize: 16 },
   typeLabel: { fontSize: typography.sizes.sm, color: colors.text.muted },
   typeLabelActive: { color: colors.brand.DEFAULT, fontWeight: typography.weights.medium },
-  shotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  shotChip: { alignItems: 'center', padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card, minWidth: 80 },
+  dateRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.bg.card, borderWidth: 1, borderColor: colors.border.DEFAULT, borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingVertical: 16, marginTop: spacing.xs },
+  dateIcon: { fontSize: 20 },
+  dateText: { flex: 1, fontSize: typography.sizes.base, color: colors.text.primary },
+  datePlaceholder: { color: colors.text.muted },
+  dateChevron: { fontSize: 12, color: colors.text.muted },
+  pickerWrap: { marginTop: spacing.sm, backgroundColor: colors.bg.card, borderRadius: radius.xl, overflow: 'hidden', borderWidth: 1, borderColor: colors.border.DEFAULT },
+  shotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
+  shotChip: { alignItems: 'center', padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card, minWidth: 86 },
   shotChipActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
   shotNumber: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: colors.text.muted },
   shotNumberActive: { color: colors.brand.DEFAULT },
@@ -342,28 +405,25 @@ const styles = StyleSheet.create({
   toggleOn: { backgroundColor: colors.brand.DEFAULT },
   toggleThumb: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.text.muted },
   toggleThumbOn: { backgroundColor: '#fff', marginLeft: 18 },
-  revealOptions: { gap: spacing.sm },
+  revealOptions: { gap: spacing.sm, marginTop: spacing.xs },
   revealCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card },
   revealCardActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
   revealIcon: { fontSize: 24 },
-  revealTitle: { fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text.secondary, flex: 1 },
+  revealTitle: { fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text.secondary },
   revealTitleActive: { color: colors.brand.DEFAULT },
-  revealDesc: { fontSize: typography.sizes.xs, color: colors.text.muted },
-  guestGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  revealDesc: { fontSize: typography.sizes.xs, color: colors.text.muted, marginTop: 2 },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.border.DEFAULT, alignItems: 'center', justifyContent: 'center' },
+  radioActive: { borderColor: colors.brand.DEFAULT },
+  radioDot: { width: 11, height: 11, borderRadius: 6, backgroundColor: colors.brand.DEFAULT },
+  guestGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
   guestChip: { paddingHorizontal: spacing.lg, paddingVertical: 10, borderRadius: radius.full, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card },
   guestChipActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
   guestChipText: { fontSize: typography.sizes.sm, color: colors.text.muted },
   guestChipTextActive: { color: colors.brand.DEFAULT, fontWeight: typography.weights.semibold },
-  reminderOptions: { gap: spacing.sm },
+  reminderOptions: { gap: spacing.sm, marginTop: spacing.xs },
   reminderChip: { padding: spacing.md, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card, alignItems: 'center' },
   reminderChipActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
   reminderText: { fontSize: typography.sizes.sm, color: colors.text.muted },
   reminderTextActive: { color: colors.brand.DEFAULT, fontWeight: typography.weights.medium },
-  summary: { borderRadius: radius['2xl'], overflow: 'hidden', borderWidth: 1, borderColor: colors.border.brand },
-  summaryGradient: { padding: spacing.lg, gap: spacing.sm },
-  summaryTitle: { fontSize: typography.sizes.base, fontWeight: typography.weights.bold, color: colors.brand.DEFAULT, marginBottom: spacing.xs },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  summaryLabel: { fontSize: typography.sizes.sm, color: colors.text.muted },
-  summaryValue: { fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.text.primary },
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing.lg, backgroundColor: colors.bg.primary, borderTopWidth: 1, borderTopColor: colors.border.subtle },
 });

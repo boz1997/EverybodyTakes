@@ -26,7 +26,11 @@
         "backgroundColor": "#0A0A0F"
       },
       "package": "com.guestcam.app",
-      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"]
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -42,7 +46,8 @@
         {
           "cameraPermission": "GuestCam needs camera access to capture event moments."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
