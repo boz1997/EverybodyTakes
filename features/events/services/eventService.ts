@@ -25,7 +25,7 @@ const genShortCode = customAlphabet('ABCDEFGHJKMNPQRSTUVWXYZ23456789', 6);
 
 /** Thrown when a hard plan/event limit is hit. Screens map these to copy. */
 export class LimitError extends Error {
-  constructor(public code: 'event_full' | 'photo_cap' | 'no_shots') {
+  constructor(public code: 'event_full' | 'photo_cap' | 'no_shots' | 'event_ended') {
     super(code);
   }
 }
@@ -210,6 +210,7 @@ export const EventService = {
       const snap = await tx.get(eventRef);
       if (!snap.exists()) throw new Error('Event not found');
       const event = snap.data() as Event;
+      if (!event.isActive) throw new LimitError('event_ended');
       if (event.photoCap != null && (event.photoCount ?? 0) >= event.photoCap) {
         throw new LimitError('photo_cap');
       }
@@ -288,5 +289,11 @@ export const EventService = {
     settings: Partial<Pick<Event, 'disposableMode' | 'allowGalleryUpload' | 'reminderBefore'>>,
   ): Promise<void> {
     await updateDoc(doc(db, 'events', eventId), settings);
+  },
+
+  // Ends the event: stops new joins (join checks isActive) and uploads
+  // (uploadPhoto throws event_ended). Irreversible from the UI.
+  async endEvent(eventId: string): Promise<void> {
+    await updateDoc(doc(db, 'events', eventId), { isActive: false });
   },
 };

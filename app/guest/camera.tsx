@@ -84,7 +84,10 @@ export default function CameraScreen() {
       setUploadStatus('error');
       setTimeout(() => setUploadStatus('idle'), 2000);
       if (e instanceof LimitError) {
-        Alert.alert(e.code === 'photo_cap' ? t('guest.eventPhotoCapReached') : t('guest.noShotsRemaining'));
+        const msg = e.code === 'photo_cap' ? t('guest.eventPhotoCapReached')
+          : e.code === 'event_ended' ? t('errors.eventExpired')
+          : t('guest.noShotsRemaining');
+        Alert.alert(msg);
       }
     } finally {
       setCapturing(false);

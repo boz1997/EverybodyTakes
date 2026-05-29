@@ -89,7 +89,38 @@ export default function EventManage() {
             );
           })}
         </View>
+
+        {event.isActive ? (
+          <TouchableOpacity style={styles.endBtn} onPress={handleEndEvent} activeOpacity={0.8}>
+            <Icon name="alert" size={18} color={colors.error} />
+            <Text style={styles.endBtnText}>{t('host.endEvent')}</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.endedRow}>
+            <Icon name="lock" size={16} color={colors.text.muted} />
+            <Text style={styles.endedText}>{t('host.eventEnded')}</Text>
+          </View>
+        )}
       </View>
+    );
+  };
+
+  const handleEndEvent = () => {
+    if (!event) return;
+    Alert.alert(
+      t('host.endEvent'),
+      t('host.endEventConfirm'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('host.endEvent'),
+          style: 'destructive',
+          onPress: async () => {
+            setEvent({ ...event, isActive: false });
+            await EventService.endEvent(event.id).catch(() => setEvent(event));
+          },
+        },
+      ],
     );
   };
 
@@ -151,8 +182,10 @@ export default function EventManage() {
           </View>
           <View style={styles.statDivider} />
           <View style={[styles.statItem, styles.liveIndicator]}>
-            <View style={styles.liveDot} />
-            <Text style={[styles.statLabel, { color: colors.success }]}>Canlı</Text>
+            <View style={[styles.liveDot, !event.isActive && styles.liveDotEnded]} />
+            <Text style={[styles.statLabel, { color: event.isActive ? colors.success : colors.text.muted }]}>
+              {event.isActive ? t('host.live') : t('host.ended')}
+            </Text>
           </View>
         </View>
       )}
@@ -207,6 +240,11 @@ const styles = StyleSheet.create({
   statDivider: { width: 1, height: 32, backgroundColor: colors.border.subtle },
   liveIndicator: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success },
+  liveDotEnded: { backgroundColor: colors.text.muted },
+  endBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: spacing.sm, paddingVertical: 12, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.error + '55', backgroundColor: colors.error + '0F' },
+  endBtnText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold, color: colors.error },
+  endedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: spacing.sm, paddingVertical: 10 },
+  endedText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium, color: colors.text.muted },
   grid: { padding: spacing.lg, gap: spacing.sm },
   settingsCard: { backgroundColor: colors.bg.card, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, padding: spacing.md, gap: spacing.sm, marginBottom: spacing.lg },
   settingsTitle: { fontSize: typography.sizes.base, fontFamily: fonts.displayBold, color: colors.text.primary, marginBottom: spacing.xs },
