@@ -45,7 +45,7 @@ export default function JoinScreen() {
       .finally(() => setLoading(false));
   }, [code]);
 
-  const handleJoin = async () => {
+  const handleJoin = async (dest: 'camera' | 'gallery') => {
     if (!event) return;
     try {
       setJoining(true);
@@ -66,7 +66,7 @@ export default function JoinScreen() {
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace({ pathname: '/guest/camera', params: { id: event.id } });
+      router.replace({ pathname: `/guest/${dest}`, params: { id: event.id } });
     } catch (e) {
       if (e instanceof LimitError && e.code === 'event_full') {
         Alert.alert(t('errors.maxGuestsReached'));
@@ -171,8 +171,14 @@ export default function JoinScreen() {
         <Animated.View entering={FadeInDown.delay(500)} style={styles.ctaSection}>
           <PrimaryButton
             label={t('guest.enterCamera')}
-            onPress={handleJoin}
+            onPress={() => handleJoin('camera')}
             loading={joining}
+          />
+          <PrimaryButton
+            label={t('guest.viewGallery')}
+            onPress={() => handleJoin('gallery')}
+            variant="ghost"
+            disabled={joining}
           />
           <Text style={styles.anonNote}>{t('auth.anonymousNote')}</Text>
         </Animated.View>

@@ -216,32 +216,39 @@ export const EventService = {
       tx.update(eventRef, { photoCount: increment(1) });
     });
 
-    const path = `events/${eventId}/photos/${photoId}.jpg`;
-    const storageRef = ref(storage, path);
+    // If the upload or doc-write fails after reserving, release the slot so
+    // the counter never drifts ahead of the real photo count.
+    try {
+      const path = `events/${eventId}/photos/${photoId}.jpg`;
+      const storageRef = ref(storage, path);
 
-    const blob = await uriToBlob(uri);
-    await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
-    const imageUrl = await getDownloadURL(storageRef);
+      const blob = await uriToBlob(uri);
+      await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
+      const imageUrl = await getDownloadURL(storageRef);
 
-    const photo: Photo = {
-      id: photoId,
-      eventId,
-      uploadedBy: userId,
-      uploaderName,
-      imageUrl,
-      thumbnailUrl: imageUrl,
-      takenAt: new Date().toISOString(),
-      isVisible: true,
-      likesCount: 0,
-      createdAt: new Date().toISOString(),
-    };
+      const photo: Photo = {
+        id: photoId,
+        eventId,
+        uploadedBy: userId,
+        uploaderName,
+        imageUrl,
+        thumbnailUrl: imageUrl,
+        takenAt: new Date().toISOString(),
+        isVisible: true,
+        likesCount: 0,
+        createdAt: new Date().toISOString(),
+      };
 
-    await setDoc(doc(db, 'events', eventId, 'photos', photoId), {
-      ...photo,
-      createdAt: serverTimestamp(),
-    });
+      await setDoc(doc(db, 'events', eventId, 'photos', photoId), {
+        ...photo,
+        createdAt: serverTimestamp(),
+      });
 
-    return photo;
+      return photo;
+    } catch (e) {
+      await updateDoc(eventRef, { photoCount: increment(-1) }).catch(() => {});
+      throw e;
+    }
   },
 
   async getPhotos(eventId: string): Promise<Photo[]> {

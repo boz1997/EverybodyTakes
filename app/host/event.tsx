@@ -141,7 +141,7 @@ export default function EventManage() {
       {event && (
         <View style={styles.statsBar}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{event.photoCount}</Text>
+            <Text style={styles.statValue}>{photos.length}</Text>
             <Text style={styles.statLabel}>{t('gallery.photos')}</Text>
           </View>
           <View style={styles.statDivider} />

@@ -123,9 +123,9 @@ export default function ScanScreen() {
                 <Icon name="keyboard" size={16} color="#fff" />
                 <Text style={styles.scanPillText}>{t('guest.enterCode')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => router.push('/guest/joined')} style={styles.scanPill}>
-                <Icon name="gallery" size={16} color="#fff" />
-                <Text style={styles.scanPillText}>{t('guest.myEvents')}</Text>
+              <TouchableOpacity onPress={() => router.push('/guest/joined')} style={[styles.scanPill, styles.scanPillPrimary]}>
+                <Icon name="gallery" size={16} color={colors.text.inverse} />
+                <Text style={[styles.scanPillText, { color: colors.text.inverse }]}>{t('guest.myEvents')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -171,6 +171,7 @@ const styles = StyleSheet.create({
   instrText: { color: 'rgba(255,255,255,0.7)', fontSize: typography.sizes.sm, textAlign: 'center' },
   scanActions: { flexDirection: 'row', gap: spacing.sm },
   scanPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 10 },
+  scanPillPrimary: { backgroundColor: colors.brand.DEFAULT },
   scanPillText: { color: '#fff', fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium },
   codeContainer: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   codeSheet: { backgroundColor: colors.bg.secondary, borderTopLeftRadius: radius['2xl'], borderTopRightRadius: radius['2xl'], padding: spacing.lg, gap: spacing.lg, borderTopWidth: 1, borderColor: colors.border.DEFAULT },
