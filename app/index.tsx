@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: spacing.lg, justifyContent: 'space-between' },
   top: { alignItems: 'flex-start' },
-  logo: { height: 72, aspectRatio: 1.83 },
+  logo: { height: 140, aspectRatio: 1.83 },
   headlineBlock: { gap: spacing.md, marginTop: spacing.xl },
   headline: {
     fontFamily: fonts.displayBold, fontSize: 46, lineHeight: 50,
