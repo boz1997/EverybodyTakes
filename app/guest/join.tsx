@@ -1,0 +1,202 @@
+import { useEffect, useState } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, Image, Alert,
+} from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { EventService, Event } from '@features/events/services/eventService';
+import { AuthService } from '@features/auth/services/authService';
+import { useAuthStore } from '@store/authStore';
+import { useEventStore } from '@store/eventStore';
+import { PrimaryButton } from '@shared/components/PrimaryButton';
+import { InputField } from '@shared/components/InputField';
+import { colors, typography, spacing, radius } from '@constants/theme';
+import { format } from 'date-fns';
+
+export default function JoinScreen() {
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const { code } = useLocalSearchParams<{ code: string }>();
+  const { user, setUser } = useAuthStore();
+  const { setGuestEventId, setShotsRemaining } = useEventStore();
+
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [joining, setJoining] = useState(false);
+  const [nickname, setNickname] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!code) return;
+    EventService.getByShortCode(code)
+      .then((ev) => {
+        if (!ev) setError(t('errors.eventNotFound'));
+        else if (!ev.isActive) setError(t('errors.eventExpired'));
+        else setEvent(ev);
+      })
+      .catch(() => setError(t('errors.unknownError')))
+      .finally(() => setLoading(false));
+  }, [code]);
+
+  const handleJoin = async () => {
+    if (!event) return;
+    try {
+      setJoining(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      let currentUser = user;
+      if (!currentUser) {
+        currentUser = await AuthService.signInAnonymous();
+        setUser(currentUser);
+      }
+
+      const shots = await EventService.joinEvent(event.id, currentUser.uid, nickname || null);
+      setGuestEventId(event.id);
+      setShotsRemaining(shots);
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.replace({ pathname: '/guest/camera', params: { id: event.id } });
+    } catch (e: any) {
+      if (e.message === 'No shots remaining') {
+        Alert.alert(t('errors.maxGuestsReached'));
+      } else {
+        Alert.alert(t('common.error'), t('errors.unknownError'));
+      }
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  const typeEmojis: Record<string, string> = {
+    wedding: '💍', birthday: '🎂', party: '🎉', yacht: '⛵', club: '🎵', festival: '🎪', corporate: '🏢', other: '✨',
+  };
+
+  if (loading) {
+    return (
+      <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
+        <View style={styles.centerContent}>
+          <Text style={styles.loadingEmoji}>📷</Text>
+          <Text style={styles.loadingText}>{t('guest.joiningEvent')}</Text>
+        </View>
+      </LinearGradient>
+    );
+  }
+
+  if (error || !event) {
+    return (
+      <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
+        <View style={styles.centerContent}>
+          <Text style={styles.errorEmoji}>❌</Text>
+          <Text style={styles.errorTitle}>{error}</Text>
+          <PrimaryButton label={t('common.back')} onPress={() => router.back()} variant="ghost" />
+        </View>
+      </LinearGradient>
+    );
+  }
+
+  return (
+    <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
+      <View style={styles.glow} pointerEvents="none" />
+
+      <View style={[styles.content, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.xl }]}>
+
+        {/* Cover Photo or Emoji */}
+        <Animated.View entering={FadeInUp.duration(600)} style={styles.coverWrap}>
+          {event.coverImageUrl ? (
+            <Image source={{ uri: event.coverImageUrl }} style={styles.coverImage} />
+          ) : (
+            <LinearGradient colors={['rgba(168,85,247,0.2)', 'rgba(168,85,247,0.05)']} style={styles.coverEmpty}>
+              <Text style={styles.coverEmoji}>{typeEmojis[event.type] ?? '🎉'}</Text>
+            </LinearGradient>
+          )}
+          <LinearGradient
+            colors={['transparent', 'rgba(10,10,15,0.9)']}
+            style={styles.coverFade}
+            pointerEvents="none"
+          />
+        </Animated.View>
+
+        {/* Event Info */}
+        <Animated.View entering={FadeInDown.delay(200)} style={styles.infoSection}>
+          <Text style={styles.eventName}>{event.name}</Text>
+          {event.date && (
+            <Text style={styles.eventDate}>
+              {format(new Date(event.date), 'd MMMM yyyy')}
+            </Text>
+          )}
+
+          {/* Stats */}
+          <View style={styles.stats}>
+            <View style={styles.statChip}>
+              <Text style={styles.statIcon}>📷</Text>
+              <Text style={styles.statText}>{event.shotsPerGuest} çekim</Text>
+            </View>
+            {event.disposableMode && (
+              <View style={styles.statChip}>
+                <Text style={styles.statIcon}>🎞️</Text>
+                <Text style={styles.statText}>Disposable</Text>
+              </View>
+            )}
+            {event.maxGuests && (
+              <View style={styles.statChip}>
+                <Text style={styles.statIcon}>👥</Text>
+                <Text style={styles.statText}>{event.maxGuests} kişi</Text>
+              </View>
+            )}
+          </View>
+        </Animated.View>
+
+        {/* Nickname Input */}
+        <Animated.View entering={FadeInDown.delay(400)} style={styles.nicknameSection}>
+          <InputField
+            label={t('guest.nickname')}
+            placeholder={t('guest.nicknamePlaceholder')}
+            value={nickname}
+            onChangeText={setNickname}
+            maxLength={30}
+          />
+        </Animated.View>
+
+        {/* CTA */}
+        <Animated.View entering={FadeInDown.delay(500)} style={styles.ctaSection}>
+          <PrimaryButton
+            label={t('guest.enterCamera')}
+            onPress={handleJoin}
+            loading={joining}
+          />
+          <Text style={styles.anonNote}>{t('auth.anonymousNote')}</Text>
+        </Animated.View>
+      </View>
+    </LinearGradient>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  glow: { position: 'absolute', top: 100, left: '20%', width: '60%', height: 200, borderRadius: 200, backgroundColor: 'rgba(168,85,247,0.15)' },
+  centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, paddingHorizontal: spacing.lg },
+  loadingEmoji: { fontSize: 48 },
+  loadingText: { fontSize: typography.sizes.lg, color: colors.text.secondary },
+  errorEmoji: { fontSize: 48 },
+  errorTitle: { fontSize: typography.sizes.lg, fontWeight: typography.weights.bold, color: colors.text.primary, textAlign: 'center' },
+  content: { flex: 1, paddingHorizontal: spacing.lg, gap: spacing.lg },
+  coverWrap: { height: 220, borderRadius: radius['2xl'], overflow: 'hidden' },
+  coverImage: { width: '100%', height: '100%' },
+  coverEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  coverEmoji: { fontSize: 72 },
+  coverFade: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 80 },
+  infoSection: { gap: spacing.sm },
+  eventName: { fontSize: typography.sizes['2xl'], fontWeight: typography.weights.extrabold, color: colors.text.primary },
+  eventDate: { fontSize: typography.sizes.sm, color: colors.text.muted },
+  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
+  statChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.bg.card, borderRadius: radius.full, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: colors.border.DEFAULT },
+  statIcon: { fontSize: 14 },
+  statText: { fontSize: typography.sizes.sm, color: colors.text.secondary },
+  nicknameSection: {},
+  ctaSection: { gap: spacing.sm, marginTop: 'auto' },
+  anonNote: { textAlign: 'center', color: colors.text.muted, fontSize: typography.sizes.xs },
+});
