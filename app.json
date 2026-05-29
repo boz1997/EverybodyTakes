@@ -17,7 +17,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "GuestCam needs camera access to capture event moments.",
         "NSPhotoLibraryUsageDescription": "GuestCam needs photo library access.",
-        "NSPhotoLibraryAddUsageDescription": "GuestCam needs permission to save photos."
+        "NSPhotoLibraryAddUsageDescription": "GuestCam needs permission to save photos.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -29,7 +30,9 @@
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -51,6 +54,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b3d702ff-7787-4a6b-8b0b-ffb5a1989da7"
+      }
     }
   }
 }
