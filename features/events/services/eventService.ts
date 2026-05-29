@@ -7,7 +7,6 @@ import {
   updateDoc,
   query,
   where,
-  orderBy,
   serverTimestamp,
   onSnapshot,
   Unsubscribe,
@@ -48,6 +47,21 @@ export interface Photo {
   isVisible: boolean;
   likesCount: number;
   createdAt: string;
+}
+
+// createdAt is a serverTimestamp (Firestore Timestamp on read) or an ISO
+// string locally. Sort newest-first in memory so we don't depend on a
+// composite index — result sets are per-event/per-host and stay small.
+function toMillis(v: unknown): number {
+  if (v && typeof (v as { toMillis?: () => number }).toMillis === 'function') {
+    return (v as { toMillis: () => number }).toMillis();
+  }
+  if (typeof v === 'string') return Date.parse(v) || 0;
+  return 0;
+}
+
+function newestFirst<T extends { createdAt: unknown }>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
 }
 
 export const EventService = {
@@ -97,13 +111,9 @@ export const EventService = {
   },
 
   async getHostEvents(hostId: string): Promise<Event[]> {
-    const q = query(
-      collection(db, 'events'),
-      where('hostId', '==', hostId),
-      orderBy('createdAt', 'desc'),
-    );
+    const q = query(collection(db, 'events'), where('hostId', '==', hostId));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => d.data() as Event);
+    return newestFirst(snap.docs.map((d) => d.data() as Event));
   },
 
   async joinEvent(eventId: string, userId: string, nickname: string | null): Promise<number> {
@@ -180,20 +190,18 @@ export const EventService = {
     const q = query(
       collection(db, 'events', eventId, 'photos'),
       where('isVisible', '==', true),
-      orderBy('createdAt', 'desc'),
     );
     const snap = await getDocs(q);
-    return snap.docs.map((d) => d.data() as Photo);
+    return newestFirst(snap.docs.map((d) => d.data() as Photo));
   },
 
   subscribeToPhotos(eventId: string, callback: (photos: Photo[]) => void): Unsubscribe {
     const q = query(
       collection(db, 'events', eventId, 'photos'),
       where('isVisible', '==', true),
-      orderBy('createdAt', 'desc'),
     );
     return onSnapshot(q, (snap) => {
-      callback(snap.docs.map((d) => d.data() as Photo));
+      callback(newestFirst(snap.docs.map((d) => d.data() as Photo)));
     });
   },
 

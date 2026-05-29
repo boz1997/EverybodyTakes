@@ -1,8 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { initializeAuth, getReactNativePersistence, getAuth, Auth } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import { initializeFirestore, getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY!,
@@ -15,14 +14,11 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// initializeAuth/initializeFirestore throw if called twice (hot reload),
-// so fall back to the getters on the second pass.
-let auth: Auth;
-try {
-  auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
-} catch {
-  auth = getAuth(app);
-}
+// NOTE: firebase v12 no longer exports getReactNativePersistence, so auth
+// uses in-memory persistence. Anonymous guests re-auth per launch (fine for
+// an event-camera flow); persisting host sessions across restarts is a
+// follow-up (custom AsyncStorage persistence or @react-native-firebase).
+export const auth = getAuth(app);
 
 let db: Firestore;
 try {
@@ -33,5 +29,5 @@ try {
 }
 
 export const storage = getStorage(app);
-export { auth, db };
+export { db };
 export default app;

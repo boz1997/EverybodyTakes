@@ -27,7 +27,7 @@ export const AuthService = {
       url: 'https://guestcam.app/auth/callback',
       handleCodeInApp: true,
       iOS: { bundleId: 'com.guestcam.app' },
-      android: { packageName: 'com.guestcam.app', installIfNotAvailable: true, minimumVersion: '12' },
+      android: { packageName: 'com.guestcam.app', installApp: true, minimumVersion: '12' },
     });
   },
 
