@@ -177,6 +177,10 @@ export default {
     revealingIn: 'Revealing...',
     developing: 'Developing film...',
     developingDesc: 'Your photos are being prepared',
+    myEvents: 'My events',
+    noJoinedEvents: 'You haven\'t joined any events yet',
+    noJoinedEventsHint: 'Scan a QR or enter a code; the events you join show up here.',
+    opensAt: 'Opens on {{time}}',
   },
 
   gallery: {

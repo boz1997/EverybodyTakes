@@ -12,6 +12,7 @@ import { EventService, Event, LimitError } from '@features/events/services/event
 import { AuthService } from '@features/auth/services/authService';
 import { useAuthStore } from '@store/authStore';
 import { useEventStore } from '@store/eventStore';
+import { addJoinedEvent } from '@store/guestEvents';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
 import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
@@ -59,6 +60,10 @@ export default function JoinScreen() {
       const shots = await EventService.joinEvent(event.id, currentUser.uid, nickname || null);
       setGuestEventId(event.id);
       setShotsRemaining(shots);
+      await addJoinedEvent({
+        id: event.id, code: event.shortCode, name: event.name,
+        coverImageUrl: event.coverImageUrl, type: event.type, joinedAt: Date.now(),
+      });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace({ pathname: '/guest/camera', params: { id: event.id } });

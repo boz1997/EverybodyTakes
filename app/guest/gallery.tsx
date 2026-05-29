@@ -9,18 +9,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { format } from 'date-fns';
 import { EventService, Photo, Event } from '@features/events/services/eventService';
 import { useAuthStore } from '@store/authStore';
 import { Icon } from '@shared/components/Icon';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 // Reveal gating: photos may be hidden until the event ends or 24h later.
+function revealAtMs(e: Event): number {
+  const ends = e.endsAt ? Date.parse(e.endsAt) : 0;
+  if (e.revealTiming === 'after_event') return ends;
+  if (e.revealTiming === '24h') return ends + 24 * 60 * 60 * 1000;
+  return 0;
+}
+
 function isRevealed(e: Event | null): boolean {
   if (!e || e.revealTiming === 'instant') return true;
-  const ends = e.endsAt ? Date.parse(e.endsAt) : 0;
-  if (e.revealTiming === 'after_event') return Date.now() >= ends;
-  if (e.revealTiming === '24h') return Date.now() >= ends + 24 * 60 * 60 * 1000;
-  return true;
+  return Date.now() >= revealAtMs(e);
 }
 
 const { width } = Dimensions.get('window');
@@ -88,6 +93,14 @@ export default function GalleryScreen() {
           <Text style={styles.lockedDesc}>
             {event?.revealTiming === '24h' ? t('guest.galleryLockedDesc') : t('guest.developingDesc')}
           </Text>
+          {event && (
+            <View style={styles.opensPill}>
+              <Icon name="film" size={14} color={colors.brand.DEFAULT} />
+              <Text style={styles.opensText}>
+                {t('guest.opensAt', { time: format(new Date(revealAtMs(event)), 'd MMM HH:mm') })}
+              </Text>
+            </View>
+          )}
         </Animated.View>
       ) : (
         <>
@@ -194,6 +207,8 @@ const styles = StyleSheet.create({
   lockedIconWrap: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand.glow, borderWidth: 1, borderColor: colors.border.brand },
   lockedTitle: { fontSize: typography.sizes.xl, fontFamily: fonts.displayBold, color: colors.text.primary, textAlign: 'center' },
   lockedDesc: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted, textAlign: 'center', lineHeight: 20 },
+  opensPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.brand.glow, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 8, borderWidth: 1, borderColor: colors.border.brand, marginTop: spacing.xs },
+  opensText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold, color: colors.brand.dark },
   empty: { alignItems: 'center', gap: spacing.md, paddingTop: spacing['3xl'] },
   emptyIconWrap: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand.glow, borderWidth: 1, borderColor: colors.border.brand },
   emptyTitle: { fontSize: typography.sizes.lg, fontWeight: typography.weights.bold, color: colors.text.primary },

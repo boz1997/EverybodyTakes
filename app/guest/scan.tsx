@@ -118,9 +118,16 @@ export default function ScanScreen() {
           {/* Instructions */}
           <View style={[styles.bottomInstructions, { paddingBottom: insets.bottom + spacing.xl }]}>
             <Text style={styles.instrText}>{t('guest.scanInstructions')}</Text>
-            <TouchableOpacity onPress={() => setMode('code')} style={styles.codeLink}>
-              <Text style={styles.codeLinkText}>{t('guest.enterCode')}</Text>
-            </TouchableOpacity>
+            <View style={styles.scanActions}>
+              <TouchableOpacity onPress={() => setMode('code')} style={styles.scanPill}>
+                <Icon name="keyboard" size={16} color="#fff" />
+                <Text style={styles.scanPillText}>{t('guest.enterCode')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push('/guest/joined')} style={styles.scanPill}>
+                <Icon name="gallery" size={16} color="#fff" />
+                <Text style={styles.scanPillText}>{t('guest.myEvents')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </>
       )}
@@ -162,8 +169,9 @@ const styles = StyleSheet.create({
   scanLine: { position: 'absolute', left: 0, right: 0, top: 2, height: 2, backgroundColor: colors.brand.DEFAULT, shadowColor: colors.brand.DEFAULT, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 6 },
   bottomInstructions: { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg },
   instrText: { color: 'rgba(255,255,255,0.7)', fontSize: typography.sizes.sm, textAlign: 'center' },
-  codeLink: { paddingVertical: spacing.sm },
-  codeLinkText: { color: colors.brand.light, fontSize: typography.sizes.base, fontWeight: typography.weights.medium },
+  scanActions: { flexDirection: 'row', gap: spacing.sm },
+  scanPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 10 },
+  scanPillText: { color: '#fff', fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium },
   codeContainer: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   codeSheet: { backgroundColor: colors.bg.secondary, borderTopLeftRadius: radius['2xl'], borderTopRightRadius: radius['2xl'], padding: spacing.lg, gap: spacing.lg, borderTopWidth: 1, borderColor: colors.border.DEFAULT },
   codeSheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border.DEFAULT, alignSelf: 'center', marginBottom: spacing.sm },

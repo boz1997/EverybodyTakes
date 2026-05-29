@@ -177,6 +177,10 @@ export default {
     revealingIn: 'Açılıyor...',
     developing: 'Film banyo ediliyor...',
     developingDesc: 'Fotoğrafların hazırlanıyor',
+    myEvents: 'Katıldıklarım',
+    noJoinedEvents: 'Henüz etkinliğe katılmadın',
+    noJoinedEventsHint: 'QR tara veya kod gir; katıldığın etkinlikler burada birikir.',
+    opensAt: '{{time}} tarihinde açılacak',
   },
 
   gallery: {
