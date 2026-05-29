@@ -1,7 +1,7 @@
 import { TouchableOpacity, Text, StyleSheet, ViewStyle, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { colors, radius, typography } from '@constants/theme';
+import { colors, radius, typography, fonts, gradients } from '@constants/theme';
 
 interface Props {
   label: string;
@@ -28,13 +28,13 @@ export function PrimaryButton({ label, onPress, variant = 'brand', loading, disa
         activeOpacity={0.85}
       >
         <LinearGradient
-          colors={['#A855F7', '#7C3AED']}
+          colors={gradients.amber}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.gradient}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color={colors.text.inverse} size="small" />
           ) : (
             <Text style={styles.brandLabel}>{label}</Text>
           )}
@@ -52,15 +52,15 @@ export function PrimaryButton({ label, onPress, variant = 'brand', loading, disa
         activeOpacity={0.85}
       >
         <LinearGradient
-          colors={['#F59E0B', '#D97706']}
+          colors={gradients.bronze}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.gradient}
         >
           {loading ? (
-            <ActivityIndicator color="#000" size="small" />
+            <ActivityIndicator color={colors.text.inverse} size="small" />
           ) : (
-            <Text style={[styles.brandLabel, { color: '#000' }]}>{label}</Text>
+            <Text style={styles.brandLabel}>{label}</Text>
           )}
         </LinearGradient>
       </TouchableOpacity>
@@ -102,26 +102,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   brandLabel: {
-    color: '#fff',
+    color: colors.text.inverse,
     fontSize: typography.sizes.base,
-    fontWeight: typography.weights.semibold,
-    letterSpacing: 0.3,
+    fontFamily: fonts.bodySemibold,
+    letterSpacing: 0.2,
   },
   ghost: {
     borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    backgroundColor: colors.bg.card,
+    borderColor: colors.text.primary,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
   danger: {
-    borderColor: colors.error + '40',
-    backgroundColor: colors.error + '10',
+    borderColor: colors.error + '55',
+    backgroundColor: colors.error + '0F',
   },
   ghostLabel: {
     color: colors.text.primary,
     fontSize: typography.sizes.base,
-    fontWeight: typography.weights.medium,
+    fontFamily: fonts.bodyMedium,
   },
   dangerLabel: {
     color: colors.error,

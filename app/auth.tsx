@@ -19,7 +19,7 @@ import { useAuthStore } from '@store/authStore';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
 import { Icon, BrandIcon } from '@shared/components/Icon';
-import { colors, typography, spacing, radius } from '@constants/theme';
+import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 type AuthStep = 'options' | 'email' | 'sent';
 
@@ -72,7 +72,7 @@ export default function AuthScreen() {
   };
 
   return (
-    <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
+    <LinearGradient colors={gradients.page} style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -90,8 +90,8 @@ export default function AuthScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoMini}>
-              <LinearGradient colors={['#A855F7', '#7C3AED']} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radius.lg }}>
-                <Icon name="camera" size={24} color="#fff" strokeWidth={2.2} />
+              <LinearGradient colors={gradients.amber} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radius.lg }}>
+                <Icon name="camera" size={24} color={colors.text.inverse} strokeWidth={2.2} />
               </LinearGradient>
             </View>
             <Text style={styles.title}>
@@ -207,8 +207,8 @@ const styles = StyleSheet.create({
   backText: { color: colors.text.secondary, fontSize: typography.sizes.base },
   header: { alignItems: 'center', gap: spacing.sm },
   logoMini: { width: 56, height: 56, borderRadius: radius.lg, overflow: 'hidden' },
-  title: { fontSize: typography.sizes['2xl'], fontWeight: typography.weights.bold, color: colors.text.primary, textAlign: 'center' },
-  subtitle: { fontSize: typography.sizes.sm, color: colors.text.muted, textAlign: 'center', lineHeight: 20, paddingHorizontal: spacing.lg },
+  title: { fontSize: typography.sizes['3xl'], fontFamily: fonts.displayBold, color: colors.text.primary, textAlign: 'center' },
+  subtitle: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted, textAlign: 'center', lineHeight: 20, paddingHorizontal: spacing.lg },
   options: { gap: spacing.md },
   socialBtn: {
     flexDirection: 'row',
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
   emailBtn: { borderColor: colors.border.brand },
   socialIconWrap: { width: 28, alignItems: 'center', justifyContent: 'center' },
-  socialLabel: { fontSize: typography.sizes.base, fontWeight: typography.weights.medium, color: colors.text.primary },
+  socialLabel: { fontSize: typography.sizes.base, fontFamily: fonts.bodyMedium, color: colors.text.primary },
   divider: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.border.subtle },
   dividerText: { color: colors.text.muted, fontSize: typography.sizes.sm },

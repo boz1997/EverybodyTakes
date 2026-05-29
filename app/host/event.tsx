@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { EventService, Event, Photo } from '@features/events/services/eventService';
 import { Icon } from '@shared/components/Icon';
-import { colors, typography, spacing, radius } from '@constants/theme';
+import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = (width - spacing.lg * 2 - spacing.sm * 2) / 3;
@@ -61,7 +61,7 @@ export default function EventManage() {
   );
 
   return (
-    <LinearGradient colors={['#0A0A0F', '#13131A']} style={styles.container}>
+    <LinearGradient colors={gradients.page} style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>

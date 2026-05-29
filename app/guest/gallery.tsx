@@ -12,7 +12,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { EventService, Photo } from '@features/events/services/eventService';
 import { useAuthStore } from '@store/authStore';
 import { Icon } from '@shared/components/Icon';
-import { colors, typography, spacing, radius } from '@constants/theme';
+import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = (width - spacing.lg * 2 - spacing.xs * 2) / 3;
@@ -55,7 +55,7 @@ export default function GalleryScreen() {
   );
 
   return (
-    <LinearGradient colors={['#0A0A0F', '#13131A']} style={styles.container}>
+    <LinearGradient colors={gradients.page} style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: colors.border.subtle,
   },
   backBtn: { width: 32, height: 32, justifyContent: 'center' },
-  headerTitle: { fontSize: typography.sizes.lg, fontWeight: typography.weights.bold, color: colors.text.primary },
+  headerTitle: { fontSize: typography.sizes.xl, fontFamily: fonts.displayBold, color: colors.text.primary },
   photoCount: { fontSize: typography.sizes.base, fontWeight: typography.weights.bold, color: colors.brand.DEFAULT },
   filterRow: { flexDirection: 'row', gap: spacing.sm, padding: spacing.lg, paddingBottom: spacing.sm },
   filterChip: { paddingHorizontal: spacing.lg, paddingVertical: 8, borderRadius: radius.full, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card },

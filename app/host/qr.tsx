@@ -10,7 +10,7 @@ import QRCode from 'react-native-qrcode-svg';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Icon } from '@shared/components/Icon';
-import { colors, typography, spacing, radius } from '@constants/theme';
+import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 export default function QRScreen() {
   const { t } = useTranslation();
@@ -36,7 +36,7 @@ export default function QRScreen() {
   };
 
   return (
-    <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
+    <LinearGradient colors={gradients.page} style={styles.container}>
       <View style={styles.glow} pointerEvents="none" />
 
       <View style={[styles.content, { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.xl }]}>
@@ -52,7 +52,7 @@ export default function QRScreen() {
 
         {/* QR Code Card */}
         <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.qrCard}>
-          <LinearGradient colors={['rgba(168,85,247,0.12)', 'rgba(168,85,247,0.04)']} style={styles.qrCardGradient}>
+          <LinearGradient colors={['rgba(190,106,46,0.10)', 'rgba(190,106,46,0.04)']} style={styles.qrCardGradient}>
             {/* QR */}
             <View style={styles.qrWrap}>
               <View style={styles.qrInner}>
@@ -93,7 +93,7 @@ export default function QRScreen() {
         {/* Actions */}
         <Animated.View entering={FadeInDown.delay(600)} style={styles.actions}>
           <TouchableOpacity onPress={handleShare} style={styles.actionBtn} activeOpacity={0.85}>
-            <LinearGradient colors={['#A855F7', '#7C3AED']} style={styles.actionBtnGradient}>
+            <LinearGradient colors={gradients.amber} style={styles.actionBtnGradient}>
               <Icon name="share" size={18} color="#fff" />
               <Text style={styles.actionText}>{t('host.shareQR')}</Text>
             </LinearGradient>
@@ -125,11 +125,11 @@ export default function QRScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  glow: { position: 'absolute', top: -30, left: '20%', width: '60%', height: 250, borderRadius: 250, backgroundColor: 'rgba(168,85,247,0.18)' },
+  glow: { position: 'absolute', top: -30, left: '20%', width: '60%', height: 250, borderRadius: 250, backgroundColor: 'rgba(190,106,46,0.10)' },
   content: { flex: 1, paddingHorizontal: spacing.lg, alignItems: 'center', justifyContent: 'space-between' },
   header: { alignItems: 'center', gap: spacing.sm },
   checkmark: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(34,197,94,0.12)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.3)' },
-  title: { fontSize: typography.sizes['2xl'], fontWeight: typography.weights.extrabold, color: colors.text.primary, textAlign: 'center' },
+  title: { fontSize: typography.sizes['2xl'], fontFamily: fonts.displayBold, color: colors.text.primary, textAlign: 'center' },
   subtitle: { fontSize: typography.sizes.sm, color: colors.text.muted, textAlign: 'center' },
   qrCard: { width: '100%', borderRadius: radius['2xl'], overflow: 'hidden', borderWidth: 1, borderColor: colors.border.brand },
   qrCardGradient: { alignItems: 'center', padding: spacing.xl, gap: spacing.lg },

@@ -12,7 +12,7 @@ import { useAuthStore } from '@store/authStore';
 import { EventService } from '@features/events/services/eventService';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { Icon, IconName, EVENT_TYPE_ICON } from '@shared/components/Icon';
-import { colors, typography, spacing, radius } from '@constants/theme';
+import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 type Plan = 'free' | 'starter' | 'pro';
 
@@ -39,7 +39,7 @@ export default function PaywallScreen() {
       icon: 'gift' as IconName,
       features: (t('paywall.free.features', { returnObjects: true }) as string[]).map((f) => ({ text: f, included: true })),
       color: colors.text.muted,
-      gradient: ['#1A1A24', '#13131A'] as [string, string],
+      gradient: ['#FAF5EB', '#EFE6D3'] as [string, string],
     },
     {
       key: 'starter' as Plan,
@@ -49,7 +49,7 @@ export default function PaywallScreen() {
       icon: 'flash' as IconName,
       features: (t('paywall.starter.features', { returnObjects: true }) as string[]).map((f) => ({ text: f, included: true })),
       color: colors.brand.DEFAULT,
-      gradient: ['rgba(168,85,247,0.15)', 'rgba(168,85,247,0.03)'] as [string, string],
+      gradient: ['rgba(190,106,46,0.12)', 'rgba(190,106,46,0.03)'] as [string, string],
       badge: t('paywall.mostPopular'),
     },
     {
@@ -60,7 +60,7 @@ export default function PaywallScreen() {
       icon: 'crown' as IconName,
       features: (t('paywall.pro.features', { returnObjects: true }) as string[]).map((f) => ({ text: f, included: true })),
       color: colors.gold.DEFAULT,
-      gradient: ['rgba(245,158,11,0.15)', 'rgba(245,158,11,0.03)'] as [string, string],
+      gradient: ['rgba(154,118,52,0.15)', 'rgba(154,118,52,0.04)'] as [string, string],
     },
   ];
 
@@ -86,7 +86,7 @@ export default function PaywallScreen() {
   };
 
   return (
-    <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
+    <LinearGradient colors={gradients.page} style={styles.container}>
       {/* Top glow */}
       <View style={styles.glow} pointerEvents="none" />
 
@@ -110,7 +110,7 @@ export default function PaywallScreen() {
 
         {/* Event Summary Pill */}
         <View style={styles.eventPill}>
-          <LinearGradient colors={['rgba(168,85,247,0.2)', 'rgba(168,85,247,0.05)']} style={styles.eventPillGradient}>
+          <LinearGradient colors={['rgba(190,106,46,0.14)', 'rgba(190,106,46,0.05)']} style={styles.eventPillGradient}>
             <Icon name={EVENT_TYPE_ICON[draft.type]} size={18} color={colors.brand.light} />
             <Text style={styles.eventPillName} numberOfLines={1}>{draft.name || 'Etkinlik'}</Text>
             <Text style={styles.eventPillDetail}>{draft.shotsPerGuest} çekim/kişi</Text>
@@ -198,13 +198,13 @@ export default function PaywallScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  glow: { position: 'absolute', top: -50, left: '20%', width: '60%', height: 200, borderRadius: 200, backgroundColor: 'rgba(168,85,247,0.15)' },
+  glow: { position: 'absolute', top: -50, left: '20%', width: '60%', height: 200, borderRadius: 200, backgroundColor: 'rgba(190,106,46,0.12)' },
   scroll: { paddingHorizontal: spacing.lg, gap: spacing.lg },
   backBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6 },
   backText: { color: colors.text.secondary, fontSize: typography.sizes.base },
   header: { alignItems: 'center', gap: spacing.sm },
-  crownWrap: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.3)' },
-  title: { fontSize: typography.sizes['2xl'], fontWeight: typography.weights.extrabold, color: colors.text.primary, textAlign: 'center' },
+  crownWrap: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(154,118,52,0.12)', borderWidth: 1, borderColor: 'rgba(154,118,52,0.35)' },
+  title: { fontSize: typography.sizes['3xl'], fontFamily: fonts.displayBold, color: colors.text.primary, textAlign: 'center' },
   subtitle: { fontSize: typography.sizes.sm, color: colors.text.muted, textAlign: 'center' },
   eventPill: { borderRadius: radius.full, overflow: 'hidden', borderWidth: 1, borderColor: colors.border.brand },
   eventPillGradient: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: 12, gap: spacing.sm },

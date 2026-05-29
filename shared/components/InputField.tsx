@@ -1,5 +1,5 @@
 import { View, Text, TextInput, StyleSheet, TextInputProps } from 'react-native';
-import { colors, radius, typography, spacing } from '@constants/theme';
+import { colors, radius, typography, spacing, fonts } from '@constants/theme';
 
 interface Props extends TextInputProps {
   label?: string;
@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
   label: {
     color: colors.text.secondary,
     fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.medium,
+    fontFamily: fonts.bodyMedium,
     marginBottom: 2,
   },
   input: {
@@ -42,9 +42,10 @@ const styles = StyleSheet.create({
     borderColor: colors.border.DEFAULT,
     borderRadius: radius.lg,
     paddingHorizontal: spacing.md,
-    paddingVertical: 14,
+    paddingVertical: 15,
     color: colors.text.primary,
     fontSize: typography.sizes.base,
+    fontFamily: fonts.body,
   },
   inputError: {
     borderColor: colors.error,
@@ -52,9 +53,11 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.error,
     fontSize: typography.sizes.xs,
+    fontFamily: fonts.body,
   },
   hintText: {
     color: colors.text.muted,
     fontSize: typography.sizes.xs,
+    fontFamily: fonts.body,
   },
 });

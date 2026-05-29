@@ -1,53 +1,46 @@
 import { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withDelay,
-  withTiming,
-  withSpring,
-  Easing,
+  useSharedValue, useAnimatedStyle, withDelay, withTiming, withSpring,
 } from 'react-native-reanimated';
 import { useAuthStore } from '@store/authStore';
 import { Icon } from '@shared/components/Icon';
-import { colors, typography, spacing, radius } from '@constants/theme';
+import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
   const { t } = useTranslation();
-  const { isInitialized, user } = useAuthStore();
+  const insets = useSafeAreaInsets();
+  const { user } = useAuthStore();
 
-  const logoOpacity = useSharedValue(0);
-  const logoY = useSharedValue(30);
-  const taglineOpacity = useSharedValue(0);
-  const buttonsOpacity = useSharedValue(0);
-  const buttonsY = useSharedValue(40);
+  const headlineOpacity = useSharedValue(0);
+  const headlineY = useSharedValue(24);
+  const cardsOpacity = useSharedValue(0);
+  const cardsY = useSharedValue(28);
+  const kickerOpacity = useSharedValue(0);
 
   useEffect(() => {
-    logoOpacity.value = withDelay(200, withTiming(1, { duration: 700 }));
-    logoY.value = withDelay(200, withSpring(0, { damping: 20 }));
-    taglineOpacity.value = withDelay(600, withTiming(1, { duration: 600 }));
-    buttonsOpacity.value = withDelay(900, withTiming(1, { duration: 500 }));
-    buttonsY.value = withDelay(900, withSpring(0, { damping: 18 }));
+    kickerOpacity.value = withDelay(150, withTiming(1, { duration: 600 }));
+    headlineOpacity.value = withDelay(300, withTiming(1, { duration: 700 }));
+    headlineY.value = withDelay(300, withSpring(0, { damping: 20 }));
+    cardsOpacity.value = withDelay(700, withTiming(1, { duration: 600 }));
+    cardsY.value = withDelay(700, withSpring(0, { damping: 18 }));
   }, []);
 
-  const logoStyle = useAnimatedStyle(() => ({
-    opacity: logoOpacity.value,
-    transform: [{ translateY: logoY.value }],
+  const kickerStyle = useAnimatedStyle(() => ({ opacity: kickerOpacity.value }));
+  const headlineStyle = useAnimatedStyle(() => ({
+    opacity: headlineOpacity.value,
+    transform: [{ translateY: headlineY.value }],
   }));
-
-  const taglineStyle = useAnimatedStyle(() => ({
-    opacity: taglineOpacity.value,
-  }));
-
-  const buttonsStyle = useAnimatedStyle(() => ({
-    opacity: buttonsOpacity.value,
-    transform: [{ translateY: buttonsY.value }],
+  const cardsStyle = useAnimatedStyle(() => ({
+    opacity: cardsOpacity.value,
+    transform: [{ translateY: cardsY.value }],
   }));
 
   const handleRole = (role: 'guest' | 'host') => {
@@ -55,233 +48,90 @@ export default function WelcomeScreen() {
     if (role === 'guest') {
       router.push('/guest/scan');
     } else {
-      if (user) {
-        router.push('/host/dashboard');
-      } else {
-        router.push({ pathname: '/auth', params: { role: 'host' } });
-      }
+      router.push(user ? '/host/dashboard' : { pathname: '/auth', params: { role: 'host' } });
     }
   };
 
   return (
-    <LinearGradient
-      colors={['#0A0A0F', '#160A2E', '#0A0A0F']}
-      locations={[0, 0.5, 1]}
-      style={styles.container}
-    >
-      {/* Ambient glow */}
-      <View style={styles.glowTop} pointerEvents="none" />
-      <View style={styles.glowBottom} pointerEvents="none" />
+    <LinearGradient colors={gradients.page} style={styles.container}>
+      <View style={[styles.content, { paddingTop: insets.top + height * 0.08, paddingBottom: insets.bottom + spacing.xl }]}>
 
-      {/* Film grain overlay feel */}
-      <View style={styles.content}>
-
-        {/* Logo + Brand */}
-        <Animated.View style={[styles.logoSection, logoStyle]}>
+        {/* Top — wordmark */}
+        <Animated.View style={[styles.top, kickerStyle]}>
           <View style={styles.logoMark}>
-            <LinearGradient
-              colors={['#A855F7', '#7C3AED']}
-              style={styles.logoGradient}
-            >
-              <Icon name="camera" size={36} color="#fff" strokeWidth={2.2} />
-            </LinearGradient>
+            <Icon name="camera" size={18} color={colors.text.inverse} strokeWidth={2} />
           </View>
-          <Text style={styles.brandName}>GuestCam</Text>
+          <Text style={styles.kicker}>GUESTCAM</Text>
         </Animated.View>
 
-        {/* Tagline */}
-        <Animated.View style={[styles.taglineSection, taglineStyle]}>
-          <Text style={styles.tagline}>{t('welcome.tagline')}</Text>
+        {/* Headline */}
+        <Animated.View style={[styles.headlineBlock, headlineStyle]}>
+          <Text style={styles.headline}>{t('welcome.tagline')}</Text>
           <Text style={styles.subtitle}>{t('welcome.subtitle')}</Text>
         </Animated.View>
 
-        {/* Role Buttons */}
-        <Animated.View style={[styles.buttonsSection, buttonsStyle]}>
-
-          {/* Guest Button */}
-          <TouchableOpacity
-            style={styles.roleCard}
-            onPress={() => handleRole('guest')}
-            activeOpacity={0.85}
-          >
-            <LinearGradient
-              colors={['rgba(168,85,247,0.15)', 'rgba(168,85,247,0.05)']}
-              style={styles.roleCardGradient}
-            >
-              <View style={styles.roleIconWrap}>
-                <Icon name="camera" size={24} color={colors.brand.light} />
-              </View>
-              <View style={styles.roleTextWrap}>
-                <Text style={styles.roleTitle}>{t('welcome.iAmGuest')}</Text>
-                <Text style={styles.roleSubtitle}>{t('welcome.guestSubtitle')}</Text>
-              </View>
-              <Icon name="arrowRight" size={20} color={colors.text.muted} />
-            </LinearGradient>
+        {/* Role cards */}
+        <Animated.View style={[styles.cards, cardsStyle]}>
+          <TouchableOpacity style={styles.card} onPress={() => handleRole('guest')} activeOpacity={0.8}>
+            <View style={styles.cardIcon}>
+              <Icon name="camera" size={22} color={colors.brand.DEFAULT} />
+            </View>
+            <View style={styles.cardText}>
+              <Text style={styles.cardTitle}>{t('welcome.iAmGuest')}</Text>
+              <Text style={styles.cardSubtitle}>{t('welcome.guestSubtitle')}</Text>
+            </View>
+            <Icon name="arrowRight" size={18} color={colors.text.muted} />
           </TouchableOpacity>
 
-          {/* Host Button */}
-          <TouchableOpacity
-            style={styles.roleCard}
-            onPress={() => handleRole('host')}
-            activeOpacity={0.85}
-          >
-            <LinearGradient
-              colors={['rgba(245,158,11,0.15)', 'rgba(245,158,11,0.05)']}
-              style={styles.roleCardGradient}
-            >
-              <View style={[styles.roleIconWrap, styles.hostIconBg]}>
-                <Icon name="party" size={24} color={colors.gold.light} />
-              </View>
-              <View style={styles.roleTextWrap}>
-                <Text style={styles.roleTitle}>{t('welcome.iAmHost')}</Text>
-                <Text style={styles.roleSubtitle}>{t('welcome.hostSubtitle')}</Text>
-              </View>
-              <Icon name="arrowRight" size={20} color={colors.text.muted} />
-            </LinearGradient>
+          <TouchableOpacity style={styles.card} onPress={() => handleRole('host')} activeOpacity={0.8}>
+            <View style={styles.cardIcon}>
+              <Icon name="party" size={22} color={colors.brand.DEFAULT} />
+            </View>
+            <View style={styles.cardText}>
+              <Text style={styles.cardTitle}>{t('welcome.iAmHost')}</Text>
+              <Text style={styles.cardSubtitle}>{t('welcome.hostSubtitle')}</Text>
+            </View>
+            <Icon name="arrowRight" size={18} color={colors.text.muted} />
           </TouchableOpacity>
         </Animated.View>
-
-        {/* Bottom hint */}
-        <View style={styles.bottomHint}>
-          <View style={styles.dot} /><View style={styles.dot} /><View style={styles.dot} />
-        </View>
       </View>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  glowTop: {
-    position: 'absolute',
-    top: -100,
-    left: width * 0.2,
-    width: width * 0.6,
-    height: 300,
-    borderRadius: 300,
-    backgroundColor: 'rgba(168,85,247,0.12)',
-  },
-  glowBottom: {
-    position: 'absolute',
-    bottom: 0,
-    right: -50,
-    width: 250,
-    height: 250,
-    borderRadius: 250,
-    backgroundColor: 'rgba(245,158,11,0.06)',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-    paddingTop: height * 0.12,
-    paddingBottom: spacing['2xl'],
-    justifyContent: 'space-between',
-  },
-  logoSection: {
-    alignItems: 'center',
-    gap: spacing.md,
-  },
+  container: { flex: 1 },
+  content: { flex: 1, paddingHorizontal: spacing.lg, justifyContent: 'space-between' },
+  top: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   logoMark: {
-    width: 80,
-    height: 80,
-    borderRadius: radius['2xl'],
-    overflow: 'hidden',
-    shadowColor: colors.brand.DEFAULT,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
+    width: 34, height: 34, borderRadius: radius.sm,
+    backgroundColor: colors.text.primary, alignItems: 'center', justifyContent: 'center',
   },
-  logoGradient: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  kicker: {
+    fontFamily: fonts.bodySemibold, fontSize: typography.sizes.sm,
+    color: colors.text.primary, letterSpacing: 3,
   },
-  logoIcon: {
-    fontSize: 36,
-    color: '#fff',
-  },
-  brandName: {
-    fontSize: typography.sizes['3xl'],
-    fontWeight: typography.weights.extrabold,
-    color: colors.text.primary,
-    letterSpacing: -1,
-  },
-  taglineSection: {
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.xl,
-  },
-  tagline: {
-    fontSize: typography.sizes['2xl'],
-    fontWeight: typography.weights.bold,
-    color: colors.text.primary,
-    textAlign: 'center',
-    letterSpacing: -0.5,
+  headlineBlock: { gap: spacing.md, marginTop: spacing.xl },
+  headline: {
+    fontFamily: fonts.displayBold, fontSize: 46, lineHeight: 50,
+    color: colors.text.primary, letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: typography.sizes.base,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 22,
+    fontFamily: fonts.body, fontSize: typography.sizes.lg,
+    color: colors.text.secondary, lineHeight: 26, maxWidth: '90%',
   },
-  buttonsSection: {
-    gap: spacing.md,
+  cards: { gap: spacing.md },
+  card: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    backgroundColor: colors.bg.card, borderRadius: radius.xl,
+    borderWidth: 1, borderColor: colors.border.DEFAULT,
+    paddingVertical: spacing.md, paddingHorizontal: spacing.md,
   },
-  roleCard: {
-    borderRadius: radius['2xl'],
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
+  cardIcon: {
+    width: 50, height: 50, borderRadius: radius.md,
+    backgroundColor: colors.brand.glow, alignItems: 'center', justifyContent: 'center',
   },
-  roleCardGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    gap: spacing.md,
-  },
-  roleIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.lg,
-    backgroundColor: 'rgba(168,85,247,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  hostIconBg: {
-    backgroundColor: 'rgba(245,158,11,0.2)',
-  },
-  roleIcon: {
-    fontSize: 24,
-  },
-  roleTextWrap: {
-    flex: 1,
-    gap: 3,
-  },
-  roleTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.semibold,
-    color: colors.text.primary,
-  },
-  roleSubtitle: {
-    fontSize: typography.sizes.sm,
-    color: colors.text.muted,
-  },
-  roleArrow: {
-    fontSize: 18,
-    color: colors.text.muted,
-  },
-  bottomHint: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.border.DEFAULT,
-  },
+  cardText: { flex: 1, gap: 3 },
+  cardTitle: { fontFamily: fonts.displayBold, fontSize: typography.sizes.xl, color: colors.text.primary },
+  cardSubtitle: { fontFamily: fonts.body, fontSize: typography.sizes.sm, color: colors.text.muted },
 });

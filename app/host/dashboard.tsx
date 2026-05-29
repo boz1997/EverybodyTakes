@@ -13,7 +13,7 @@ import { useAuthStore } from '@store/authStore';
 import { EventService, Event } from '@features/events/services/eventService';
 import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { EventType } from '@store/eventStore';
-import { colors, typography, spacing, radius } from '@constants/theme';
+import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 export default function HostDashboard() {
   const { t } = useTranslation();
@@ -44,7 +44,7 @@ export default function HostDashboard() {
       activeOpacity={0.85}
     >
       <LinearGradient
-        colors={['rgba(168,85,247,0.08)', 'transparent']}
+        colors={['rgba(190,106,46,0.07)', 'transparent']}
         style={styles.cardGradient}
       >
         {item.coverImageUrl ? (
@@ -89,7 +89,7 @@ export default function HostDashboard() {
   );
 
   return (
-    <LinearGradient colors={['#0A0A0F', '#13131A']} style={styles.container}>
+    <LinearGradient colors={gradients.page} style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <View>
@@ -97,7 +97,7 @@ export default function HostDashboard() {
           <Text style={styles.headerTitle}>{t('host.dashboard')}</Text>
         </View>
         <TouchableOpacity onPress={() => router.push('/host/create')} style={styles.createBtn} activeOpacity={0.85}>
-          <LinearGradient colors={['#A855F7', '#7C3AED']} style={styles.createBtnGradient}>
+          <LinearGradient colors={gradients.amber} style={styles.createBtnGradient}>
             <Icon name="plus" size={16} color="#fff" strokeWidth={2.6} />
             <Text style={styles.createBtnText}>{t('host.createEvent')}</Text>
           </LinearGradient>
@@ -125,7 +125,7 @@ export default function HostDashboard() {
               <Text style={styles.emptyTitle}>{t('host.noEvents')}</Text>
               <Text style={styles.emptySubtitle}>{t('host.noEventsSubtitle')}</Text>
               <TouchableOpacity onPress={() => router.push('/host/create')} style={styles.emptyBtn} activeOpacity={0.85}>
-                <LinearGradient colors={['#A855F7', '#7C3AED']} style={styles.emptyBtnGradient}>
+                <LinearGradient colors={gradients.amber} style={styles.emptyBtnGradient}>
                   <Text style={styles.emptyBtnText}>{t('host.createEvent')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border.subtle,
   },
   greeting: { fontSize: typography.sizes.xs, color: colors.brand.DEFAULT, fontWeight: typography.weights.semibold, letterSpacing: 1 },
-  headerTitle: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: colors.text.primary },
+  headerTitle: { fontSize: typography.sizes['2xl'], fontFamily: fonts.displayBold, color: colors.text.primary },
   createBtn: { borderRadius: radius.xl, overflow: 'hidden' },
   createBtnGradient: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, paddingVertical: 10 },
   createBtnText: { color: '#fff', fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold },
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   cardCoverEmpty: { alignItems: 'center', justifyContent: 'center' },
   cardContent: { gap: spacing.sm },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardName: { fontSize: typography.sizes.lg, fontWeight: typography.weights.semibold, color: colors.text.primary, flex: 1 },
+  cardName: { fontSize: typography.sizes.lg, fontFamily: fonts.displayBold, color: colors.text.primary, flex: 1 },
   badge: { borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 4 },
   badgeActive: { backgroundColor: 'rgba(34,197,94,0.15)' },
   badgePast: { backgroundColor: colors.bg.elevated },

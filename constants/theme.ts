@@ -1,35 +1,49 @@
+// Film / Editorial palette — warm paper, ink, restrained amber.
+// Token shape is kept stable (bg / brand / gold / text / border) so every
+// screen that references these adopts the new look without churn.
 export const colors = {
   bg: {
-    primary: '#0A0A0F',
-    secondary: '#13131A',
-    card: '#1A1A24',
-    elevated: '#22222E',
+    primary: '#EFE7D6',    // warm paper
+    secondary: '#E7DDC9',  // deeper paper (for gradients)
+    card: '#FAF5EB',        // raised paper
+    elevated: '#FFFFFF',
   },
   brand: {
-    DEFAULT: '#A855F7',
-    light: '#C084FC',
-    dark: '#7C3AED',
-    glow: 'rgba(168, 85, 247, 0.12)',
+    DEFAULT: '#BE6A2E',     // analog amber — the accent
+    light: '#D68A4C',
+    dark: '#974F1F',
+    glow: 'rgba(190, 106, 46, 0.10)',
   },
   gold: {
-    DEFAULT: '#F59E0B',
-    light: '#FCD34D',
-    dark: '#D97706',
+    DEFAULT: '#9A7634',     // bronze, for the "Pro" tier
+    light: '#C2A05A',
+    dark: '#6F541F',
   },
   text: {
-    primary: '#FFFFFF',
-    secondary: '#B4B4CC',
-    muted: '#6B6B8A',
-    inverse: '#0A0A0F',
+    primary: '#221D16',     // warm ink
+    secondary: '#5B5247',
+    muted: '#9C9182',
+    inverse: '#F4EEE1',     // on dark/amber surfaces
   },
-  success: '#22C55E',
-  error: '#EF4444',
-  warning: '#F59E0B',
+  success: '#4E7C59',
+  error: '#B1452F',
+  warning: '#BE6A2E',
   border: {
-    DEFAULT: '#2A2A3A',
-    subtle: '#1E1E2C',
-    brand: 'rgba(168, 85, 247, 0.25)',
+    DEFAULT: '#DCD2BF',
+    subtle: '#E7DECB',
+    brand: 'rgba(190, 106, 46, 0.30)',
   },
+  // Dark contexts (camera viewfinder, scanner) stay near-black.
+  black: '#14110C',
+} as const;
+
+// Gradients used across screens (replaces inline neon arrays).
+export const gradients = {
+  page: ['#F3ECDC', '#EAE0CC'] as [string, string],      // editorial paper
+  pageWarm: ['#F4EDDD', '#EFE3CC'] as [string, string],
+  amber: ['#C97B3C', '#9A4F20'] as [string, string],     // primary button / accent
+  bronze: ['#A8843E', '#6F541F'] as [string, string],    // pro tier
+  dark: ['#1A1610', '#14110C'] as [string, string],      // camera chrome
 } as const;
 
 export const spacing = {
@@ -49,6 +63,15 @@ export const radius = {
   xl: 20,
   '2xl': 24,
   full: 9999,
+} as const;
+
+export const fonts = {
+  display: 'Fraunces_600SemiBold',     // editorial serif headings
+  displayBold: 'Fraunces_700Bold',
+  body: 'Inter_400Regular',
+  bodyMedium: 'Inter_500Medium',
+  bodySemibold: 'Inter_600SemiBold',
+  bodyBold: 'Inter_700Bold',
 } as const;
 
 export const typography = {

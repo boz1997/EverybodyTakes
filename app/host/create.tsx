@@ -17,7 +17,7 @@ import { StepIndicator } from '@shared/components/StepIndicator';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
 import { Icon, IconName, EVENT_TYPE_ICON } from '@shared/components/Icon';
-import { colors, typography, spacing, radius } from '@constants/theme';
+import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 const TOTAL_STEPS = 5;
 
@@ -86,7 +86,7 @@ export default function CreateEvent() {
   };
 
   return (
-    <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
+    <LinearGradient colors={gradients.page} style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
 
         {/* Header */}
@@ -120,7 +120,7 @@ export default function CreateEvent() {
                     {draft.coverImageUri ? (
                       <Animated.Image source={{ uri: draft.coverImageUri }} style={styles.coverImage} />
                     ) : (
-                      <LinearGradient colors={['rgba(168,85,247,0.15)', 'rgba(168,85,247,0.05)']} style={styles.coverEmpty}>
+                      <LinearGradient colors={['rgba(190,106,46,0.12)', 'rgba(190,106,46,0.05)']} style={styles.coverEmpty}>
                         <Icon name="image" size={30} color={colors.brand.light} strokeWidth={1.8} />
                         <Text style={styles.coverEmptyText}>{t('host.addCoverPhoto')}</Text>
                       </LinearGradient>
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   scroll: { padding: spacing.lg },
   section: { gap: spacing.xl },
   questionBlock: { gap: spacing.sm },
-  questionTitle: { fontSize: typography.sizes.lg, fontWeight: typography.weights.bold, color: colors.text.primary },
+  questionTitle: { fontSize: typography.sizes.xl, fontFamily: fonts.displayBold, color: colors.text.primary },
   questionHint: { fontSize: typography.sizes.sm, color: colors.text.muted, marginTop: -4 },
   coverPicker: { width: '100%', height: 180, borderRadius: radius['2xl'], overflow: 'hidden', marginTop: spacing.xs },
   coverImage: { width: '100%', height: '100%' },

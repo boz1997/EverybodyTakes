@@ -16,7 +16,7 @@ import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
 import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { EventType } from '@store/eventStore';
-import { colors, typography, spacing, radius } from '@constants/theme';
+import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 import { format } from 'date-fns';
 
 export default function JoinScreen() {
@@ -76,7 +76,7 @@ export default function JoinScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
+      <LinearGradient colors={gradients.page} style={styles.container}>
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
           <Text style={styles.loadingText}>{t('guest.joiningEvent')}</Text>
@@ -87,7 +87,7 @@ export default function JoinScreen() {
 
   if (error || !event) {
     return (
-      <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
+      <LinearGradient colors={gradients.page} style={styles.container}>
         <View style={styles.centerContent}>
           <View style={styles.errorIconWrap}>
             <Icon name="alert" size={36} color={colors.error} strokeWidth={1.8} />
@@ -100,7 +100,7 @@ export default function JoinScreen() {
   }
 
   return (
-    <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
+    <LinearGradient colors={gradients.page} style={styles.container}>
       <View style={styles.glow} pointerEvents="none" />
 
       <View style={[styles.content, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.xl }]}>
@@ -110,7 +110,7 @@ export default function JoinScreen() {
           {event.coverImageUrl ? (
             <Image source={{ uri: event.coverImageUrl }} style={styles.coverImage} />
           ) : (
-            <LinearGradient colors={['rgba(168,85,247,0.2)', 'rgba(168,85,247,0.05)']} style={styles.coverEmpty}>
+            <LinearGradient colors={['rgba(190,106,46,0.14)', 'rgba(190,106,46,0.05)']} style={styles.coverEmpty}>
               <Icon name={EVENT_TYPE_ICON[event.type as EventType] ?? 'party'} size={64} color={colors.brand.light} strokeWidth={1.4} />
             </LinearGradient>
           )}
@@ -178,7 +178,7 @@ export default function JoinScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  glow: { position: 'absolute', top: 100, left: '20%', width: '60%', height: 200, borderRadius: 200, backgroundColor: 'rgba(168,85,247,0.15)' },
+  glow: { position: 'absolute', top: 100, left: '20%', width: '60%', height: 200, borderRadius: 200, backgroundColor: 'rgba(190,106,46,0.12)' },
   centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, paddingHorizontal: spacing.lg },
   loadingText: { fontSize: typography.sizes.lg, color: colors.text.secondary },
   errorIconWrap: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' },
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   coverEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   coverFade: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 80 },
   infoSection: { gap: spacing.sm },
-  eventName: { fontSize: typography.sizes['2xl'], fontWeight: typography.weights.extrabold, color: colors.text.primary },
+  eventName: { fontSize: typography.sizes['3xl'], fontFamily: fonts.displayBold, color: colors.text.primary },
   eventDate: { fontSize: typography.sizes.sm, color: colors.text.muted },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
   statChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.bg.card, borderRadius: radius.full, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: colors.border.DEFAULT },
