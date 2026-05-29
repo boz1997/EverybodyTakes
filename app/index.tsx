@@ -55,7 +55,7 @@ export default function WelcomeScreen() {
 
   return (
     <LinearGradient colors={gradients.page} style={styles.container}>
-      <View style={[styles.content, { paddingTop: insets.top + height * 0.08, paddingBottom: insets.bottom + spacing.xl }]}>
+      <View style={[styles.content, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.lg }]}>
 
         {/* Top — logo + language */}
         <Animated.View style={[styles.top, kickerStyle]}>
@@ -102,10 +102,10 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: spacing.lg, justifyContent: 'space-between' },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  logo: { height: 72, aspectRatio: 1.83, marginLeft: -10 },
-  headlineBlock: { gap: spacing.md, marginTop: spacing.xl },
+  logo: { width: 104, height: 57, marginLeft: -8 },
+  headlineBlock: { gap: spacing.sm },
   headline: {
-    fontFamily: fonts.displayBold, fontSize: 46, lineHeight: 50,
+    fontFamily: fonts.displayBold, fontSize: 38, lineHeight: 42,
     color: colors.text.primary, letterSpacing: -0.5,
   },
   subtitle: {
