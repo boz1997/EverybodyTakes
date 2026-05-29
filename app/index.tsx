@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useAuthStore } from '@store/authStore';
 import { Icon } from '@shared/components/Icon';
+import { LanguageToggle } from '@shared/components/LanguageToggle';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 const { height } = Dimensions.get('window');
@@ -56,9 +57,10 @@ export default function WelcomeScreen() {
     <LinearGradient colors={gradients.page} style={styles.container}>
       <View style={[styles.content, { paddingTop: insets.top + height * 0.08, paddingBottom: insets.bottom + spacing.xl }]}>
 
-        {/* Top — logo */}
+        {/* Top — logo + language */}
         <Animated.View style={[styles.top, kickerStyle]}>
           <Image source={require('../assets/guestlogo.png')} style={styles.logo} resizeMode="contain" />
+          <LanguageToggle />
         </Animated.View>
 
         {/* Headline */}
@@ -99,7 +101,7 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: spacing.lg, justifyContent: 'space-between' },
-  top: { alignItems: 'flex-start' },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   logo: { height: 140, aspectRatio: 1.83, marginLeft: -14 },
   headlineBlock: { gap: spacing.md, marginTop: spacing.xl },
   headline: {

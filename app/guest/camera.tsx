@@ -12,7 +12,8 @@ import * as Haptics from 'expo-haptics';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSequence, withTiming, withSpring, FadeIn, FadeOut,
 } from 'react-native-reanimated';
-import { EventService } from '@features/events/services/eventService';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { EventService, LimitError } from '@features/events/services/eventService';
 import { useAuthStore } from '@store/authStore';
 import { useEventStore } from '@store/eventStore';
 import { Icon } from '@shared/components/Icon';
@@ -56,27 +57,33 @@ export default function CameraScreen() {
 
       // Take photo
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.85,
+        quality: 0.9,
         skipProcessing: Platform.OS === 'android',
       });
 
       if (!photo?.uri) throw new Error('No photo');
 
-      // Decrement shots immediately (optimistic)
-      decrementShots();
+      // Atomically claim a shot first (throws if none left / event capped).
       await EventService.decrementShots(id!, user.uid);
+      decrementShots();
 
-      // Upload
+      // Client-side compress before upload (max 1920px, ~80% quality).
+      const compressed = await ImageManipulator.manipulateAsync(
+        photo.uri,
+        [{ resize: { width: 1920 } }],
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
+      );
+
       setUploadStatus('uploading');
-      await EventService.uploadPhoto(id!, user.uid, user.displayName, photo.uri);
+      await EventService.uploadPhoto(id!, user.uid, user.displayName, compressed.uri);
       setUploadStatus('success');
       setTimeout(() => setUploadStatus('idle'), 1500);
 
-    } catch (e: any) {
+    } catch (e) {
       setUploadStatus('error');
       setTimeout(() => setUploadStatus('idle'), 2000);
-      if (e.message === 'No shots remaining') {
-        Alert.alert(t('guest.noShotsRemaining'));
+      if (e instanceof LimitError) {
+        Alert.alert(e.code === 'photo_cap' ? t('guest.eventPhotoCapReached') : t('guest.noShotsRemaining'));
       }
     } finally {
       setCapturing(false);

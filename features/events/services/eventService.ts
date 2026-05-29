@@ -9,12 +9,22 @@ import {
   where,
   serverTimestamp,
   onSnapshot,
+  runTransaction,
+  increment,
   Unsubscribe,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@lib/firebase';
 import { EventDraft } from '@store/eventStore';
+import { getPlan } from '@constants/plans';
 import { nanoid } from 'nanoid/non-secure';
+
+/** Thrown when a hard plan/event limit is hit. Screens map these to copy. */
+export class LimitError extends Error {
+  constructor(public code: 'event_full' | 'photo_cap' | 'no_shots') {
+    super(code);
+  }
+}
 
 export interface Event {
   id: string;
@@ -27,7 +37,10 @@ export interface Event {
   disposableMode: boolean;
   revealTiming: string;
   allowGalleryUpload: boolean;
-  maxGuests: number | null;
+  maxGuests: number | null;   // resolved from plan
+  photoCap: number | null;    // resolved from plan
+  watermark: boolean;         // resolved from plan
+  endsAt: string | null;      // for reveal timing
   shortCode: string;
   isActive: boolean;
   guestCount: number;
@@ -68,24 +81,32 @@ export const EventService = {
   async create(hostId: string, draft: EventDraft, plan: string): Promise<Event> {
     const id = nanoid();
     const shortCode = nanoid(8).toUpperCase();
+    const limits = getPlan(plan);
 
     let coverImageUrl: string | null = null;
     if (draft.coverImageUri) {
       coverImageUrl = await EventService.uploadCoverImage(id, draft.coverImageUri);
     }
 
+    const startDate = draft.date ?? new Date();
+    // Reveal-after-event needs an end time; default to +6h from start.
+    const endsAt = new Date(startDate.getTime() + 6 * 60 * 60 * 1000).toISOString();
+
     const event: Omit<Event, 'createdAt'> & { createdAt: ReturnType<typeof serverTimestamp> } = {
       id,
       hostId,
       name: draft.name,
       type: draft.type,
-      date: draft.date?.toISOString() ?? new Date().toISOString(),
+      date: startDate.toISOString(),
       coverImageUrl,
       shotsPerGuest: draft.shotsPerGuest,
       disposableMode: draft.disposableMode,
       revealTiming: draft.revealTiming,
       allowGalleryUpload: draft.allowGalleryUpload,
-      maxGuests: draft.maxGuests,
+      maxGuests: limits.maxGuests,
+      photoCap: limits.photoCap,
+      watermark: limits.watermark,
+      endsAt,
       shortCode,
       isActive: true,
       guestCount: 0,
@@ -116,43 +137,64 @@ export const EventService = {
     return newestFirst(snap.docs.map((d) => d.data() as Event));
   },
 
+  // Atomic so concurrent joins can't exceed the guest cap or corrupt the count.
   async joinEvent(eventId: string, userId: string, nickname: string | null): Promise<number> {
+    const eventRef = doc(db, 'events', eventId);
     const guestRef = doc(db, 'events', eventId, 'guests', userId);
-    const existing = await getDoc(guestRef);
 
-    if (existing.exists()) {
-      return (existing.data().shotsRemaining as number) ?? 0;
-    }
+    return runTransaction(db, async (tx) => {
+      const eventSnap = await tx.get(eventRef);
+      if (!eventSnap.exists()) throw new Error('Event not found');
+      const event = eventSnap.data() as Event;
 
-    const eventSnap = await getDoc(doc(db, 'events', eventId));
-    if (!eventSnap.exists()) throw new Error('Event not found');
-    const event = eventSnap.data() as Event;
+      const guestSnap = await tx.get(guestRef);
+      if (guestSnap.exists()) {
+        return (guestSnap.data().shotsRemaining as number) ?? 0;
+      }
 
-    await setDoc(guestRef, {
-      userId,
-      nickname: nickname ?? 'Anonymous',
-      shotsRemaining: event.shotsPerGuest,
-      joinedAt: serverTimestamp(),
+      if (event.maxGuests != null && (event.guestCount ?? 0) >= event.maxGuests) {
+        throw new LimitError('event_full');
+      }
+
+      tx.set(guestRef, {
+        userId,
+        nickname: nickname ?? 'Anonymous',
+        shotsRemaining: event.shotsPerGuest,
+        joinedAt: serverTimestamp(),
+      });
+      tx.update(eventRef, { guestCount: increment(1) });
+      return event.shotsPerGuest;
     });
-
-    await updateDoc(doc(db, 'events', eventId), {
-      guestCount: (event.guestCount ?? 0) + 1,
-    });
-
-    return event.shotsPerGuest;
   },
 
+  // Atomic decrement so rapid shutter taps can't drive shots below zero.
   async decrementShots(eventId: string, userId: string): Promise<void> {
-    const ref = doc(db, 'events', eventId, 'guests', userId);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return;
-    const current = snap.data().shotsRemaining as number;
-    if (current <= 0) throw new Error('No shots remaining');
-    await updateDoc(ref, { shotsRemaining: current - 1 });
+    const guestRef = doc(db, 'events', eventId, 'guests', userId);
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(guestRef);
+      if (!snap.exists()) return;
+      const current = (snap.data().shotsRemaining as number) ?? 0;
+      if (current <= 0) throw new LimitError('no_shots');
+      tx.update(guestRef, { shotsRemaining: current - 1 });
+    });
   },
 
   async uploadPhoto(eventId: string, userId: string, uploaderName: string | null, uri: string): Promise<Photo> {
     const photoId = nanoid();
+    const eventRef = doc(db, 'events', eventId);
+
+    // Reserve a slot atomically first — this enforces the plan's photoCap and
+    // bumps the counter without a read-then-write race.
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(eventRef);
+      if (!snap.exists()) throw new Error('Event not found');
+      const event = snap.data() as Event;
+      if (event.photoCap != null && (event.photoCount ?? 0) >= event.photoCap) {
+        throw new LimitError('photo_cap');
+      }
+      tx.update(eventRef, { photoCount: increment(1) });
+    });
+
     const path = `events/${eventId}/photos/${photoId}.jpg`;
     const storageRef = ref(storage, path);
 
@@ -177,10 +219,6 @@ export const EventService = {
     await setDoc(doc(db, 'events', eventId, 'photos', photoId), {
       ...photo,
       createdAt: serverTimestamp(),
-    });
-
-    await updateDoc(doc(db, 'events', eventId), {
-      photoCount: (await getDoc(doc(db, 'events', eventId))).data()!.photoCount + 1,
     });
 
     return photo;

@@ -112,6 +112,7 @@ export default {
 
     generateQR: 'QR Kodu Oluştur',
     yourQRCode: 'QR Kodunuz',
+    eventCodeLabel: 'Etkinlik Kodu',
     eventLink: 'Etkinlik Bağlantısı',
     shareQR: 'QR\'ı Paylaş',
     printQR: 'Yazdır',
@@ -158,6 +159,7 @@ export default {
     uploadSuccess: 'Yüklendi!',
     uploadError: 'Yükleme başarısız',
     noShotsRemaining: 'Fotoğraf hakkın kalmadı',
+    eventPhotoCapReached: 'Etkinlik fotoğraf limiti doldu',
     lastShot: 'Son çekimin!',
     shotsLeft: '{{count}} çekim',
 
@@ -188,58 +190,30 @@ export default {
   },
 
   paywall: {
-    title: 'Etkinliği Başlat',
-    subtitle: 'QR kodu oluşturmak için bir plan seç',
+    title: 'Etkinliğini Başlat',
+    subtitle: 'Misafir sayına göre bir paket seç — tek seferlik, abonelik yok',
     mostPopular: 'En Popüler',
-    limitedOffer: 'Sınırlı Teklif',
-
-    free: {
-      name: 'Ücretsiz',
-      price: '₺0',
-      period: '',
-      features: [
-        '1 etkinlik',
-        '50 fotoğraf',
-        '10 misafir',
-        'GuestCam filigranı',
-        'Temel galeri',
-      ],
+    perEvent: 'etkinlik başına',
+    free: 'Ücretsiz',
+    planNames: {
+      free: 'Başlangıç',
+      small: 'Küçük',
+      medium: 'Orta',
+      large: 'Büyük',
+      unlimited: 'Sınırsız',
     },
-
-    starter: {
-      name: 'Starter',
-      price: '₺149',
-      period: 'etkinlik başına',
-      features: [
-        '1 etkinlik',
-        'Sınırsız fotoğraf',
-        '100 misafir',
-        'Filigransız export',
-        'ZIP indirme',
-        'Özel reveal zamanlaması',
-      ],
-    },
-
-    pro: {
-      name: 'Pro',
-      price: '₺399',
-      period: 'ay',
-      features: [
-        'Sınırsız etkinlik',
-        'Sınırsız fotoğraf',
-        'Sınırsız misafir',
-        'Özel markalaşma',
-        'Live wall / projeksiyon',
-        'HD export',
-        'Analitikler',
-        'Öncelikli destek',
-      ],
-    },
-
+    upToGuests: '{{n}} misafire kadar',
+    unlimitedGuests: 'Sınırsız misafir',
+    unlimitedPhotos: 'Sınırsız fotoğraf',
+    photoCap: 'Toplam {{n}} fotoğraf',
+    noWatermark: 'Filigran yok',
+    watermark: 'GuestCam filigranı',
+    hdExport: 'HD indirme (ZIP)',
+    liveWall: 'Canlı duvar / projeksiyon',
     continueWithFree: 'Ücretsiz Devam Et',
-    selectPlan: 'Planı Seç',
+    selectPlan: 'Bu Paketi Seç',
     restorePurchase: 'Satın Almayı Geri Yükle',
-    termsNote: 'Abonelik aylık yenilenir, dilediğin zaman iptal edebilirsin',
+    termsNote: 'Tek seferlik etkinlik ödemesi — abonelik yok, gizli ücret yok',
   },
 
   errors: {

@@ -9,10 +9,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
-import { EventService, Photo } from '@features/events/services/eventService';
+import { EventService, Photo, Event } from '@features/events/services/eventService';
 import { useAuthStore } from '@store/authStore';
 import { Icon } from '@shared/components/Icon';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
+
+// Reveal gating: photos may be hidden until the event ends or 24h later.
+function isRevealed(e: Event | null): boolean {
+  if (!e || e.revealTiming === 'instant') return true;
+  const ends = e.endsAt ? Date.parse(e.endsAt) : 0;
+  if (e.revealTiming === 'after_event') return Date.now() >= ends;
+  if (e.revealTiming === '24h') return Date.now() >= ends + 24 * 60 * 60 * 1000;
+  return true;
+}
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = (width - spacing.lg * 2 - spacing.xs * 2) / 3;
@@ -24,14 +33,18 @@ export default function GalleryScreen() {
   const { user } = useAuthStore();
 
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [event, setEvent] = useState<Event | null>(null);
   const [selected, setSelected] = useState<Photo | null>(null);
   const [filter, setFilter] = useState<'all' | 'mine'>('all');
 
   useEffect(() => {
     if (!id) return;
+    EventService.getById(id).then(setEvent);
     const unsub = EventService.subscribeToPhotos(id, setPhotos);
     return unsub;
   }, [id]);
+
+  const revealed = isRevealed(event);
 
   const filtered = filter === 'mine'
     ? photos.filter((p) => p.uploadedBy === user?.uid)
@@ -65,43 +78,58 @@ export default function GalleryScreen() {
         <Text style={styles.photoCount}>{photos.length}</Text>
       </View>
 
-      {/* Filter */}
-      <View style={styles.filterRow}>
-        <TouchableOpacity
-          style={[styles.filterChip, filter === 'all' && styles.filterChipActive]}
-          onPress={() => setFilter('all')}
-        >
-          <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
-            {t('gallery.allPhotos')}
+      {!revealed ? (
+        /* Reveal-timing lock — photos are developing */
+        <Animated.View entering={FadeInDown} style={styles.locked}>
+          <View style={styles.lockedIconWrap}>
+            <Icon name="film" size={40} color={colors.brand.DEFAULT} strokeWidth={1.6} />
+          </View>
+          <Text style={styles.lockedTitle}>{t('guest.developing')}</Text>
+          <Text style={styles.lockedDesc}>
+            {event?.revealTiming === '24h' ? t('guest.galleryLockedDesc') : t('guest.developingDesc')}
           </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterChip, filter === 'mine' && styles.filterChipActive]}
-          onPress={() => setFilter('mine')}
-        >
-          <Text style={[styles.filterText, filter === 'mine' && styles.filterTextActive]}>
-            {t('gallery.myPhotos')}
-          </Text>
-        </TouchableOpacity>
-      </View>
+        </Animated.View>
+      ) : (
+        <>
+          {/* Filter */}
+          <View style={styles.filterRow}>
+            <TouchableOpacity
+              style={[styles.filterChip, filter === 'all' && styles.filterChipActive]}
+              onPress={() => setFilter('all')}
+            >
+              <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
+                {t('gallery.allPhotos')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterChip, filter === 'mine' && styles.filterChipActive]}
+              onPress={() => setFilter('mine')}
+            >
+              <Text style={[styles.filterText, filter === 'mine' && styles.filterTextActive]}>
+                {t('gallery.myPhotos')}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-      {/* Grid */}
-      <FlatList
-        data={filtered}
-        keyExtractor={(p) => p.id}
-        renderItem={renderPhoto}
-        numColumns={3}
-        contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + spacing.xl }]}
-        ListEmptyComponent={
-          <Animated.View entering={FadeInDown} style={styles.empty}>
-            <View style={styles.emptyIconWrap}>
-              <Icon name="camera" size={36} color={colors.brand.light} strokeWidth={1.6} />
-            </View>
-            <Text style={styles.emptyTitle}>{t('gallery.empty')}</Text>
-            <Text style={styles.emptySubtitle}>{t('gallery.emptySubtitle')}</Text>
-          </Animated.View>
-        }
-      />
+          {/* Grid */}
+          <FlatList
+            data={filtered}
+            keyExtractor={(p) => p.id}
+            renderItem={renderPhoto}
+            numColumns={3}
+            contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + spacing.xl }]}
+            ListEmptyComponent={
+              <Animated.View entering={FadeInDown} style={styles.empty}>
+                <View style={styles.emptyIconWrap}>
+                  <Icon name="camera" size={36} color={colors.brand.light} strokeWidth={1.6} />
+                </View>
+                <Text style={styles.emptyTitle}>{t('gallery.empty')}</Text>
+                <Text style={styles.emptySubtitle}>{t('gallery.emptySubtitle')}</Text>
+              </Animated.View>
+            }
+          />
+        </>
+      )}
 
       {/* Lightbox Modal */}
       <Modal
@@ -162,6 +190,10 @@ const styles = StyleSheet.create({
   photoCell: { width: PHOTO_SIZE, height: PHOTO_SIZE, borderRadius: radius.md, overflow: 'hidden', margin: spacing.xs / 2 },
   photo: { width: '100%', height: '100%' },
   myBadge: { position: 'absolute', top: 6, right: 6, width: 20, height: 20, borderRadius: 10, backgroundColor: colors.brand.DEFAULT, alignItems: 'center', justifyContent: 'center' },
+  locked: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingHorizontal: spacing.xl },
+  lockedIconWrap: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand.glow, borderWidth: 1, borderColor: colors.border.brand },
+  lockedTitle: { fontSize: typography.sizes.xl, fontFamily: fonts.displayBold, color: colors.text.primary, textAlign: 'center' },
+  lockedDesc: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted, textAlign: 'center', lineHeight: 20 },
   empty: { alignItems: 'center', gap: spacing.md, paddingTop: spacing['3xl'] },
   emptyIconWrap: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand.glow, borderWidth: 1, borderColor: colors.border.brand },
   emptyTitle: { fontSize: typography.sizes.lg, fontWeight: typography.weights.bold, color: colors.text.primary },

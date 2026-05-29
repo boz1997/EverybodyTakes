@@ -12,7 +12,6 @@ export interface EventDraft {
   disposableMode: boolean;
   revealTiming: RevealTiming;
   allowGalleryUpload: boolean;
-  maxGuests: number | null;
   reminderBefore: '1h' | '24h' | null;
 }
 
@@ -38,7 +37,6 @@ const defaultDraft: EventDraft = {
   disposableMode: true,
   revealTiming: 'instant',
   allowGalleryUpload: false,
-  maxGuests: null,
   reminderBefore: null,
 };
 

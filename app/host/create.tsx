@@ -308,28 +308,9 @@ export default function CreateEvent() {
               </>
             )}
 
-            {/* STEP 4: Max guests + Reminder */}
+            {/* STEP 4: Reminder (guest capacity comes from the plan) */}
             {step === 4 && (
               <>
-                <View style={styles.questionBlock}>
-                  <Text style={styles.questionTitle}>{t('host.maxGuests')}</Text>
-                  <Text style={styles.questionHint}>{t('host.maxGuestsHint')}</Text>
-                  <View style={styles.guestGrid}>
-                    {[null, 25, 50, 100, 200, 500].map((n) => (
-                      <TouchableOpacity
-                        key={String(n)}
-                        style={[styles.guestChip, draft.maxGuests === n && styles.guestChipActive]}
-                        onPress={() => updateDraft({ maxGuests: n })}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.guestChipText, draft.maxGuests === n && styles.guestChipTextActive]}>
-                          {n === null ? t('host.unlimited') : String(n)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
                 <View style={styles.questionBlock}>
                   <Text style={styles.questionTitle}>{t('host.reminderBefore')}</Text>
                   <View style={styles.reminderOptions}>

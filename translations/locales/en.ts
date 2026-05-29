@@ -112,6 +112,7 @@ export default {
 
     generateQR: 'Generate QR Code',
     yourQRCode: 'Your QR Code',
+    eventCodeLabel: 'Event Code',
     eventLink: 'Event Link',
     shareQR: 'Share QR',
     printQR: 'Print',
@@ -158,6 +159,7 @@ export default {
     uploadSuccess: 'Uploaded!',
     uploadError: 'Upload failed',
     noShotsRemaining: 'No shots remaining',
+    eventPhotoCapReached: 'Event photo limit reached',
     lastShot: 'Last shot!',
     shotsLeft: '{{count}} shots',
 
@@ -189,57 +191,29 @@ export default {
 
   paywall: {
     title: 'Launch Your Event',
-    subtitle: 'Choose a plan to generate your QR code',
+    subtitle: 'Pick a package by guest count — one-time, no subscription',
     mostPopular: 'Most Popular',
-    limitedOffer: 'Limited Offer',
-
-    free: {
-      name: 'Free',
-      price: '$0',
-      period: '',
-      features: [
-        '1 event',
-        '50 photos',
-        '10 guests',
-        'GuestCam watermark',
-        'Basic gallery',
-      ],
+    perEvent: 'per event',
+    free: 'Free',
+    planNames: {
+      free: 'Starter',
+      small: 'Small',
+      medium: 'Medium',
+      large: 'Large',
+      unlimited: 'Unlimited',
     },
-
-    starter: {
-      name: 'Starter',
-      price: '$4.99',
-      period: 'per event',
-      features: [
-        '1 event',
-        'Unlimited photos',
-        '100 guests',
-        'Watermark-free export',
-        'ZIP download',
-        'Custom reveal timing',
-      ],
-    },
-
-    pro: {
-      name: 'Pro',
-      price: '$9.99',
-      period: 'per month',
-      features: [
-        'Unlimited events',
-        'Unlimited photos',
-        'Unlimited guests',
-        'Custom branding',
-        'Live wall / projection',
-        'HD export',
-        'Analytics',
-        'Priority support',
-      ],
-    },
-
+    upToGuests: 'Up to {{n}} guests',
+    unlimitedGuests: 'Unlimited guests',
+    unlimitedPhotos: 'Unlimited photos',
+    photoCap: '{{n}} photos total',
+    noWatermark: 'No watermark',
+    watermark: 'GuestCam watermark',
+    hdExport: 'HD download (ZIP)',
+    liveWall: 'Live wall / projection',
     continueWithFree: 'Continue with Free',
-    selectPlan: 'Select Plan',
+    selectPlan: 'Select This Package',
     restorePurchase: 'Restore Purchase',
-    termsNote: 'Subscription renews monthly, cancel anytime',
+    termsNote: 'One-time event payment — no subscription, no hidden fees',
   },
 
   errors: {

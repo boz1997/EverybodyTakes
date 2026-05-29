@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { EventService, Event } from '@features/events/services/eventService';
+import { EventService, Event, LimitError } from '@features/events/services/eventService';
 import { AuthService } from '@features/auth/services/authService';
 import { useAuthStore } from '@store/authStore';
 import { useEventStore } from '@store/eventStore';
@@ -62,8 +62,8 @@ export default function JoinScreen() {
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace({ pathname: '/guest/camera', params: { id: event.id } });
-    } catch (e: any) {
-      if (e.message === 'No shots remaining') {
+    } catch (e) {
+      if (e instanceof LimitError && e.code === 'event_full') {
         Alert.alert(t('errors.maxGuestsReached'));
       } else {
         Alert.alert(t('common.error'), t('errors.unknownError'));

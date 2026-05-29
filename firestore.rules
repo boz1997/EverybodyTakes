@@ -1,0 +1,55 @@
+rules_version = '2';
+
+// Production security rules for GuestCam.
+// NOT YET DEPLOYED — the live project is still in test mode for development.
+// Deploy with: firebase deploy --only firestore:rules  (once test mode ends).
+//
+// Model: hosts own events; guests (anonymous or signed-in) join an event,
+// write their own guest doc and photos, and may bump the event counters.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Users can only touch their own profile document.
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /events/{eventId} {
+      function isHost() {
+        return signedIn() && resource.data.hostId == request.auth.uid;
+      }
+      // Guests may only ever change the two counters, nothing else.
+      function onlyCounters() {
+        return signedIn()
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['guestCount', 'photoCount']);
+      }
+
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.hostId == request.auth.uid;
+      allow update: if isHost() || onlyCounters();
+      allow delete: if isHost();
+
+      // A guest owns their own guest doc; the host can read the roster.
+      match /guests/{guestId} {
+        allow read: if signedIn();
+        allow create, update: if signedIn() && request.auth.uid == guestId;
+        allow delete: if false;
+      }
+
+      // Photos: any signed-in guest can add; owner or host can moderate.
+      match /photos/{photoId} {
+        allow read: if signedIn();
+        allow create: if signedIn() && request.resource.data.uploadedBy == request.auth.uid;
+        allow update, delete: if signedIn() && (
+          resource.data.uploadedBy == request.auth.uid ||
+          get(/databases/$(database)/documents/events/$(eventId)).data.hostId == request.auth.uid
+        );
+      }
+    }
+  }
+}

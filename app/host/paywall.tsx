@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,16 +8,13 @@ import * as Haptics from 'expo-haptics';
 import { useEventStore } from '@store/eventStore';
 import { useAuthStore } from '@store/authStore';
 import { EventService } from '@features/events/services/eventService';
+import { PLANS, PAID_PLAN_ORDER, PlanId, Plan, formatPrice } from '@constants/plans';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
-import { Icon, IconName, EVENT_TYPE_ICON } from '@shared/components/Icon';
+import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
-type Plan = 'free' | 'starter' | 'pro';
-
-interface PlanFeature {
-  text: string;
-  included: boolean;
-}
+const ORDER: PlanId[] = ['free', ...PAID_PLAN_ORDER];
+const POPULAR: PlanId = 'medium';
 
 export default function PaywallScreen() {
   const { t } = useTranslation();
@@ -27,42 +22,18 @@ export default function PaywallScreen() {
   const { draft, setActiveEventId } = useEventStore();
   const { user } = useAuthStore();
 
-  const [selectedPlan, setSelectedPlan] = useState<Plan>('starter');
+  const [selected, setSelected] = useState<PlanId>('small');
   const [loading, setLoading] = useState(false);
 
-  const plans = [
-    {
-      key: 'free' as Plan,
-      name: t('paywall.free.name'),
-      price: t('paywall.free.price'),
-      period: '',
-      icon: 'gift' as IconName,
-      features: (t('paywall.free.features', { returnObjects: true }) as string[]).map((f) => ({ text: f, included: true })),
-      color: colors.text.muted,
-      gradient: ['#FAF5EB', '#EFE6D3'] as [string, string],
-    },
-    {
-      key: 'starter' as Plan,
-      name: t('paywall.starter.name'),
-      price: t('paywall.starter.price'),
-      period: t('paywall.starter.period'),
-      icon: 'flash' as IconName,
-      features: (t('paywall.starter.features', { returnObjects: true }) as string[]).map((f) => ({ text: f, included: true })),
-      color: colors.brand.DEFAULT,
-      gradient: ['rgba(190,106,46,0.12)', 'rgba(190,106,46,0.03)'] as [string, string],
-      badge: t('paywall.mostPopular'),
-    },
-    {
-      key: 'pro' as Plan,
-      name: t('paywall.pro.name'),
-      price: t('paywall.pro.price'),
-      period: t('paywall.pro.period'),
-      icon: 'crown' as IconName,
-      features: (t('paywall.pro.features', { returnObjects: true }) as string[]).map((f) => ({ text: f, included: true })),
-      color: colors.gold.DEFAULT,
-      gradient: ['rgba(154,118,52,0.15)', 'rgba(154,118,52,0.04)'] as [string, string],
-    },
-  ];
+  const featureLines = (plan: Plan): string[] => {
+    const lines: string[] = [];
+    lines.push(plan.maxGuests == null ? t('paywall.unlimitedGuests') : t('paywall.upToGuests', { n: plan.maxGuests }));
+    lines.push(plan.photoCap == null ? t('paywall.unlimitedPhotos') : t('paywall.photoCap', { n: plan.photoCap }));
+    lines.push(plan.watermark ? t('paywall.watermark') : t('paywall.noWatermark'));
+    if (plan.hdExport) lines.push(t('paywall.hdExport'));
+    if (plan.liveWall) lines.push(t('paywall.liveWall'));
+    return lines;
+  };
 
   const handleContinue = async () => {
     if (!user) return;
@@ -70,102 +41,88 @@ export default function PaywallScreen() {
       setLoading(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      if (selectedPlan !== 'free') {
-        // TODO: initiate in-app purchase here
-        // await PurchaseService.purchase(selectedPlan);
-      }
+      // TODO: for paid plans, run the in-app purchase here before creating.
+      // if (selected !== 'free') await PurchaseService.purchase(selected);
 
-      const event = await EventService.create(user.uid, draft, selectedPlan);
+      const event = await EventService.create(user.uid, draft, selected);
       setActiveEventId(event.id);
       router.replace({ pathname: '/host/qr', params: { id: event.id, code: event.shortCode } });
-    } catch (e) {
+    } catch {
       Alert.alert(t('common.error'), t('errors.unknownError'));
     } finally {
       setLoading(false);
     }
   };
 
+  const selectedPlan = PLANS[selected];
+
   return (
     <LinearGradient colors={gradients.page} style={styles.container}>
-      {/* Top glow */}
-      <View style={styles.glow} pointerEvents="none" />
-
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + 140 }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + 150 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Icon name="arrowLeft" size={18} color={colors.text.secondary} />
           <Text style={styles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <View style={styles.crownWrap}>
-            <Icon name="crown" size={32} color={colors.gold.DEFAULT} strokeWidth={1.8} />
-          </View>
           <Text style={styles.title}>{t('paywall.title')}</Text>
           <Text style={styles.subtitle}>{t('paywall.subtitle')}</Text>
         </View>
 
-        {/* Event Summary Pill */}
+        {/* Event summary pill */}
         <View style={styles.eventPill}>
-          <LinearGradient colors={['rgba(190,106,46,0.14)', 'rgba(190,106,46,0.05)']} style={styles.eventPillGradient}>
-            <Icon name={EVENT_TYPE_ICON[draft.type]} size={18} color={colors.brand.light} />
-            <Text style={styles.eventPillName} numberOfLines={1}>{draft.name || 'Etkinlik'}</Text>
-            <Text style={styles.eventPillDetail}>{draft.shotsPerGuest} çekim/kişi</Text>
-          </LinearGradient>
+          <Icon name={EVENT_TYPE_ICON[draft.type]} size={18} color={colors.brand.DEFAULT} />
+          <Text style={styles.eventPillName} numberOfLines={1}>{draft.name || 'Etkinlik'}</Text>
+          <Text style={styles.eventPillDetail}>{draft.shotsPerGuest} çekim/kişi</Text>
         </View>
 
         {/* Plans */}
         <View style={styles.plans}>
-          {plans.map((plan) => (
-            <TouchableOpacity
-              key={plan.key}
-              onPress={() => { setSelectedPlan(plan.key); Haptics.selectionAsync(); }}
-              style={[styles.planCard, selectedPlan === plan.key && { borderColor: plan.color }]}
-              activeOpacity={0.85}
-            >
-              <LinearGradient colors={plan.gradient} style={styles.planGradient}>
-                {plan.badge && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{plan.badge}</Text>
+          {ORDER.map((id) => {
+            const plan = PLANS[id];
+            const active = selected === id;
+            return (
+              <TouchableOpacity
+                key={id}
+                onPress={() => { setSelected(id); Haptics.selectionAsync(); }}
+                style={[styles.planCard, active && styles.planCardActive]}
+                activeOpacity={0.9}
+              >
+                {id === POPULAR && (
+                  <View style={styles.badge}><Text style={styles.badgeText}>{t('paywall.mostPopular')}</Text></View>
+                )}
+                <View style={styles.planTop}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.planName}>{t(`paywall.planNames.${id}`)}</Text>
+                    <Text style={styles.planGuests}>
+                      {plan.maxGuests == null ? t('paywall.unlimitedGuests') : t('paywall.upToGuests', { n: plan.maxGuests })}
+                    </Text>
+                  </View>
+                  <View style={styles.priceCol}>
+                    <Text style={styles.price}>{formatPrice(plan.priceTRY)}</Text>
+                    {plan.priceTRY > 0 && <Text style={styles.pricePer}>{t('paywall.perEvent')}</Text>}
+                  </View>
+                  <View style={[styles.radio, active && styles.radioActive]}>
+                    {active && <View style={styles.radioDot} />}
+                  </View>
+                </View>
+
+                {active && (
+                  <View style={styles.featureList}>
+                    {featureLines(plan).map((line, i) => (
+                      <View key={i} style={styles.featureRow}>
+                        <Icon name="check" size={14} color={colors.brand.DEFAULT} strokeWidth={2.6} />
+                        <Text style={styles.featureText}>{line}</Text>
+                      </View>
+                    ))}
                   </View>
                 )}
-
-                <View style={styles.planTop}>
-                  <View style={styles.planLeft}>
-                    <View style={[styles.planIconWrap, { backgroundColor: plan.color + '22' }]}>
-                      <Icon name={plan.icon} size={22} color={plan.color} />
-                    </View>
-                    <View>
-                      <Text style={[styles.planName, { color: plan.color }]}>{plan.name}</Text>
-                      {plan.period ? (
-                        <Text style={styles.planPeriod}>{plan.period}</Text>
-                      ) : null}
-                    </View>
-                  </View>
-                  <View style={styles.planPriceWrap}>
-                    <Text style={[styles.planPrice, { color: plan.color }]}>{plan.price}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.featureList}>
-                  {plan.features.map((f, i) => (
-                    <View key={i} style={styles.featureRow}>
-                      <Icon name="check" size={15} color={plan.color} strokeWidth={2.6} />
-                      <Text style={styles.featureText}>{f.text}</Text>
-                    </View>
-                  ))}
-                </View>
-
-                {/* Selection indicator */}
-                <View style={[styles.selector, selectedPlan === plan.key && { borderColor: plan.color, backgroundColor: plan.color + '20' }]}>
-                  {selectedPlan === plan.key && <View style={[styles.selectorDot, { backgroundColor: plan.color }]} />}
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          ))}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <Text style={styles.terms}>{t('paywall.termsNote')}</Text>
@@ -173,24 +130,14 @@ export default function PaywallScreen() {
 
       {/* Bottom CTA */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.sm }]}>
-        {selectedPlan === 'free' ? (
-          <PrimaryButton
-            label={t('paywall.continueWithFree')}
-            onPress={handleContinue}
-            variant="ghost"
-            loading={loading}
-          />
-        ) : (
-          <PrimaryButton
-            label={`${t('paywall.selectPlan')} — ${plans.find(p => p.key === selectedPlan)?.price}`}
-            onPress={handleContinue}
-            variant={selectedPlan === 'pro' ? 'gold' : 'brand'}
-            loading={loading}
-          />
-        )}
-        <TouchableOpacity style={styles.restoreBtn}>
-          <Text style={styles.restoreText}>{t('paywall.restorePurchase')}</Text>
-        </TouchableOpacity>
+        <PrimaryButton
+          label={selected === 'free'
+            ? t('paywall.continueWithFree')
+            : `${t('paywall.selectPlan')} · ${formatPrice(selectedPlan.priceTRY)}`}
+          onPress={handleContinue}
+          variant={selected === 'free' ? 'ghost' : 'brand'}
+          loading={loading}
+        />
       </View>
     </LinearGradient>
   );
@@ -198,37 +145,40 @@ export default function PaywallScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  glow: { position: 'absolute', top: -50, left: '20%', width: '60%', height: 200, borderRadius: 200, backgroundColor: 'rgba(190,106,46,0.12)' },
   scroll: { paddingHorizontal: spacing.lg, gap: spacing.lg },
   backBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6 },
-  backText: { color: colors.text.secondary, fontSize: typography.sizes.base },
-  header: { alignItems: 'center', gap: spacing.sm },
-  crownWrap: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(154,118,52,0.12)', borderWidth: 1, borderColor: 'rgba(154,118,52,0.35)' },
-  title: { fontSize: typography.sizes['3xl'], fontFamily: fonts.displayBold, color: colors.text.primary, textAlign: 'center' },
-  subtitle: { fontSize: typography.sizes.sm, color: colors.text.muted, textAlign: 'center' },
-  eventPill: { borderRadius: radius.full, overflow: 'hidden', borderWidth: 1, borderColor: colors.border.brand },
-  eventPillGradient: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: 12, gap: spacing.sm },
-  eventPillName: { flex: 1, fontSize: typography.sizes.base, fontWeight: typography.weights.semibold, color: colors.text.primary },
-  eventPillDetail: { fontSize: typography.sizes.sm, color: colors.text.muted },
-  plans: { gap: spacing.md },
-  planCard: { borderRadius: radius['2xl'], overflow: 'hidden', borderWidth: 1.5, borderColor: colors.border.DEFAULT },
-  planGradient: { padding: spacing.lg, gap: spacing.md },
-  badge: { alignSelf: 'flex-start', backgroundColor: colors.brand.DEFAULT, borderRadius: radius.full, paddingHorizontal: 12, paddingVertical: 4, marginBottom: -spacing.xs },
-  badgeText: { color: '#fff', fontSize: typography.sizes.xs, fontWeight: typography.weights.bold },
-  planTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  planLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  planIconWrap: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  planName: { fontSize: typography.sizes.lg, fontWeight: typography.weights.bold },
-  planPeriod: { fontSize: typography.sizes.xs, color: colors.text.muted },
-  planPriceWrap: { alignItems: 'flex-end' },
-  planPrice: { fontSize: typography.sizes['2xl'], fontWeight: typography.weights.extrabold },
-  featureList: { gap: 8 },
+  backText: { color: colors.text.secondary, fontSize: typography.sizes.base, fontFamily: fonts.body },
+  header: { gap: spacing.xs },
+  title: { fontSize: typography.sizes['3xl'], fontFamily: fonts.displayBold, color: colors.text.primary },
+  subtitle: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted, lineHeight: 20 },
+  eventPill: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: colors.bg.card, borderRadius: radius.full,
+    paddingHorizontal: spacing.lg, paddingVertical: 12,
+    borderWidth: 1, borderColor: colors.border.DEFAULT,
+  },
+  eventPillName: { flex: 1, fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold, color: colors.text.primary },
+  eventPillDetail: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted },
+  plans: { gap: spacing.sm },
+  planCard: {
+    borderRadius: radius['2xl'], padding: spacing.lg, gap: spacing.md,
+    borderWidth: 1.5, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card,
+  },
+  planCardActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
+  badge: { alignSelf: 'flex-start', backgroundColor: colors.brand.DEFAULT, borderRadius: radius.full, paddingHorizontal: 12, paddingVertical: 4 },
+  badgeText: { color: colors.text.inverse, fontSize: typography.sizes.xs, fontFamily: fonts.bodyBold },
+  planTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  planName: { fontSize: typography.sizes.lg, fontFamily: fonts.displayBold, color: colors.text.primary },
+  planGuests: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted },
+  priceCol: { alignItems: 'flex-end' },
+  price: { fontSize: typography.sizes.xl, fontFamily: fonts.displayBold, color: colors.brand.dark },
+  pricePer: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted },
+  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.border.DEFAULT, alignItems: 'center', justifyContent: 'center' },
+  radioActive: { borderColor: colors.brand.DEFAULT },
+  radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.brand.DEFAULT },
+  featureList: { gap: 8, paddingTop: spacing.xs, borderTopWidth: 1, borderTopColor: colors.border.subtle },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  featureText: { fontSize: typography.sizes.sm, color: colors.text.secondary },
-  selector: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.border.DEFAULT, alignSelf: 'flex-end', alignItems: 'center', justifyContent: 'center' },
-  selectorDot: { width: 12, height: 12, borderRadius: 6 },
-  terms: { textAlign: 'center', color: colors.text.muted, fontSize: typography.sizes.xs },
-  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing.lg, backgroundColor: colors.bg.primary, borderTopWidth: 1, borderTopColor: colors.border.subtle, gap: spacing.sm },
-  restoreBtn: { alignItems: 'center' },
-  restoreText: { color: colors.text.muted, fontSize: typography.sizes.xs },
+  featureText: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.secondary },
+  terms: { textAlign: 'center', color: colors.text.muted, fontSize: typography.sizes.xs, fontFamily: fonts.body },
+  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing.lg, backgroundColor: colors.bg.primary, borderTopWidth: 1, borderTopColor: colors.border.subtle },
 });

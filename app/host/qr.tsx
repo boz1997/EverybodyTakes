@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity, Share, Alert, Clipboard,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Share } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,7 +28,7 @@ export default function QRScreen() {
   };
 
   const handleCopy = () => {
-    Clipboard.setString(eventUrl);
+    Clipboard.setStringAsync(eventUrl);
     setCopied(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setTimeout(() => setCopied(false), 2000);
@@ -59,8 +58,8 @@ export default function QRScreen() {
                 <QRCode
                   value={eventUrl}
                   size={220}
-                  backgroundColor="transparent"
-                  color="#fff"
+                  backgroundColor="#FFFFFF"
+                  color={colors.text.primary}
                 />
               </View>
               {/* Corner decorations */}
@@ -70,10 +69,10 @@ export default function QRScreen() {
               <View style={[styles.corner, styles.cornerBR]} />
             </View>
 
-            {/* Code */}
-            <View style={styles.codeRow}>
-              <Text style={styles.codeLabel}>guestcam.app/e/</Text>
-              <Text style={styles.codeValue}>{code}</Text>
+            {/* Event code — shown prominently, not as a URL */}
+            <View style={styles.codeBlock}>
+              <Text style={styles.codeLabel}>{t('host.eventCodeLabel')}</Text>
+              <Text style={styles.codeValue}>{(code ?? '').replace(/(.{4})(.{1,4})/, '$1 $2').trim()}</Text>
             </View>
           </LinearGradient>
         </Animated.View>
@@ -134,15 +133,15 @@ const styles = StyleSheet.create({
   qrCard: { width: '100%', borderRadius: radius['2xl'], overflow: 'hidden', borderWidth: 1, borderColor: colors.border.brand },
   qrCardGradient: { alignItems: 'center', padding: spacing.xl, gap: spacing.lg },
   qrWrap: { position: 'relative', padding: spacing.md },
-  qrInner: { padding: spacing.md, backgroundColor: colors.bg.card, borderRadius: radius.xl },
+  qrInner: { padding: spacing.md, backgroundColor: '#FFFFFF', borderRadius: radius.xl },
   corner: { position: 'absolute', width: 20, height: 20, borderColor: colors.brand.DEFAULT, borderWidth: 2 },
   cornerTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 6 },
   cornerTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 6 },
   cornerBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 6 },
   cornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 6 },
-  codeRow: { flexDirection: 'row', alignItems: 'baseline' },
-  codeLabel: { fontSize: typography.sizes.sm, color: colors.text.muted },
-  codeValue: { fontSize: typography.sizes.xl, fontWeight: typography.weights.extrabold, color: colors.brand.DEFAULT, letterSpacing: 2 },
+  codeBlock: { alignItems: 'center', gap: 4 },
+  codeLabel: { fontSize: typography.sizes.xs, fontFamily: fonts.bodySemibold, color: colors.text.muted, letterSpacing: 2, textTransform: 'uppercase' },
+  codeValue: { fontSize: typography.sizes['3xl'], fontFamily: fonts.displayBold, color: colors.text.primary, letterSpacing: 6 },
   urlRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, width: '100%' },
   urlPill: { flex: 1, backgroundColor: colors.bg.card, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, paddingHorizontal: spacing.md, paddingVertical: 12 },
   urlText: { color: colors.text.secondary, fontSize: typography.sizes.sm },
