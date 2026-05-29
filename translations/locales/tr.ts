@@ -89,6 +89,9 @@ export default {
     photoSettings: 'Fotoğraf Ayarları',
     shotsPerGuest: 'Misafir başına çekim',
     shotsPerGuestHint: 'Her misafir kaç fotoğraf çekebilsin?',
+    settingsLaterHint: 'Tek kullanımlık mod, galeri yükleme ve hatırlatıcıyı etkinlik oluştuktan sonra ayarlardan değiştirebilirsin.',
+    eventSettings: 'Etkinlik Ayarları',
+    settingsSaved: 'Ayarlar kaydedildi',
     disposableMode: 'Tek Kullanımlık Kamera Modu',
     disposableModeDesc: 'Silme yok, önizleme yok — saf anlık çekim',
     revealTiming: 'Gösterim Zamanlaması',
@@ -140,6 +143,7 @@ export default {
     scanInstructions: 'Etkinlik QR kodunu çerçeve içine al',
     enterCode: 'Kod gir',
     enterCodePlaceholder: 'Etkinlik kodunu gir',
+    enterCodeOrLink: '6 haneli kodu gir veya etkinlik linkini yapıştır',
     joiningEvent: 'Etkinliğe katılıyorsun...',
     joinEvent: 'Etkinliğe Katıl',
 

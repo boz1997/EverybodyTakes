@@ -89,6 +89,9 @@ export default {
     photoSettings: 'Photo Settings',
     shotsPerGuest: 'Shots per guest',
     shotsPerGuestHint: 'How many photos can each guest take?',
+    settingsLaterHint: 'You can change disposable mode, gallery uploads and the reminder from settings after the event is created.',
+    eventSettings: 'Event Settings',
+    settingsSaved: 'Settings saved',
     disposableMode: 'Disposable Camera Mode',
     disposableModeDesc: 'No deletes, no previews — pure authentic capture',
     revealTiming: 'Reveal Timing',
@@ -140,6 +143,7 @@ export default {
     scanInstructions: 'Point your camera at the event QR code',
     enterCode: 'Enter code',
     enterCodePlaceholder: 'Enter event code',
+    enterCodeOrLink: 'Enter the 6-digit code or paste the event link',
     joiningEvent: 'Joining event...',
     joinEvent: 'Join Event',
 

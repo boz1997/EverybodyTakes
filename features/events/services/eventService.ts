@@ -17,7 +17,11 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@lib/firebase';
 import { EventDraft } from '@store/eventStore';
 import { getPlan } from '@constants/plans';
-import { nanoid } from 'nanoid/non-secure';
+import { nanoid, customAlphabet } from 'nanoid/non-secure';
+
+// 6-char join code: uppercase letters + digits, ambiguous chars (0/O/1/I/L)
+// removed so guests can type it without confusion. No separators.
+const genShortCode = customAlphabet('ABCDEFGHJKMNPQRSTUVWXYZ23456789', 6);
 
 /** Thrown when a hard plan/event limit is hit. Screens map these to copy. */
 export class LimitError extends Error {
@@ -37,6 +41,7 @@ export interface Event {
   disposableMode: boolean;
   revealTiming: string;
   allowGalleryUpload: boolean;
+  reminderBefore: '1h' | '24h' | null;
   maxGuests: number | null;   // resolved from plan
   photoCap: number | null;    // resolved from plan
   watermark: boolean;         // resolved from plan
@@ -80,7 +85,7 @@ function newestFirst<T extends { createdAt: unknown }>(rows: T[]): T[] {
 export const EventService = {
   async create(hostId: string, draft: EventDraft, plan: string): Promise<Event> {
     const id = nanoid();
-    const shortCode = nanoid(8).toUpperCase();
+    const shortCode = genShortCode();
     const limits = getPlan(plan);
 
     let coverImageUrl: string | null = null;
@@ -103,6 +108,7 @@ export const EventService = {
       disposableMode: draft.disposableMode,
       revealTiming: draft.revealTiming,
       allowGalleryUpload: draft.allowGalleryUpload,
+      reminderBefore: draft.reminderBefore,
       maxGuests: limits.maxGuests,
       photoCap: limits.photoCap,
       watermark: limits.watermark,
@@ -125,7 +131,8 @@ export const EventService = {
   },
 
   async getByShortCode(code: string): Promise<Event | null> {
-    const q = query(collection(db, 'events'), where('shortCode', '==', code));
+    const normalized = code.trim().toUpperCase();
+    const q = query(collection(db, 'events'), where('shortCode', '==', normalized));
     const snap = await getDocs(q);
     if (snap.empty) return null;
     return snap.docs[0].data() as Event;
@@ -254,5 +261,13 @@ export const EventService = {
 
   async deletePhoto(eventId: string, photoId: string): Promise<void> {
     await updateDoc(doc(db, 'events', eventId, 'photos', photoId), { isVisible: false });
+  },
+
+  // Host-editable settings (the bits we moved out of the create flow).
+  async updateSettings(
+    eventId: string,
+    settings: Partial<Pick<Event, 'disposableMode' | 'allowGalleryUpload' | 'reminderBefore'>>,
+  ): Promise<void> {
+    await updateDoc(doc(db, 'events', eventId), settings);
   },
 };

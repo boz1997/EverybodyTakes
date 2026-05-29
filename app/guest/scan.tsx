@@ -10,10 +10,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
-import { InputField } from '@shared/components/InputField';
+import { CodeInput, extractCode } from '@shared/components/CodeInput';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { Icon } from '@shared/components/Icon';
-import { colors, typography, spacing, radius } from '@constants/theme';
+import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 const { width, height } = Dimensions.get('window');
 const FRAME_SIZE = width * 0.7;
@@ -46,21 +46,19 @@ export default function ScanScreen() {
     setScanned(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    // Extract event code from URL or use raw
-    const match = data.match(/\/e\/([A-Z0-9]+)/);
-    const eventCode = match ? match[1] : data.toUpperCase();
-
+    const eventCode = extractCode(data);
+    if (!eventCode) { setScanned(false); return; }
     router.push({ pathname: '/guest/join', params: { code: eventCode } });
   };
 
   const handleManualCode = () => {
-    if (!code.trim()) return;
-    router.push({ pathname: '/guest/join', params: { code: code.trim().toUpperCase() } });
+    if (code.length !== 6) return;
+    router.push({ pathname: '/guest/join', params: { code } });
   };
 
   if (!permission?.granted) {
     return (
-      <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
+      <LinearGradient colors={gradients.page} style={styles.container}>
         <View style={[styles.permContent, { paddingTop: insets.top + spacing.lg }]}>
           <Icon name="camera" size={56} color={colors.brand.light} strokeWidth={1.6} />
           <Text style={styles.permTitle}>{t('errors.cameraPermission')}</Text>
@@ -132,15 +130,9 @@ export default function ScanScreen() {
           <View style={[styles.codeSheet, { paddingBottom: insets.bottom + spacing.xl }]}>
             <View style={styles.codeSheetHandle} />
             <Text style={styles.codeSheetTitle}>{t('guest.enterCode')}</Text>
-            <InputField
-              placeholder={t('guest.enterCodePlaceholder')}
-              value={code}
-              onChangeText={(v) => setCode(v.toUpperCase())}
-              autoCapitalize="characters"
-              autoFocus
-              maxLength={12}
-            />
-            <PrimaryButton label={t('guest.joinEvent')} onPress={handleManualCode} disabled={!code.trim()} />
+            <Text style={styles.codeSheetHint}>{t('guest.enterCodeOrLink')}</Text>
+            <CodeInput value={code} onChange={setCode} autoFocus />
+            <PrimaryButton label={t('guest.joinEvent')} onPress={handleManualCode} disabled={code.length !== 6} />
           </View>
         </KeyboardAvoidingView>
       )}
@@ -175,5 +167,6 @@ const styles = StyleSheet.create({
   codeContainer: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   codeSheet: { backgroundColor: colors.bg.secondary, borderTopLeftRadius: radius['2xl'], borderTopRightRadius: radius['2xl'], padding: spacing.lg, gap: spacing.lg, borderTopWidth: 1, borderColor: colors.border.DEFAULT },
   codeSheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border.DEFAULT, alignSelf: 'center', marginBottom: spacing.sm },
-  codeSheetTitle: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: colors.text.primary },
+  codeSheetTitle: { fontSize: typography.sizes.xl, fontFamily: fonts.displayBold, color: colors.text.primary },
+  codeSheetHint: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted, marginTop: -spacing.sm },
 });

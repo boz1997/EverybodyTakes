@@ -72,7 +72,7 @@ export default function QRScreen() {
             {/* Event code — shown prominently, not as a URL */}
             <View style={styles.codeBlock}>
               <Text style={styles.codeLabel}>{t('host.eventCodeLabel')}</Text>
-              <Text style={styles.codeValue}>{(code ?? '').replace(/(.{4})(.{1,4})/, '$1 $2').trim()}</Text>
+              <Text style={styles.codeValue}>{code}</Text>
             </View>
           </LinearGradient>
         </Animated.View>

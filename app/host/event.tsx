@@ -30,6 +30,69 @@ export default function EventManage() {
     return unsub;
   }, [id]);
 
+  // Host-editable settings — optimistic local update + persist.
+  const patchSettings = (patch: Partial<Event>) => {
+    if (!event) return;
+    setEvent({ ...event, ...patch });
+    EventService.updateSettings(event.id, patch as any).catch(() => setEvent(event));
+  };
+
+  const REMINDERS: { key: '1h' | '24h' | null; labelKey: string }[] = [
+    { key: null, labelKey: 'host.noReminder' },
+    { key: '1h', labelKey: 'host.reminder1h' },
+    { key: '24h', labelKey: 'host.reminder24h' },
+  ];
+
+  const renderSettings = () => {
+    if (!event) return null;
+    return (
+      <View style={styles.settingsCard}>
+        <Text style={styles.settingsTitle}>{t('host.eventSettings')}</Text>
+
+        <TouchableOpacity
+          style={styles.settingRow}
+          onPress={() => patchSettings({ disposableMode: !event.disposableMode })}
+          activeOpacity={0.8}
+        >
+          <Icon name="film" size={20} color={event.disposableMode ? colors.brand.DEFAULT : colors.text.muted} />
+          <Text style={styles.settingLabel}>{t('host.disposableMode')}</Text>
+          <View style={[styles.toggle, event.disposableMode && styles.toggleOn]}>
+            <View style={[styles.toggleThumb, event.disposableMode && styles.toggleThumbOn]} />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.settingRow}
+          onPress={() => patchSettings({ allowGalleryUpload: !event.allowGalleryUpload })}
+          activeOpacity={0.8}
+        >
+          <Icon name="image" size={20} color={event.allowGalleryUpload ? colors.brand.DEFAULT : colors.text.muted} />
+          <Text style={styles.settingLabel}>{t('host.allowGalleryUpload')}</Text>
+          <View style={[styles.toggle, event.allowGalleryUpload && styles.toggleOn]}>
+            <View style={[styles.toggleThumb, event.allowGalleryUpload && styles.toggleThumbOn]} />
+          </View>
+        </TouchableOpacity>
+
+        <Text style={styles.settingSub}>{t('host.reminderBefore')}</Text>
+        <View style={styles.reminderRow}>
+          {REMINDERS.map((r) => {
+            const active = event.reminderBefore === r.key;
+            return (
+              <TouchableOpacity
+                key={String(r.key)}
+                style={[styles.reminderChip, active && styles.reminderChipActive]}
+                onPress={() => patchSettings({ reminderBefore: r.key })}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.reminderText, active && styles.reminderTextActive]}>{t(r.labelKey)}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
+
   const handleDeletePhoto = (photo: Photo) => {
     Alert.alert(t('host.deletePhoto'), '?', [
       { text: t('common.cancel'), style: 'cancel' },
@@ -102,7 +165,10 @@ export default function EventManage() {
         numColumns={3}
         contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + spacing.xl }]}
         ListHeaderComponent={
-          <Text style={styles.sectionTitle}>{t('host.livePhotos')} ({photos.length})</Text>
+          <>
+            {renderSettings()}
+            <Text style={styles.sectionTitle}>{t('host.livePhotos')} ({photos.length})</Text>
+          </>
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -142,7 +208,21 @@ const styles = StyleSheet.create({
   liveIndicator: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success },
   grid: { padding: spacing.lg, gap: spacing.sm },
-  sectionTitle: { fontSize: typography.sizes.base, fontWeight: typography.weights.semibold, color: colors.text.primary, marginBottom: spacing.md },
+  settingsCard: { backgroundColor: colors.bg.card, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, padding: spacing.md, gap: spacing.sm, marginBottom: spacing.lg },
+  settingsTitle: { fontSize: typography.sizes.base, fontFamily: fonts.displayBold, color: colors.text.primary, marginBottom: spacing.xs },
+  settingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
+  settingLabel: { flex: 1, fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium, color: colors.text.primary },
+  settingSub: { fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium, color: colors.text.secondary, marginTop: spacing.sm },
+  reminderRow: { flexDirection: 'row', gap: spacing.sm },
+  reminderChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border.DEFAULT },
+  reminderChipActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
+  reminderText: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted },
+  reminderTextActive: { color: colors.brand.DEFAULT, fontFamily: fonts.bodySemibold },
+  toggle: { width: 44, height: 26, borderRadius: 13, backgroundColor: colors.bg.elevated, borderWidth: 1, borderColor: colors.border.DEFAULT, justifyContent: 'center', padding: 2 },
+  toggleOn: { backgroundColor: colors.brand.DEFAULT, borderColor: colors.brand.DEFAULT },
+  toggleThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.text.muted },
+  toggleThumbOn: { backgroundColor: '#fff', marginLeft: 18 },
+  sectionTitle: { fontSize: typography.sizes.base, fontFamily: fonts.displayBold, color: colors.text.primary, marginBottom: spacing.md },
   photoCell: { width: PHOTO_SIZE, height: PHOTO_SIZE, borderRadius: radius.md, overflow: 'hidden', margin: spacing.xs / 2 },
   photoCellSelected: { borderWidth: 2, borderColor: colors.brand.DEFAULT },
   photo: { width: '100%', height: '100%' },

@@ -19,7 +19,7 @@ import { InputField } from '@shared/components/InputField';
 import { Icon, IconName, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 4;
 
 const EVENT_TYPES: { key: EventType; labelKey: string }[] = [
   { key: 'wedding', labelKey: 'host.eventTypes.wedding' },
@@ -49,11 +49,10 @@ export default function CreateEvent() {
   const [showPicker, setShowPicker] = useState(false);
 
   const stepTitles = [
-    t('host.createStep1'),   // Event Details
-    t('host.eventType'),     // Type & Date
-    t('host.photoSettings'), // Photo
-    t('host.revealTiming'),  // Reveal
-    t('host.guestSettings'), // Guests
+    t('host.createStep1'),   // Cover + name
+    t('host.eventType'),     // Type + date
+    t('host.shotsPerGuest'), // Shots (alone)
+    t('host.revealTiming'),  // Reveal (alone)
   ];
 
   const pickCover = async () => {
@@ -231,104 +230,39 @@ export default function CreateEvent() {
                       </TouchableOpacity>
                     ))}
                   </View>
-                </View>
-
-                <View style={styles.questionBlock}>
-                  <TouchableOpacity
-                    style={[styles.toggleRow, draft.disposableMode && styles.toggleRowActive]}
-                    onPress={() => updateDraft({ disposableMode: !draft.disposableMode })}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.toggleInfo}>
-                      <View style={styles.toggleIconWrap}>
-                        <Icon name="film" size={20} color={draft.disposableMode ? colors.brand.DEFAULT : colors.text.muted} />
-                      </View>
-                      <View style={styles.toggleText}>
-                        <Text style={styles.toggleTitle}>{t('host.disposableMode')}</Text>
-                        <Text style={styles.toggleDesc}>{t('host.disposableModeDesc')}</Text>
-                      </View>
-                    </View>
-                    <View style={[styles.toggle, draft.disposableMode && styles.toggleOn]}>
-                      <View style={[styles.toggleThumb, draft.disposableMode && styles.toggleThumbOn]} />
-                    </View>
-                  </TouchableOpacity>
+                  <Text style={styles.questionHint}>{t('host.settingsLaterHint')}</Text>
                 </View>
               </>
             )}
 
-            {/* STEP 3: Reveal timing + Gallery upload */}
+            {/* STEP 3: Reveal timing (alone) */}
             {step === 3 && (
-              <>
-                <View style={styles.questionBlock}>
-                  <Text style={styles.questionTitle}>{t('host.revealTiming')}</Text>
-                  <View style={styles.revealOptions}>
-                    {REVEAL_OPTIONS.map((opt) => (
-                      <TouchableOpacity
-                        key={opt.key}
-                        style={[styles.revealCard, draft.revealTiming === opt.key && styles.revealCardActive]}
-                        onPress={() => updateDraft({ revealTiming: opt.key })}
-                        activeOpacity={0.8}
-                      >
-                        <View style={styles.revealIconWrap}>
-                          <Icon name={opt.icon} size={20} color={draft.revealTiming === opt.key ? colors.brand.DEFAULT : colors.text.muted} />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={[styles.revealTitle, draft.revealTiming === opt.key && styles.revealTitleActive]}>
-                            {t(opt.labelKey)}
-                          </Text>
-                          <Text style={styles.revealDesc}>{t(opt.descKey)}</Text>
-                        </View>
-                        <View style={[styles.radio, draft.revealTiming === opt.key && styles.radioActive]}>
-                          {draft.revealTiming === opt.key && <View style={styles.radioDot} />}
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                <View style={styles.questionBlock}>
-                  <TouchableOpacity
-                    style={[styles.toggleRow, draft.allowGalleryUpload && styles.toggleRowActive]}
-                    onPress={() => updateDraft({ allowGalleryUpload: !draft.allowGalleryUpload })}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.toggleInfo}>
-                      <View style={styles.toggleIconWrap}>
-                        <Icon name="image" size={20} color={draft.allowGalleryUpload ? colors.brand.DEFAULT : colors.text.muted} />
+              <View style={styles.questionBlock}>
+                <Text style={styles.questionTitle}>{t('host.revealTiming')}</Text>
+                <View style={styles.revealOptions}>
+                  {REVEAL_OPTIONS.map((opt) => (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[styles.revealCard, draft.revealTiming === opt.key && styles.revealCardActive]}
+                      onPress={() => updateDraft({ revealTiming: opt.key })}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.revealIconWrap}>
+                        <Icon name={opt.icon} size={20} color={draft.revealTiming === opt.key ? colors.brand.DEFAULT : colors.text.muted} />
                       </View>
-                      <View style={styles.toggleText}>
-                        <Text style={styles.toggleTitle}>{t('host.allowGalleryUpload')}</Text>
-                      </View>
-                    </View>
-                    <View style={[styles.toggle, draft.allowGalleryUpload && styles.toggleOn]}>
-                      <View style={[styles.toggleThumb, draft.allowGalleryUpload && styles.toggleThumbOn]} />
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-
-            {/* STEP 4: Reminder (guest capacity comes from the plan) */}
-            {step === 4 && (
-              <>
-                <View style={styles.questionBlock}>
-                  <Text style={styles.questionTitle}>{t('host.reminderBefore')}</Text>
-                  <View style={styles.reminderOptions}>
-                    {[{ key: null, label: t('host.noReminder') }, { key: '1h', label: t('host.reminder1h') }, { key: '24h', label: t('host.reminder24h') }].map((opt) => (
-                      <TouchableOpacity
-                        key={String(opt.key)}
-                        style={[styles.reminderChip, draft.reminderBefore === opt.key && styles.reminderChipActive]}
-                        onPress={() => updateDraft({ reminderBefore: opt.key as any })}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.reminderText, draft.reminderBefore === opt.key && styles.reminderTextActive]}>
-                          {opt.label}
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.revealTitle, draft.revealTiming === opt.key && styles.revealTitleActive]}>
+                          {t(opt.labelKey)}
                         </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                        <Text style={styles.revealDesc}>{t(opt.descKey)}</Text>
+                      </View>
+                      <View style={[styles.radio, draft.revealTiming === opt.key && styles.radioActive]}>
+                        {draft.revealTiming === opt.key && <View style={styles.radioDot} />}
+                      </View>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              </>
+              </View>
             )}
           </Animated.View>
         </ScrollView>

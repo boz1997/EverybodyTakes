@@ -19,7 +19,7 @@ const POPULAR: PlanId = 'medium';
 export default function PaywallScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { draft, setActiveEventId } = useEventStore();
+  const { draft, setActiveEventId, resetDraft } = useEventStore();
   const { user } = useAuthStore();
 
   const [selected, setSelected] = useState<PlanId>('small');
@@ -46,7 +46,11 @@ export default function PaywallScreen() {
 
       const event = await EventService.create(user.uid, draft, selected);
       setActiveEventId(event.id);
-      router.replace({ pathname: '/host/qr', params: { id: event.id, code: event.shortCode } });
+      resetDraft();
+      // Close the create/paywall modals, then open QR over the dashboard so the
+      // host can't navigate back into setup/payment after the event exists.
+      router.dismissAll();
+      router.push({ pathname: '/host/qr', params: { id: event.id, code: event.shortCode } });
     } catch {
       Alert.alert(t('common.error'), t('errors.unknownError'));
     } finally {
