@@ -96,12 +96,21 @@ export default function HostDashboard() {
           <Text style={styles.greeting}>GuestCam</Text>
           <Text style={styles.headerTitle}>{t('host.dashboard')}</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push('/host/create')} style={styles.createBtn} activeOpacity={0.85}>
-          <LinearGradient colors={gradients.amber} style={styles.createBtnGradient}>
-            <Icon name="plus" size={16} color="#fff" strokeWidth={2.6} />
-            <Text style={styles.createBtnText}>{t('host.createEvent')}</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={() => router.push('/guest/scan')}
+            style={styles.joinBtn}
+            activeOpacity={0.8}
+          >
+            <Icon name="qr" size={20} color={colors.text.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/host/create')} style={styles.createBtn} activeOpacity={0.85}>
+            <LinearGradient colors={gradients.amber} style={styles.createBtnGradient}>
+              <Icon name="plus" size={16} color="#fff" strokeWidth={2.6} />
+              <Text style={styles.createBtnText}>{t('host.createEvent')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <FlatList
@@ -150,6 +159,8 @@ const styles = StyleSheet.create({
   },
   greeting: { fontSize: typography.sizes.xs, color: colors.brand.DEFAULT, fontWeight: typography.weights.semibold, letterSpacing: 1 },
   headerTitle: { fontSize: typography.sizes['2xl'], fontFamily: fonts.displayBold, color: colors.text.primary },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  joinBtn: { width: 44, height: 44, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card },
   createBtn: { borderRadius: radius.xl, overflow: 'hidden' },
   createBtnGradient: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, paddingVertical: 10 },
   createBtnText: { color: '#fff', fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold },

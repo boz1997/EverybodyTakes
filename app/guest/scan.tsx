@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import * as Clipboard from 'expo-clipboard';
 import { CodeInput, extractCode } from '@shared/components/CodeInput';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { Icon } from '@shared/components/Icon';
@@ -54,6 +55,11 @@ export default function ScanScreen() {
   const handleManualCode = () => {
     if (code.length !== 6) return;
     router.push({ pathname: '/guest/join', params: { code } });
+  };
+
+  const handlePaste = async () => {
+    const text = await Clipboard.getStringAsync();
+    if (text) setCode(extractCode(text));
   };
 
   if (!permission?.granted) {
@@ -139,6 +145,10 @@ export default function ScanScreen() {
             <Text style={styles.codeSheetTitle}>{t('guest.enterCode')}</Text>
             <Text style={styles.codeSheetHint}>{t('guest.enterCodeOrLink')}</Text>
             <CodeInput value={code} onChange={setCode} autoFocus />
+            <TouchableOpacity onPress={handlePaste} style={styles.pasteBtn} activeOpacity={0.7}>
+              <Icon name="copy" size={15} color={colors.brand.DEFAULT} />
+              <Text style={styles.pasteText}>{t('guest.pasteCode')}</Text>
+            </TouchableOpacity>
             <PrimaryButton label={t('guest.joinEvent')} onPress={handleManualCode} disabled={code.length !== 6} />
           </View>
         </KeyboardAvoidingView>
@@ -178,4 +188,6 @@ const styles = StyleSheet.create({
   codeSheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border.DEFAULT, alignSelf: 'center', marginBottom: spacing.sm },
   codeSheetTitle: { fontSize: typography.sizes.xl, fontFamily: fonts.displayBold, color: colors.text.primary },
   codeSheetHint: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted, marginTop: -spacing.sm },
+  pasteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: spacing.xs },
+  pasteText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium, color: colors.brand.DEFAULT },
 });

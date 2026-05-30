@@ -29,9 +29,9 @@ export default function QRScreen() {
 
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // Plain text message (no separate url field) so chat apps keep the code.
     await Share.share({
-      message: `${t('host.eventCreated')}\n\n${eventUrl}`,
-      url: eventUrl,
+      message: `${t('host.shareMessage', { code })}\n${eventUrl}`,
     });
   };
 

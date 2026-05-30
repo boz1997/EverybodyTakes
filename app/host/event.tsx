@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, Image,
-  Alert, Dimensions,
+  Alert, Dimensions, Modal, StatusBar,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system/legacy';
 import { EventService, Event, Photo } from '@features/events/services/eventService';
 import { Icon } from '@shared/components/Icon';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
@@ -22,6 +24,7 @@ export default function EventManage() {
   const [event, setEvent] = useState<Event | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -125,32 +128,42 @@ export default function EventManage() {
   };
 
   const handleDeletePhoto = (photo: Photo) => {
-    Alert.alert(t('host.deletePhoto'), '?', [
+    Alert.alert(t('host.deletePhoto'), t('host.deletePhotoConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
+          setSelectedPhoto(null);
           await EventService.deletePhoto(id!, photo.id);
         },
       },
     ]);
   };
 
+  const handleSavePhoto = async (photo: Photo) => {
+    try {
+      setSaving(true);
+      const perm = await MediaLibrary.requestPermissionsAsync();
+      if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
+      const target = FileSystem.cacheDirectory + `${photo.id}.jpg`;
+      const { uri } = await FileSystem.downloadAsync(photo.imageUrl, target);
+      await MediaLibrary.saveToLibraryAsync(uri);
+      Alert.alert(t('host.photoSaved'));
+    } catch {
+      Alert.alert(t('common.error'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const renderPhoto = ({ item }: { item: Photo }) => (
     <TouchableOpacity
-      onPress={() => setSelectedPhoto(selectedPhoto?.id === item.id ? null : item)}
-      style={[styles.photoCell, selectedPhoto?.id === item.id && styles.photoCellSelected]}
+      onPress={() => setSelectedPhoto(item)}
+      style={styles.photoCell}
       activeOpacity={0.85}
     >
       <Image source={{ uri: item.imageUrl }} style={styles.photo} />
-      {selectedPhoto?.id === item.id && (
-        <View style={styles.photoOverlay}>
-          <TouchableOpacity onPress={() => handleDeletePhoto(item)} style={styles.deleteBtn}>
-            <Icon name="trash" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      )}
     </TouchableOpacity>
   );
 
@@ -213,6 +226,38 @@ export default function EventManage() {
           </View>
         }
       />
+
+      {/* Photo lightbox — view, save, delete */}
+      <Modal visible={!!selectedPhoto} transparent animationType="fade" onRequestClose={() => setSelectedPhoto(null)} statusBarTranslucent>
+        <View style={styles.lightbox}>
+          <StatusBar barStyle="light-content" />
+          {selectedPhoto && (
+            <Image source={{ uri: selectedPhoto.imageUrl }} style={styles.lightboxImage} resizeMode="contain" />
+          )}
+          <View style={[styles.lightboxTop, { paddingTop: insets.top + spacing.sm }]}>
+            <TouchableOpacity onPress={() => setSelectedPhoto(null)} style={styles.lbBtn}>
+              <Icon name="close" size={22} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.lightboxBar, { paddingBottom: insets.bottom + spacing.lg }]}>
+            <TouchableOpacity
+              onPress={() => selectedPhoto && handleSavePhoto(selectedPhoto)}
+              style={styles.lbAction}
+              disabled={saving}
+            >
+              <Icon name="download" size={22} color="#fff" />
+              <Text style={styles.lbActionText}>{saving ? t('common.loading') : t('common.download')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => selectedPhoto && handleDeletePhoto(selectedPhoto)}
+              style={styles.lbAction}
+            >
+              <Icon name="trash" size={22} color={colors.error} />
+              <Text style={[styles.lbActionText, { color: colors.error }]}>{t('common.delete')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -262,10 +307,14 @@ const styles = StyleSheet.create({
   toggleThumbOn: { backgroundColor: '#fff', marginLeft: 18 },
   sectionTitle: { fontSize: typography.sizes.base, fontFamily: fonts.displayBold, color: colors.text.primary, marginBottom: spacing.md },
   photoCell: { width: PHOTO_SIZE, height: PHOTO_SIZE, borderRadius: radius.md, overflow: 'hidden', margin: spacing.xs / 2 },
-  photoCellSelected: { borderWidth: 2, borderColor: colors.brand.DEFAULT },
   photo: { width: '100%', height: '100%' },
-  photoOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
-  deleteBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(239,68,68,0.8)', alignItems: 'center', justifyContent: 'center' },
+  lightbox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.96)', alignItems: 'center', justifyContent: 'center' },
+  lightboxImage: { width: '100%', height: '78%' },
+  lightboxTop: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: spacing.lg },
+  lbBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  lightboxBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: spacing['2xl'], paddingTop: spacing.lg },
+  lbAction: { alignItems: 'center', gap: 6 },
+  lbActionText: { color: '#fff', fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium },
   empty: { alignItems: 'center', gap: spacing.sm, paddingTop: spacing['2xl'] },
   emptyIconWrap: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand.glow, borderWidth: 1, borderColor: colors.border.brand },
   emptyText: { fontSize: typography.sizes.base, fontWeight: typography.weights.semibold, color: colors.text.primary },

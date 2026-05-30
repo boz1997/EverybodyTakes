@@ -3,7 +3,7 @@
 // monthly subscription. The plan a host buys determines the event's hard
 // limits, which are copied onto the event document and enforced server-side.
 
-export type PlanId = 'free' | 'small' | 'medium' | 'large' | 'unlimited';
+export type PlanId = 'free' | 'small' | 'medium' | 'unlimited';
 
 export interface Plan {
   id: PlanId;
@@ -22,12 +22,11 @@ export interface Plan {
 export const PLANS: Record<PlanId, Plan> = {
   free: { id: 'free', maxGuests: 15, photoCap: 100, watermark: true, hdExport: false, liveWall: false, priceTRY: 0 },
   small: { id: 'small', maxGuests: 50, photoCap: null, watermark: false, hdExport: true, liveWall: false, priceTRY: 149 },
-  medium: { id: 'medium', maxGuests: 150, photoCap: null, watermark: false, hdExport: true, liveWall: true, priceTRY: 349 },
-  large: { id: 'large', maxGuests: 500, photoCap: null, watermark: false, hdExport: true, liveWall: true, priceTRY: 699 },
+  medium: { id: 'medium', maxGuests: 200, photoCap: null, watermark: false, hdExport: true, liveWall: true, priceTRY: 449 },
   unlimited: { id: 'unlimited', maxGuests: null, photoCap: null, watermark: false, hdExport: true, liveWall: true, priceTRY: 1299 },
 };
 
-export const PAID_PLAN_ORDER: PlanId[] = ['small', 'medium', 'large', 'unlimited'];
+export const PAID_PLAN_ORDER: PlanId[] = ['small', 'medium', 'unlimited'];
 
 export function getPlan(id: string): Plan {
   return PLANS[(id as PlanId)] ?? PLANS.free;
