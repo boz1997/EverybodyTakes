@@ -106,19 +106,21 @@ export default function AuthScreen() {
           {step === 'options' && (
             <View style={styles.options}>
               {/* Apple */}
-              <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8}>
+              <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8} onPress={() => Alert.alert(t('auth.socialSoonTitle'), t('auth.socialSoon'))}>
                 <View style={styles.socialIconWrap}>
                   <BrandIcon brand="apple" size={20} color={colors.text.primary} />
                 </View>
                 <Text style={styles.socialLabel}>{t('auth.continueWithApple')}</Text>
+                <Text style={styles.soonTag}>{t('auth.soonShort')}</Text>
               </TouchableOpacity>
 
               {/* Google */}
-              <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8}>
+              <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8} onPress={() => Alert.alert(t('auth.socialSoonTitle'), t('auth.socialSoon'))}>
                 <View style={styles.socialIconWrap}>
                   <BrandIcon brand="google" size={18} color={colors.text.primary} />
                 </View>
                 <Text style={styles.socialLabel}>{t('auth.continueWithGoogle')}</Text>
+                <Text style={styles.soonTag}>{t('auth.soonShort')}</Text>
               </TouchableOpacity>
 
               <View style={styles.divider}>
@@ -220,7 +222,8 @@ const styles = StyleSheet.create({
   },
   emailBtn: { borderColor: colors.border.brand },
   socialIconWrap: { width: 28, alignItems: 'center', justifyContent: 'center' },
-  socialLabel: { fontSize: typography.sizes.base, fontFamily: fonts.bodyMedium, color: colors.text.primary },
+  socialLabel: { flex: 1, fontSize: typography.sizes.base, fontFamily: fonts.bodyMedium, color: colors.text.primary },
+  soonTag: { fontSize: typography.sizes.xs, fontFamily: fonts.bodySemibold, color: colors.text.muted, backgroundColor: colors.bg.elevated, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 3, overflow: 'hidden' },
   divider: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.border.subtle },
   dividerText: { color: colors.text.muted, fontSize: typography.sizes.sm },
