@@ -128,6 +128,8 @@ export default {
     shareMessage: 'Let\'s capture my event with GuestCam! Code: {{code}}',
     eventLink: 'Event Link',
     shareQR: 'Share QR',
+    downloadQR: 'Download QR',
+    qrSaved: 'QR code saved to your library',
     printQR: 'Print',
     copyLink: 'Copy Link',
     linkCopied: 'Copied!',

@@ -131,7 +131,7 @@ export default function CameraScreen() {
 
         {/* Shot Counter — Film Roll */}
         <View style={styles.shotCounter}>
-          <Icon name="film" size={16} color="#fff" />
+          <Icon name="film" size={22} color="#fff" />
           <Text style={styles.shotCounterText}>{shotsRemaining}</Text>
           {isLast && (
             <Animated.View entering={FadeIn} style={styles.lastShotBadge}>
@@ -231,8 +231,8 @@ const styles = StyleSheet.create({
   },
   topBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
   topBtnActive: { backgroundColor: colors.gold.DEFAULT },
-  shotCounter: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: radius.full, paddingHorizontal: 16, paddingVertical: 8 },
-  shotCounterText: { fontSize: typography.sizes.base, fontWeight: typography.weights.bold, color: '#fff' },
+  shotCounter: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: radius.full, paddingHorizontal: 20, paddingVertical: 11 },
+  shotCounterText: { fontSize: typography.sizes['2xl'], fontWeight: typography.weights.bold, color: '#fff' },
   lastShotBadge: { backgroundColor: colors.warning, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2 },
   lastShotText: { fontSize: typography.sizes.xs, fontWeight: typography.weights.bold, color: '#000' },
   uploadBanner: {

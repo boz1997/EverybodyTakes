@@ -128,6 +128,8 @@ export default {
     shareMessage: 'Etkinliğimin fotoğraflarını GuestCam ile çekelim! Kod: {{code}}',
     eventLink: 'Etkinlik Bağlantısı',
     shareQR: 'QR\'ı Paylaş',
+    downloadQR: 'QR İndir',
+    qrSaved: 'QR kod galerine kaydedildi',
     printQR: 'Yazdır',
     copyLink: 'Bağlantıyı Kopyala',
     linkCopied: 'Kopyalandı!',

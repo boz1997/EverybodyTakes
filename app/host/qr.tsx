@@ -1,6 +1,8 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Share } from 'react-native';
+import { useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system/legacy';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +19,8 @@ export default function QRScreen() {
   const { id, code } = useLocalSearchParams<{ id: string; code: string }>();
   const [copied, setCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [savingQr, setSavingQr] = useState(false);
+  const qrRef = useRef<{ toDataURL: (cb: (data: string) => void) => void } | null>(null);
 
   const eventUrl = `https://guestcam.app/e/${code}`;
 
@@ -27,11 +31,23 @@ export default function QRScreen() {
     setTimeout(() => setCodeCopied(false), 2000);
   };
 
-  const handleShare = async () => {
+  const handleDownloadQr = () => {
+    if (!qrRef.current || savingQr) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Plain text message (no separate url field) so chat apps keep the code.
-    await Share.share({
-      message: `${t('host.shareMessage', { code })}\n${eventUrl}`,
+    setSavingQr(true);
+    qrRef.current.toDataURL(async (base64: string) => {
+      try {
+        const perm = await MediaLibrary.requestPermissionsAsync();
+        if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
+        const path = `${FileSystem.cacheDirectory}guestcam-${code}.png`;
+        await FileSystem.writeAsStringAsync(path, base64, { encoding: FileSystem.EncodingType.Base64 });
+        await MediaLibrary.saveToLibraryAsync(path);
+        Alert.alert(t('host.qrSaved'));
+      } catch {
+        Alert.alert(t('common.error'));
+      } finally {
+        setSavingQr(false);
+      }
     });
   };
 
@@ -68,6 +84,7 @@ export default function QRScreen() {
                   size={220}
                   backgroundColor="#FFFFFF"
                   color={colors.text.primary}
+                  getRef={(c) => { qrRef.current = c; }}
                 />
               </View>
               {/* Corner decorations */}
@@ -105,10 +122,10 @@ export default function QRScreen() {
 
         {/* Actions */}
         <Animated.View entering={FadeInDown.delay(600)} style={styles.actions}>
-          <TouchableOpacity onPress={handleShare} style={styles.actionBtn} activeOpacity={0.85}>
+          <TouchableOpacity onPress={handleDownloadQr} style={styles.actionBtn} activeOpacity={0.85} disabled={savingQr}>
             <LinearGradient colors={gradients.amber} style={styles.actionBtnGradient}>
-              <Icon name="share" size={18} color="#fff" />
-              <Text style={styles.actionText}>{t('host.shareQR')}</Text>
+              <Icon name="download" size={18} color="#fff" />
+              <Text style={styles.actionText}>{savingQr ? t('common.loading') : t('host.downloadQR')}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
