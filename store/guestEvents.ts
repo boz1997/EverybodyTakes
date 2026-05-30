@@ -27,3 +27,8 @@ export async function addJoinedEvent(event: JoinedEvent): Promise<void> {
   const next = [event, ...existing.filter((e) => e.id !== event.id)].slice(0, MAX);
   await AsyncStorage.setItem(KEY, JSON.stringify(next));
 }
+
+export async function removeJoinedEvent(id: string): Promise<void> {
+  const existing = await getJoinedEvents();
+  await AsyncStorage.setItem(KEY, JSON.stringify(existing.filter((e) => e.id !== id)));
+}

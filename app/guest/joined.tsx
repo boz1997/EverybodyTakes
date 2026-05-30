@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { getJoinedEvents, JoinedEvent } from '@store/guestEvents';
+import { getJoinedEvents, removeJoinedEvent, JoinedEvent } from '@store/guestEvents';
 import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { EventType } from '@store/eventStore';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
@@ -19,10 +19,25 @@ export default function JoinedEventsScreen() {
     getJoinedEvents().then((e) => { setEvents(e); setLoading(false); });
   }, []);
 
+  const confirmRemove = (item: JoinedEvent) => {
+    Alert.alert(item.name, t('guest.removeJoinedConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: async () => {
+          setEvents((prev) => prev.filter((e) => e.id !== item.id));
+          await removeJoinedEvent(item.id);
+        },
+      },
+    ]);
+  };
+
   const renderItem = ({ item }: { item: JoinedEvent }) => (
     <TouchableOpacity
       style={styles.card}
       onPress={() => router.push({ pathname: '/guest/join', params: { code: item.code } })}
+      onLongPress={() => confirmRemove(item)}
       activeOpacity={0.85}
     >
       {item.coverImageUrl ? (
@@ -47,7 +62,9 @@ export default function JoinedEventsScreen() {
           <Icon name="arrowLeft" size={24} color={colors.text.secondary} />
         </TouchableOpacity>
         <Text style={styles.title}>{t('guest.myEvents')}</Text>
-        <View style={{ width: 32 }} />
+        <TouchableOpacity onPress={() => router.replace('/guest/scan')} style={styles.joinBtn} activeOpacity={0.8}>
+          <Icon name="qr" size={20} color={colors.brand.DEFAULT} />
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -79,6 +96,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: colors.border.subtle,
   },
   backBtn: { width: 32, height: 32, justifyContent: 'center' },
+  joinBtn: { width: 36, height: 36, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border.brand, backgroundColor: colors.brand.glow },
   title: { fontSize: typography.sizes.lg, fontFamily: fonts.displayBold, color: colors.text.primary },
   list: { padding: spacing.lg, gap: spacing.sm },
   listEmpty: { flex: 1, justifyContent: 'center' },

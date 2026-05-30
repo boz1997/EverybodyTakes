@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  RefreshControl, Image,
+  RefreshControl, Image, Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,10 +37,25 @@ export default function HostDashboard() {
 
   useEffect(() => { load(); }, [user]);
 
+  const confirmDelete = (item: Event) => {
+    Alert.alert(t('host.deleteEvent'), t('host.deleteEventConfirm', { name: item.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: async () => {
+          setEvents((prev) => prev.filter((e) => e.id !== item.id));
+          await EventService.deleteEvent(item.id).catch(() => load());
+        },
+      },
+    ]);
+  };
+
   const renderEvent = ({ item }: { item: Event }) => (
     <TouchableOpacity
       style={styles.card}
       onPress={() => router.push({ pathname: '/host/event', params: { id: item.id } })}
+      onLongPress={() => confirmDelete(item)}
       activeOpacity={0.85}
     >
       <LinearGradient

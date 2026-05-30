@@ -140,7 +140,6 @@ export default function CreateEvent() {
                     onChangeText={(v) => { updateDraft({ name: v }); setNameError(''); }}
                     error={nameError}
                     maxLength={80}
-                    autoFocus
                   />
                 </View>
               </>

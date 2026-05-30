@@ -141,17 +141,37 @@ export default function EventManage() {
     ]);
   };
 
+  const saveOne = async (photo: Photo) => {
+    const target = FileSystem.cacheDirectory + `${photo.id}.jpg`;
+    const { uri } = await FileSystem.downloadAsync(photo.imageUrl, target);
+    await MediaLibrary.saveToLibraryAsync(uri);
+  };
+
   const handleSavePhoto = async (photo: Photo) => {
     try {
       setSaving(true);
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
-      const target = FileSystem.cacheDirectory + `${photo.id}.jpg`;
-      const { uri } = await FileSystem.downloadAsync(photo.imageUrl, target);
-      await MediaLibrary.saveToLibraryAsync(uri);
+      await saveOne(photo);
       Alert.alert(t('host.photoSaved'));
     } catch {
       Alert.alert(t('common.error'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    if (photos.length === 0 || saving) return;
+    try {
+      setSaving(true);
+      const perm = await MediaLibrary.requestPermissionsAsync();
+      if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
+      let done = 0;
+      for (const p of photos) {
+        try { await saveOne(p); done += 1; } catch { /* skip a failed one */ }
+      }
+      Alert.alert(t('host.downloadAllDone', { count: done }));
     } finally {
       setSaving(false);
     }
@@ -213,7 +233,15 @@ export default function EventManage() {
         ListHeaderComponent={
           <>
             {renderSettings()}
-            <Text style={styles.sectionTitle}>{t('host.livePhotos')} ({photos.length})</Text>
+            <View style={styles.sectionRow}>
+              <Text style={styles.sectionTitle}>{t('host.livePhotos')} ({photos.length})</Text>
+              {photos.length > 0 && (
+                <TouchableOpacity onPress={handleDownloadAll} style={styles.downloadAllBtn} disabled={saving} activeOpacity={0.7}>
+                  <Icon name="download" size={15} color={colors.brand.DEFAULT} />
+                  <Text style={styles.downloadAllText}>{t('host.downloadAll')}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </>
         }
         ListEmptyComponent={
@@ -305,7 +333,10 @@ const styles = StyleSheet.create({
   toggleOn: { backgroundColor: colors.brand.DEFAULT, borderColor: colors.brand.DEFAULT },
   toggleThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.text.muted },
   toggleThumbOn: { backgroundColor: '#fff', marginLeft: 18 },
-  sectionTitle: { fontSize: typography.sizes.base, fontFamily: fonts.displayBold, color: colors.text.primary, marginBottom: spacing.md },
+  sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
+  sectionTitle: { fontSize: typography.sizes.base, fontFamily: fonts.displayBold, color: colors.text.primary },
+  downloadAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  downloadAllText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold, color: colors.brand.DEFAULT },
   photoCell: { width: PHOTO_SIZE, height: PHOTO_SIZE, borderRadius: radius.md, overflow: 'hidden', margin: spacing.xs / 2 },
   photo: { width: '100%', height: '100%' },
   lightbox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.96)', alignItems: 'center', justifyContent: 'center' },

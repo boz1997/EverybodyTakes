@@ -5,6 +5,7 @@ import {
   getDoc,
   getDocs,
   updateDoc,
+  deleteDoc,
   query,
   where,
   serverTimestamp,
@@ -295,5 +296,9 @@ export const EventService = {
   // (uploadPhoto throws event_ended). Irreversible from the UI.
   async endEvent(eventId: string): Promise<void> {
     await updateDoc(doc(db, 'events', eventId), { isActive: false });
+  },
+
+  async deleteEvent(eventId: string): Promise<void> {
+    await deleteDoc(doc(db, 'events', eventId));
   },
 };
