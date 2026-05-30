@@ -6,13 +6,40 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyBDZBg0ROX64qVqsqcFi7KoO3svZnkR_Jc",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "everybodytakes.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "everybodytakes",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "everybodytakes.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "759909661412",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:759909661412:web:ba27e79b149d28aeeb4af1",
+        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "G-5QQFFZ0ZBR"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyBDZBg0ROX64qVqsqcFi7KoO3svZnkR_Jc",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "everybodytakes.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "everybodytakes",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "everybodytakes.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "759909661412",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:759909661412:web:ba27e79b149d28aeeb4af1",
+        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "G-5QQFFZ0ZBR"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyBDZBg0ROX64qVqsqcFi7KoO3svZnkR_Jc",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "everybodytakes.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "everybodytakes",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "everybodytakes.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "759909661412",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:759909661412:web:ba27e79b149d28aeeb4af1",
+        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "G-5QQFFZ0ZBR"
+      }
     }
   },
   "submit": {
