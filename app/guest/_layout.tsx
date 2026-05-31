@@ -7,7 +7,6 @@ export default function GuestLayout() {
       <Stack.Screen name="joined" />
       <Stack.Screen name="join" />
       <Stack.Screen name="camera" />
-      <Stack.Screen name="gallery" />
     </Stack>
   );
 }

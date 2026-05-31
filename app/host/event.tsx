@@ -76,6 +76,21 @@ export default function EventManage() {
           </View>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.settingRow}
+          onPress={() => patchSettings({ galleryVisibility: event.galleryVisibility === 'host_only' ? 'everyone' : 'host_only' })}
+          activeOpacity={0.8}
+        >
+          <Icon name="lock" size={20} color={event.galleryVisibility === 'host_only' ? colors.brand.DEFAULT : colors.text.muted} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.settingLabel}>{t('host.hostOnlyGallery')}</Text>
+            <Text style={styles.settingDesc}>{t('host.hostOnlyGalleryDesc')}</Text>
+          </View>
+          <View style={[styles.toggle, event.galleryVisibility === 'host_only' && styles.toggleOn]}>
+            <View style={[styles.toggleThumb, event.galleryVisibility === 'host_only' && styles.toggleThumbOn]} />
+          </View>
+        </TouchableOpacity>
+
         <Text style={styles.settingSub}>{t('host.reminderBefore')}</Text>
         <View style={styles.reminderRow}>
           {REMINDERS.map((r) => {
@@ -154,8 +169,8 @@ export default function EventManage() {
       if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
       await saveOne(photo);
       Alert.alert(t('host.photoSaved'));
-    } catch {
-      Alert.alert(t('common.error'));
+    } catch (e: any) {
+      Alert.alert(t('common.error'), String(e?.message ?? e));
     } finally {
       setSaving(false);
     }
@@ -168,10 +183,12 @@ export default function EventManage() {
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
       let done = 0;
+      let lastErr: unknown = null;
       for (const p of photos) {
-        try { await saveOne(p); done += 1; } catch { /* skip a failed one */ }
+        try { await saveOne(p); done += 1; } catch (e) { lastErr = e; }
       }
-      Alert.alert(t('host.downloadAllDone', { count: done }));
+      if (done === 0 && lastErr) Alert.alert(t('common.error'), String((lastErr as any)?.message ?? lastErr));
+      else Alert.alert(t('host.downloadAllDone', { count: done }));
     } finally {
       setSaving(false);
     }
@@ -260,7 +277,7 @@ export default function EventManage() {
         <View style={styles.lightbox}>
           <StatusBar barStyle="light-content" />
           {selectedPhoto && (
-            <Image source={{ uri: selectedPhoto.imageUrl }} style={styles.lightboxImage} resizeMode="contain" />
+            <Image source={{ uri: selectedPhoto.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />
           )}
           <View style={[styles.lightboxTop, { paddingTop: insets.top + spacing.sm }]}>
             <TouchableOpacity onPress={() => setSelectedPhoto(null)} style={styles.lbBtn}>
@@ -323,6 +340,7 @@ const styles = StyleSheet.create({
   settingsTitle: { fontSize: typography.sizes.base, fontFamily: fonts.displayBold, color: colors.text.primary, marginBottom: spacing.xs },
   settingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   settingLabel: { flex: 1, fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium, color: colors.text.primary },
+  settingDesc: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted, marginTop: 1 },
   settingSub: { fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium, color: colors.text.secondary, marginTop: spacing.sm },
   reminderRow: { flexDirection: 'row', gap: spacing.sm },
   reminderChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border.DEFAULT },

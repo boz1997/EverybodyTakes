@@ -43,6 +43,7 @@ export interface Event {
   revealTiming: string;
   allowGalleryUpload: boolean;
   reminderBefore: '1h' | '24h' | null;
+  galleryVisibility: 'everyone' | 'host_only';
   maxGuests: number | null;   // resolved from plan
   photoCap: number | null;    // resolved from plan
   watermark: boolean;         // resolved from plan
@@ -124,6 +125,7 @@ export const EventService = {
       revealTiming: draft.revealTiming,
       allowGalleryUpload: draft.allowGalleryUpload,
       reminderBefore: draft.reminderBefore,
+      galleryVisibility: 'everyone',
       maxGuests: limits.maxGuests,
       photoCap: limits.photoCap,
       watermark: limits.watermark,
@@ -287,7 +289,7 @@ export const EventService = {
   // Host-editable settings (the bits we moved out of the create flow).
   async updateSettings(
     eventId: string,
-    settings: Partial<Pick<Event, 'disposableMode' | 'allowGalleryUpload' | 'reminderBefore'>>,
+    settings: Partial<Pick<Event, 'disposableMode' | 'allowGalleryUpload' | 'reminderBefore' | 'galleryVisibility'>>,
   ): Promise<void> {
     await updateDoc(doc(db, 'events', eventId), settings);
   },

@@ -1,7 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEY = '@guestcam_joined_events';
+const NICK_KEY = '@guestcam_nickname';
 const MAX = 30;
+
+export async function getSavedNickname(): Promise<string> {
+  try { return (await AsyncStorage.getItem(NICK_KEY)) ?? ''; } catch { return ''; }
+}
+
+export async function saveNickname(name: string): Promise<void> {
+  try { await AsyncStorage.setItem(NICK_KEY, name); } catch { /* ignore */ }
+}
 
 export interface JoinedEvent {
   id: string;

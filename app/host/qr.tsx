@@ -43,8 +43,8 @@ export default function QRScreen() {
         await FileSystem.writeAsStringAsync(path, base64, { encoding: FileSystem.EncodingType.Base64 });
         await MediaLibrary.saveToLibraryAsync(path);
         Alert.alert(t('host.qrSaved'));
-      } catch {
-        Alert.alert(t('common.error'));
+      } catch (e: any) {
+        Alert.alert(t('common.error'), String(e?.message ?? e));
       } finally {
         setSavingQr(false);
       }

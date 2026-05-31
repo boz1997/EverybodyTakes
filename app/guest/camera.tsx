@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Dimensions,
-  Alert, Platform,
+  Alert, Platform, Image,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CameraView, CameraType, FlashMode, useCameraPermissions } from 'expo-camera';
@@ -16,6 +16,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { EventService, LimitError } from '@features/events/services/eventService';
 import { useAuthStore } from '@store/authStore';
 import { useEventStore } from '@store/eventStore';
+import { getSavedNickname } from '@store/guestEvents';
 import { Icon } from '@shared/components/Icon';
 import { colors, typography, spacing, radius } from '@constants/theme';
 
@@ -27,12 +28,15 @@ export default function CameraScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
   const { shotsRemaining, decrementShots } = useEventStore();
+  const [nickname, setNickname] = useState<string | null>(null);
+
+  useEffect(() => { getSavedNickname().then((n) => setNickname(n || null)); }, []);
 
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('back');
   const [flash, setFlash] = useState<FlashMode>('off');
-  const [capturing, setCapturing] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [pending, setPending] = useState(0);        // in-flight background uploads
+  const [lastPhoto, setLastPhoto] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
   const shutterScale = useSharedValue(1);
@@ -41,57 +45,51 @@ export default function CameraScreen() {
   const shutterStyle = useAnimatedStyle(() => ({ transform: [{ scale: shutterScale.value }] }));
   const flashStyle = useAnimatedStyle(() => ({ opacity: flashOverlay.value }));
 
+  // Capture feels instant: grab the frame, decrement optimistically, and run
+  // compress+upload in the background so the guest can keep shooting.
   const handleCapture = async () => {
-    if (!cameraRef.current || capturing || shotsRemaining <= 0 || !user) return;
+    if (!cameraRef.current || shotsRemaining <= 0 || !user) return;
 
+    shutterScale.value = withSequence(withTiming(0.85, { duration: 70 }), withSpring(1));
+    flashOverlay.value = withSequence(withTiming(0.9, { duration: 50 }), withTiming(0, { duration: 180 }));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+
+    let photo;
     try {
-      setCapturing(true);
-
-      // Shutter animation
-      shutterScale.value = withSequence(withTiming(0.85, { duration: 80 }), withSpring(1));
-      if (flash === 'on') {
-        flashOverlay.value = withSequence(withTiming(1, { duration: 50 }), withTiming(0, { duration: 150 }));
-      }
-
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-
-      // Take photo
-      const photo = await cameraRef.current.takePictureAsync({
+      photo = await cameraRef.current.takePictureAsync({
         quality: 0.9,
         skipProcessing: Platform.OS === 'android',
       });
-
-      if (!photo?.uri) throw new Error('No photo');
-
-      // Atomically claim a shot first (throws if none left / event capped).
-      await EventService.decrementShots(id!, user.uid);
-      decrementShots();
-
-      // Client-side compress before upload (max 1920px, ~80% quality).
-      const compressed = await ImageManipulator.manipulateAsync(
-        photo.uri,
-        [{ resize: { width: 1920 } }],
-        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
-      );
-
-      setUploadStatus('uploading');
-      await EventService.uploadPhoto(id!, user.uid, user.displayName, compressed.uri);
-      setUploadStatus('success');
-      setTimeout(() => setUploadStatus('idle'), 1500);
-
-    } catch (e) {
-      if (__DEV__) console.warn('capture/upload failed:', e);
-      setUploadStatus('error');
-      setTimeout(() => setUploadStatus('idle'), 2000);
-      if (e instanceof LimitError) {
-        const msg = e.code === 'photo_cap' ? t('guest.eventPhotoCapReached')
-          : e.code === 'event_ended' ? t('errors.eventExpired')
-          : t('guest.noShotsRemaining');
-        Alert.alert(msg);
-      }
-    } finally {
-      setCapturing(false);
+    } catch {
+      return;
     }
+    if (!photo?.uri) return;
+
+    decrementShots();              // optimistic; server transaction is the source of truth
+    setLastPhoto(photo.uri);
+    setPending((p) => p + 1);
+    const uri = photo.uri;
+
+    void (async () => {
+      try {
+        await EventService.decrementShots(id!, user.uid);
+        const compressed = await ImageManipulator.manipulateAsync(
+          uri, [{ resize: { width: 1920 } }],
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
+        );
+        await EventService.uploadPhoto(id!, user.uid, nickname, compressed.uri);
+      } catch (e) {
+        if (__DEV__) console.warn('upload failed:', e);
+        if (e instanceof LimitError) {
+          const msg = e.code === 'photo_cap' ? t('guest.eventPhotoCapReached')
+            : e.code === 'event_ended' ? t('errors.eventExpired')
+            : t('guest.noShotsRemaining');
+          Alert.alert(msg);
+        }
+      } finally {
+        setPending((p) => Math.max(0, p - 1));
+      }
+    })();
   };
 
   if (!permission?.granted) {
@@ -149,43 +147,33 @@ export default function CameraScreen() {
       </View>
 
       {/* Upload Status */}
-      {uploadStatus !== 'idle' && (
-        <Animated.View
-          entering={FadeIn}
-          exiting={FadeOut}
-          style={styles.uploadBanner}
-        >
-          <Icon
-            name={uploadStatus === 'success' ? 'check' : uploadStatus === 'error' ? 'alert' : 'download'}
-            size={18}
-            color={uploadStatus === 'success' ? colors.success : uploadStatus === 'error' ? colors.error : '#fff'}
-          />
-          <Text style={styles.uploadBannerText}>
-            {uploadStatus === 'uploading' && t('guest.uploading')}
-            {uploadStatus === 'success' && t('guest.uploadSuccess')}
-            {uploadStatus === 'error' && t('guest.uploadError')}
-          </Text>
+      {/* Subtle background-upload indicator (non-blocking) */}
+      {pending > 0 && (
+        <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.uploadBanner}>
+          <Icon name="download" size={15} color="#fff" />
+          <Text style={styles.uploadBannerText}>{t('guest.uploadingCount', { count: pending })}</Text>
         </Animated.View>
       )}
 
       {/* Bottom Controls */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.lg }]}>
 
-        {/* Gallery */}
-        <TouchableOpacity
-          onPress={() => router.push({ pathname: '/guest/gallery', params: { id } })}
-          style={styles.sideBtn}
-        >
-          <Icon name="gallery" size={24} color="#fff" />
+        {/* Gallery — shows the last shot as a film-strip thumbnail */}
+        <TouchableOpacity onPress={() => router.back()} style={styles.galleryBtn} activeOpacity={0.85}>
+          {lastPhoto ? (
+            <Image source={{ uri: lastPhoto }} style={styles.galleryThumb} />
+          ) : (
+            <Icon name="gallery" size={22} color="#fff" />
+          )}
         </TouchableOpacity>
 
         {/* Shutter */}
         <Animated.View style={shutterStyle}>
           <TouchableOpacity
             onPress={handleCapture}
-            disabled={capturing || isEmpty}
+            disabled={isEmpty}
             style={[styles.shutter, isEmpty && styles.shutterDisabled]}
-            activeOpacity={0.9}
+            activeOpacity={0.8}
           >
             <LinearGradient
               colors={isEmpty ? ['#333', '#222'] : ['#fff', '#ddd']}
@@ -249,6 +237,8 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg, zIndex: 10,
   },
   sideBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
+  galleryBtn: { width: 56, height: 56, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)' },
+  galleryThumb: { width: '100%', height: '100%' },
   shutter: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: '#fff', overflow: 'hidden', padding: 4 },
   shutterDisabled: { opacity: 0.4, borderColor: '#555' },
   shutterInner: { flex: 1, borderRadius: 34, alignItems: 'center', justifyContent: 'center' },
