@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
-import * as MediaLibrary from 'expo-media-library';
+import * as MediaLibrary from 'expo-media-library/legacy';
 import * as FileSystem from 'expo-file-system/legacy';
 import { format } from 'date-fns';
 import { EventService, Event, Photo, LimitError } from '@features/events/services/eventService';
@@ -25,13 +25,15 @@ const { width } = Dimensions.get('window');
 const GAP = spacing.xs;
 const PHOTO = (width - spacing.lg * 2 - GAP * 2) / 3;
 
+// next_day → start of the day after the event (surprise reveal).
 function revealAtMs(e: Event): number {
-  const ends = e.endsAt ? Date.parse(e.endsAt) : 0;
-  if (e.revealTiming === 'after_event') return ends;
-  if (e.revealTiming === '24h') return ends + 24 * 60 * 60 * 1000;
-  return 0;
+  if (e.revealTiming !== 'next_day') return 0;
+  const base = e.date ? new Date(e.date) : new Date();
+  base.setHours(0, 0, 0, 0);
+  base.setDate(base.getDate() + 1);
+  return base.getTime();
 }
-const isRevealed = (e: Event) => e.revealTiming === 'instant' || Date.now() >= revealAtMs(e);
+const isRevealed = (e: Event) => e.revealTiming !== 'next_day' || Date.now() >= revealAtMs(e);
 
 export default function EventHubScreen() {
   const { t } = useTranslation();
@@ -89,7 +91,7 @@ export default function EventHubScreen() {
 
   const onNicknameChange = (v: string) => { setNicknameState(v); saveNickname(v); };
 
-  const hostOnly = event?.galleryVisibility === 'host_only' && uid !== event?.hostId;
+  const hostOnly = event?.revealTiming === 'private' && uid !== event?.hostId;
   const revealed = event ? isRevealed(event) : false;
   const visiblePhotos = (hostOnly || filter === 'mine')
     ? photos.filter((p) => p.uploadedBy === uid)

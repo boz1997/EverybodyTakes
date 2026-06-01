@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 
-export type RevealTiming = 'instant' | 'after_event' | '24h';
+// Reveal also encodes visibility:
+//  instant   → everyone sees photos immediately
+//  next_day  → everyone, revealed the next day (surprise)
+//  private   → only the host sees all; each guest sees only their own
+export type RevealTiming = 'instant' | 'next_day' | 'private';
 export type EventType = 'wedding' | 'birthday' | 'party' | 'corporate' | 'festival' | 'yacht' | 'club' | 'other';
 
 export interface EventDraft {

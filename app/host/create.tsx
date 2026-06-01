@@ -35,8 +35,8 @@ const EVENT_TYPES: { key: EventType; labelKey: string }[] = [
 const SHOT_OPTIONS = [10, 12, 24, 36, 48, 72];
 const REVEAL_OPTIONS: { key: RevealTiming; icon: IconName; labelKey: string; descKey: string }[] = [
   { key: 'instant', icon: 'flash', labelKey: 'host.revealInstant', descKey: 'host.revealInstantDesc' },
-  { key: 'after_event', icon: 'calendar', labelKey: 'host.revealAfterEvent', descKey: 'host.revealAfterEventDesc' },
-  { key: '24h', icon: 'film', labelKey: 'host.reveal24h', descKey: 'host.reveal24hDesc' },
+  { key: 'next_day', icon: 'film', labelKey: 'host.revealNextDay', descKey: 'host.revealNextDayDesc' },
+  { key: 'private', icon: 'lock', labelKey: 'host.revealPrivate', descKey: 'host.revealPrivateDesc' },
 ];
 
 export default function CreateEvent() {

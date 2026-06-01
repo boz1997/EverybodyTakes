@@ -13,6 +13,8 @@ export interface Plan {
   photoCap: number | null;
   /** GuestCam watermark burned into exports. */
   watermark: boolean;
+  /** Guests can record video (not just photos). */
+  video: boolean;
   hdExport: boolean;
   liveWall: boolean;
   /** Price in Turkish Lira for the whole event (one-time). 0 = free. */
@@ -20,10 +22,10 @@ export interface Plan {
 }
 
 export const PLANS: Record<PlanId, Plan> = {
-  free: { id: 'free', maxGuests: 15, photoCap: 100, watermark: true, hdExport: false, liveWall: false, priceTRY: 0 },
-  small: { id: 'small', maxGuests: 50, photoCap: null, watermark: false, hdExport: true, liveWall: false, priceTRY: 149 },
-  medium: { id: 'medium', maxGuests: 200, photoCap: null, watermark: false, hdExport: true, liveWall: true, priceTRY: 449 },
-  unlimited: { id: 'unlimited', maxGuests: null, photoCap: null, watermark: false, hdExport: true, liveWall: true, priceTRY: 1299 },
+  free: { id: 'free', maxGuests: 10, photoCap: 100, watermark: true, video: false, hdExport: false, liveWall: false, priceTRY: 0 },
+  small: { id: 'small', maxGuests: 30, photoCap: null, watermark: false, video: false, hdExport: true, liveWall: false, priceTRY: 149 },
+  medium: { id: 'medium', maxGuests: 100, photoCap: null, watermark: false, video: true, hdExport: true, liveWall: true, priceTRY: 449 },
+  unlimited: { id: 'unlimited', maxGuests: null, photoCap: null, watermark: false, video: true, hdExport: true, liveWall: true, priceTRY: 1299 },
 };
 
 export const PAID_PLAN_ORDER: PlanId[] = ['small', 'medium', 'unlimited'];

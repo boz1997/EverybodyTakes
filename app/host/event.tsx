@@ -7,9 +7,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import * as MediaLibrary from 'expo-media-library';
+import * as MediaLibrary from 'expo-media-library/legacy';
 import * as FileSystem from 'expo-file-system/legacy';
 import { EventService, Event, Photo } from '@features/events/services/eventService';
+import { getPlan } from '@constants/plans';
 import { Icon } from '@shared/components/Icon';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
@@ -46,6 +47,12 @@ export default function EventManage() {
     { key: '24h', labelKey: 'host.reminder24h' },
   ];
 
+  const REVEALS: { key: 'instant' | 'next_day' | 'private'; labelKey: string }[] = [
+    { key: 'instant', labelKey: 'host.revealInstant' },
+    { key: 'next_day', labelKey: 'host.revealNextDay' },
+    { key: 'private', labelKey: 'host.revealPrivate' },
+  ];
+
   const renderSettings = () => {
     if (!event) return null;
     return (
@@ -76,20 +83,22 @@ export default function EventManage() {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.settingRow}
-          onPress={() => patchSettings({ galleryVisibility: event.galleryVisibility === 'host_only' ? 'everyone' : 'host_only' })}
-          activeOpacity={0.8}
-        >
-          <Icon name="lock" size={20} color={event.galleryVisibility === 'host_only' ? colors.brand.DEFAULT : colors.text.muted} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.settingLabel}>{t('host.hostOnlyGallery')}</Text>
-            <Text style={styles.settingDesc}>{t('host.hostOnlyGalleryDesc')}</Text>
-          </View>
-          <View style={[styles.toggle, event.galleryVisibility === 'host_only' && styles.toggleOn]}>
-            <View style={[styles.toggleThumb, event.galleryVisibility === 'host_only' && styles.toggleThumbOn]} />
-          </View>
-        </TouchableOpacity>
+        <Text style={styles.settingSub}>{t('host.revealTiming')}</Text>
+        <View style={styles.reminderRow}>
+          {REVEALS.map((r) => {
+            const active = event.revealTiming === r.key;
+            return (
+              <TouchableOpacity
+                key={r.key}
+                style={[styles.reminderChip, active && styles.reminderChipActive]}
+                onPress={() => patchSettings({ revealTiming: r.key })}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.reminderText, active && styles.reminderTextActive]}>{t(r.labelKey)}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
         <Text style={styles.settingSub}>{t('host.reminderBefore')}</Text>
         <View style={styles.reminderRow}>
@@ -107,6 +116,20 @@ export default function EventManage() {
             );
           })}
         </View>
+
+        {/* Plan + upgrade (sales surface) */}
+        <TouchableOpacity
+          style={styles.upgradeRow}
+          onPress={() => router.push({ pathname: '/host/paywall', params: { upgradeId: event.id, current: event.plan } })}
+          activeOpacity={0.85}
+        >
+          <Icon name="crown" size={20} color={colors.gold.DEFAULT} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.settingLabel}>{t(`paywall.planNames.${getPlan(event.plan).id}`)} · {event.video ? t('paywall.videoOn') : t('paywall.videoOff')}</Text>
+            <Text style={styles.settingDesc}>{t('host.upgradeHint')}</Text>
+          </View>
+          <Icon name="arrowRight" size={16} color={colors.text.muted} />
+        </TouchableOpacity>
 
         {event.isActive ? (
           <TouchableOpacity style={styles.endBtn} onPress={handleEndEvent} activeOpacity={0.8}>
@@ -331,6 +354,7 @@ const styles = StyleSheet.create({
   liveIndicator: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success },
   liveDotEnded: { backgroundColor: colors.text.muted },
+  upgradeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.sm, paddingVertical: 12, paddingHorizontal: spacing.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: 'rgba(154,118,52,0.35)', backgroundColor: 'rgba(154,118,52,0.08)' },
   endBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: spacing.sm, paddingVertical: 12, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.error + '55', backgroundColor: colors.error + '0F' },
   endBtnText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold, color: colors.error },
   endedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: spacing.sm, paddingVertical: 10 },

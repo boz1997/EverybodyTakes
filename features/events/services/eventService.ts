@@ -40,13 +40,13 @@ export interface Event {
   coverImageUrl: string | null;
   shotsPerGuest: number;
   disposableMode: boolean;
-  revealTiming: string;
+  revealTiming: string;       // instant | next_day | private (also encodes visibility)
   allowGalleryUpload: boolean;
   reminderBefore: '1h' | '24h' | null;
-  galleryVisibility: 'everyone' | 'host_only';
   maxGuests: number | null;   // resolved from plan
   photoCap: number | null;    // resolved from plan
   watermark: boolean;         // resolved from plan
+  video: boolean;             // resolved from plan
   endsAt: string | null;      // for reveal timing
   shortCode: string;
   isActive: boolean;
@@ -125,10 +125,10 @@ export const EventService = {
       revealTiming: draft.revealTiming,
       allowGalleryUpload: draft.allowGalleryUpload,
       reminderBefore: draft.reminderBefore,
-      galleryVisibility: 'everyone',
       maxGuests: limits.maxGuests,
       photoCap: limits.photoCap,
       watermark: limits.watermark,
+      video: limits.video,
       endsAt,
       shortCode,
       isActive: true,
@@ -289,9 +289,17 @@ export const EventService = {
   // Host-editable settings (the bits we moved out of the create flow).
   async updateSettings(
     eventId: string,
-    settings: Partial<Pick<Event, 'disposableMode' | 'allowGalleryUpload' | 'reminderBefore' | 'galleryVisibility'>>,
+    settings: Partial<Pick<Event, 'disposableMode' | 'allowGalleryUpload' | 'reminderBefore' | 'revealTiming'>>,
   ): Promise<void> {
     await updateDoc(doc(db, 'events', eventId), settings);
+  },
+
+  // Upgrade an event to a higher plan (sales surface in event settings).
+  async updatePlan(eventId: string, planId: string): Promise<void> {
+    const p = getPlan(planId);
+    await updateDoc(doc(db, 'events', eventId), {
+      plan: p.id, maxGuests: p.maxGuests, photoCap: p.photoCap, watermark: p.watermark, video: p.video,
+    });
   },
 
   // Ends the event: stops new joins (join checks isActive) and uploads

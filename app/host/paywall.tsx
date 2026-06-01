@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +21,8 @@ export default function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const { draft, setActiveEventId, resetDraft } = useEventStore();
   const { user } = useAuthStore();
+  const { upgradeId } = useLocalSearchParams<{ upgradeId?: string }>();
+  const isUpgrade = !!upgradeId;
 
   const [selected, setSelected] = useState<PlanId>('small');
   const [loading, setLoading] = useState(false);
@@ -29,6 +31,7 @@ export default function PaywallScreen() {
     const lines: string[] = [];
     lines.push(plan.maxGuests == null ? t('paywall.unlimitedGuests') : t('paywall.upToGuests', { n: plan.maxGuests }));
     lines.push(plan.photoCap == null ? t('paywall.unlimitedPhotos') : t('paywall.photoCap', { n: plan.photoCap }));
+    lines.push(plan.video ? t('paywall.videoOn') : t('paywall.videoOff'));
     lines.push(plan.watermark ? t('paywall.watermark') : t('paywall.noWatermark'));
     if (plan.hdExport) lines.push(t('paywall.hdExport'));
     if (plan.liveWall) lines.push(t('paywall.liveWall'));
@@ -41,8 +44,14 @@ export default function PaywallScreen() {
       setLoading(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      // TODO: for paid plans, run the in-app purchase here before creating.
+      // TODO: for paid plans, run the in-app purchase here first.
       // if (selected !== 'free') await PurchaseService.purchase(selected);
+
+      if (isUpgrade) {
+        await EventService.updatePlan(upgradeId!, selected);
+        router.back();
+        return;
+      }
 
       const event = await EventService.create(user.uid, draft, selected);
       setActiveEventId(event.id);
@@ -72,20 +81,22 @@ export default function PaywallScreen() {
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <Text style={styles.title}>{t('paywall.title')}</Text>
-          <Text style={styles.subtitle}>{t('paywall.subtitle')}</Text>
+          <Text style={styles.title}>{isUpgrade ? t('paywall.upgradeTitle') : t('paywall.title')}</Text>
+          <Text style={styles.subtitle}>{isUpgrade ? t('paywall.upgradeSubtitle') : t('paywall.subtitle')}</Text>
         </View>
 
-        {/* Event summary pill */}
-        <View style={styles.eventPill}>
-          <Icon name={EVENT_TYPE_ICON[draft.type]} size={18} color={colors.brand.DEFAULT} />
-          <Text style={styles.eventPillName} numberOfLines={1}>{draft.name || 'Etkinlik'}</Text>
-          <Text style={styles.eventPillDetail}>{draft.shotsPerGuest} çekim/kişi</Text>
-        </View>
+        {/* Event summary pill (create flow only) */}
+        {!isUpgrade && (
+          <View style={styles.eventPill}>
+            <Icon name={EVENT_TYPE_ICON[draft.type]} size={18} color={colors.brand.DEFAULT} />
+            <Text style={styles.eventPillName} numberOfLines={1}>{draft.name || 'Etkinlik'}</Text>
+            <Text style={styles.eventPillDetail}>{draft.shotsPerGuest} çekim/kişi</Text>
+          </View>
+        )}
 
         {/* Plans */}
         <View style={styles.plans}>
-          {ORDER.map((id) => {
+          {(isUpgrade ? PAID_PLAN_ORDER : ORDER).map((id) => {
             const plan = PLANS[id];
             const active = selected === id;
             return (
@@ -135,11 +146,13 @@ export default function PaywallScreen() {
       {/* Bottom CTA */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.sm }]}>
         <PrimaryButton
-          label={selected === 'free'
-            ? t('paywall.continueWithFree')
-            : `${t('paywall.selectPlan')} · ${formatPrice(selectedPlan.priceTRY)}`}
+          label={isUpgrade
+            ? `${t('paywall.upgradeTo')} · ${formatPrice(selectedPlan.priceTRY)}`
+            : selected === 'free'
+              ? t('paywall.continueWithFree')
+              : `${t('paywall.selectPlan')} · ${formatPrice(selectedPlan.priceTRY)}`}
           onPress={handleContinue}
-          variant={selected === 'free' ? 'ghost' : 'brand'}
+          variant={!isUpgrade && selected === 'free' ? 'ghost' : 'brand'}
           loading={loading}
         />
       </View>
