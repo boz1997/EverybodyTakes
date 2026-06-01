@@ -16,6 +16,7 @@ import { AuthService } from '@features/auth/services/authService';
 import { useAuthStore } from '@store/authStore';
 import { useEventStore, EventType } from '@store/eventStore';
 import { addJoinedEvent, getSavedNickname, saveNickname } from '@store/guestEvents';
+import { scheduleLocalAt } from '@shared/notifications';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
 import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
@@ -75,6 +76,9 @@ export default function EventHubScreen() {
             setGuestEventId(ev.id);
             setShotsRemaining(shots);
             await addJoinedEvent({ id: ev.id, code: ev.shortCode, name: ev.name, coverImageUrl: ev.coverImageUrl, type: ev.type, joinedAt: Date.now() });
+            if (ev.revealTiming === 'next_day') {
+              scheduleLocalAt(`reveal_${ev.id}`, revealAtMs(ev), t('guest.revealReadyTitle'), t('guest.revealReadyBody', { name: ev.name }));
+            }
           } catch (e) {
             if (e instanceof LimitError && e.code === 'event_full') setError(t('errors.maxGuestsReached'));
           }

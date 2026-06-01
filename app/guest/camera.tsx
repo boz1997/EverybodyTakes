@@ -29,8 +29,11 @@ export default function CameraScreen() {
   const { user } = useAuthStore();
   const { shotsRemaining, decrementShots } = useEventStore();
   const [nickname, setNickname] = useState<string | null>(null);
+  const [videoAllowed, setVideoAllowed] = useState(false);
+  const [mode, setMode] = useState<'photo' | 'video'>('photo');
 
   useEffect(() => { getSavedNickname().then((n) => setNickname(n || null)); }, []);
+  useEffect(() => { if (id) EventService.getById(id).then((e) => setVideoAllowed(!!e?.video)); }, [id]);
 
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('back');
@@ -47,8 +50,14 @@ export default function CameraScreen() {
 
   // Capture feels instant: grab the frame, decrement optimistically, and run
   // compress+upload in the background so the guest can keep shooting.
+  const selectMode = (m: 'photo' | 'video') => {
+    if (m === 'video' && !videoAllowed) { Alert.alert(t('guest.videoLocked'), t('guest.videoLockedDesc')); return; }
+    setMode(m);
+  };
+
   const handleCapture = async () => {
     if (!cameraRef.current || shotsRemaining <= 0 || !user) return;
+    if (mode === 'video') { Alert.alert(t('guest.videoSoon')); return; }
 
     shutterScale.value = withSequence(withTiming(0.85, { duration: 70 }), withSpring(1));
     flashOverlay.value = withSequence(withTiming(0.9, { duration: 50 }), withTiming(0, { duration: 180 }));
@@ -155,6 +164,17 @@ export default function CameraScreen() {
         </Animated.View>
       )}
 
+      {/* PHOTO / VIDEO mode toggle */}
+      <View style={[styles.modeRow, { bottom: insets.bottom + 120 }]}>
+        <TouchableOpacity onPress={() => selectMode('photo')} style={[styles.modePill, mode === 'photo' && styles.modePillActive]}>
+          <Text style={[styles.modeText, mode === 'photo' && styles.modeTextActive]}>{t('guest.photoMode')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => selectMode('video')} style={[styles.modePill, mode === 'video' && styles.modePillActive]}>
+          {!videoAllowed && <Icon name="lock" size={12} color="rgba(255,255,255,0.7)" />}
+          <Text style={[styles.modeText, mode === 'video' && styles.modeTextActive]}>{t('guest.videoMode')}</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Bottom Controls */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.lg }]}>
 
@@ -239,6 +259,11 @@ const styles = StyleSheet.create({
   sideBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
   galleryBtn: { width: 56, height: 56, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)' },
   galleryThumb: { width: '100%', height: '100%' },
+  modeRow: { position: 'absolute', alignSelf: 'center', flexDirection: 'row', gap: spacing.sm, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: radius.full, padding: 4 },
+  modePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 16, paddingVertical: 7, borderRadius: radius.full },
+  modePillActive: { backgroundColor: 'rgba(255,255,255,0.9)' },
+  modeText: { fontSize: typography.sizes.xs, fontWeight: typography.weights.bold, color: 'rgba(255,255,255,0.8)', letterSpacing: 1 },
+  modeTextActive: { color: '#000' },
   shutter: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: '#fff', overflow: 'hidden', padding: 4 },
   shutterDisabled: { opacity: 0.4, borderColor: '#555' },
   shutterInner: { flex: 1, borderRadius: 34, alignItems: 'center', justifyContent: 'center' },

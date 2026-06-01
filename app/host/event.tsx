@@ -17,6 +17,18 @@ import { colors, typography, spacing, radius, fonts, gradients } from '@constant
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = (width - spacing.lg * 2 - spacing.sm * 2) / 3;
 
+const REMINDERS: { key: '1h' | '24h' | null; labelKey: string }[] = [
+  { key: null, labelKey: 'host.noReminder' },
+  { key: '1h', labelKey: 'host.reminder1h' },
+  { key: '24h', labelKey: 'host.reminder24h' },
+];
+
+const REVEALS: { key: 'instant' | 'next_day' | 'private'; labelKey: string }[] = [
+  { key: 'instant', labelKey: 'host.revealInstant' },
+  { key: 'next_day', labelKey: 'host.revealNextDay' },
+  { key: 'private', labelKey: 'host.revealPrivate' },
+];
+
 export default function EventManage() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -40,18 +52,6 @@ export default function EventManage() {
     setEvent({ ...event, ...patch });
     EventService.updateSettings(event.id, patch as any).catch(() => setEvent(event));
   };
-
-  const REMINDERS: { key: '1h' | '24h' | null; labelKey: string }[] = [
-    { key: null, labelKey: 'host.noReminder' },
-    { key: '1h', labelKey: 'host.reminder1h' },
-    { key: '24h', labelKey: 'host.reminder24h' },
-  ];
-
-  const REVEALS: { key: 'instant' | 'next_day' | 'private'; labelKey: string }[] = [
-    { key: 'instant', labelKey: 'host.revealInstant' },
-    { key: 'next_day', labelKey: 'host.revealNextDay' },
-    { key: 'private', labelKey: 'host.revealPrivate' },
-  ];
 
   const renderSettings = () => {
     if (!event) return null;
