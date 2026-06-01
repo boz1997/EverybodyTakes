@@ -15,7 +15,7 @@ import { EventService, Event, Photo, LimitError } from '@features/events/service
 import { AuthService } from '@features/auth/services/authService';
 import { useAuthStore } from '@store/authStore';
 import { useEventStore, EventType } from '@store/eventStore';
-import { addJoinedEvent, getSavedNickname, saveNickname } from '@store/guestEvents';
+import { addJoinedEvent, removeJoinedEvent, getJoinedEvents, getSavedNickname, saveNickname } from '@store/guestEvents';
 import { scheduleLocalAt } from '@shared/notifications';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
@@ -60,7 +60,14 @@ export default function EventHubScreen() {
     (async () => {
       try {
         const ev = await EventService.getByShortCode(code);
-        if (!ev) { setError(t('errors.eventNotFound')); return; }
+        if (!ev) {
+          // Event was deleted — drop it from "My events" so it stops listing.
+          const joined = await getJoinedEvents();
+          const stale = joined.find((e) => e.code === code);
+          if (stale) await removeJoinedEvent(stale.id);
+          setError(t('errors.eventNotFound'));
+          return;
+        }
         setEvent(ev);
 
         const saved = await getSavedNickname();

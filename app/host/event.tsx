@@ -59,29 +59,38 @@ export default function EventManage() {
       <View style={styles.settingsCard}>
         <Text style={styles.settingsTitle}>{t('host.eventSettings')}</Text>
 
+        {/* Disposable ON forces gallery uploads OFF (you can't pick from the
+            roll in disposable mode). Turning it off re-enables the choice. */}
         <TouchableOpacity
           style={styles.settingRow}
-          onPress={() => patchSettings({ disposableMode: !event.disposableMode })}
+          onPress={() => patchSettings(event.disposableMode
+            ? { disposableMode: false }
+            : { disposableMode: true, allowGalleryUpload: false })}
           activeOpacity={0.8}
         >
           <Icon name="film" size={20} color={event.disposableMode ? colors.brand.DEFAULT : colors.text.muted} />
-          <Text style={styles.settingLabel}>{t('host.disposableMode')}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.settingLabel}>{t('host.disposableMode')}</Text>
+            <Text style={styles.settingDesc}>{t('host.disposableModeDesc')}</Text>
+          </View>
           <View style={[styles.toggle, event.disposableMode && styles.toggleOn]}>
             <View style={[styles.toggleThumb, event.disposableMode && styles.toggleThumbOn]} />
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.settingRow}
-          onPress={() => patchSettings({ allowGalleryUpload: !event.allowGalleryUpload })}
-          activeOpacity={0.8}
-        >
-          <Icon name="image" size={20} color={event.allowGalleryUpload ? colors.brand.DEFAULT : colors.text.muted} />
-          <Text style={styles.settingLabel}>{t('host.allowGalleryUpload')}</Text>
-          <View style={[styles.toggle, event.allowGalleryUpload && styles.toggleOn]}>
-            <View style={[styles.toggleThumb, event.allowGalleryUpload && styles.toggleThumbOn]} />
-          </View>
-        </TouchableOpacity>
+        {!event.disposableMode && (
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => patchSettings({ allowGalleryUpload: !event.allowGalleryUpload })}
+            activeOpacity={0.8}
+          >
+            <Icon name="image" size={20} color={event.allowGalleryUpload ? colors.brand.DEFAULT : colors.text.muted} />
+            <Text style={styles.settingLabel}>{t('host.allowGalleryUpload')}</Text>
+            <View style={[styles.toggle, event.allowGalleryUpload && styles.toggleOn]}>
+              <View style={[styles.toggleThumb, event.allowGalleryUpload && styles.toggleThumbOn]} />
+            </View>
+          </TouchableOpacity>
+        )}
 
         <Text style={styles.settingSub}>{t('host.revealTiming')}</Text>
         <View style={styles.reminderRow}>
@@ -117,19 +126,21 @@ export default function EventManage() {
           })}
         </View>
 
-        {/* Plan + upgrade (sales surface) */}
-        <TouchableOpacity
-          style={styles.upgradeRow}
-          onPress={() => router.push({ pathname: '/host/paywall', params: { upgradeId: event.id, current: event.plan } })}
-          activeOpacity={0.85}
-        >
-          <Icon name="crown" size={20} color={colors.gold.DEFAULT} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.settingLabel}>{t(`paywall.planNames.${getPlan(event.plan).id}`)} · {event.video ? t('paywall.videoOn') : t('paywall.videoOff')}</Text>
-            <Text style={styles.settingDesc}>{t('host.upgradeHint')}</Text>
-          </View>
-          <Icon name="arrowRight" size={16} color={colors.text.muted} />
-        </TouchableOpacity>
+        {/* Plan + upgrade (sales surface) — hidden on the top plan */}
+        {getPlan(event.plan).id !== 'unlimited' && (
+          <TouchableOpacity
+            style={styles.upgradeRow}
+            onPress={() => router.push({ pathname: '/host/paywall', params: { upgradeId: event.id, current: event.plan } })}
+            activeOpacity={0.85}
+          >
+            <Icon name="crown" size={20} color={colors.gold.DEFAULT} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>{t(`paywall.planNames.${getPlan(event.plan).id}`)} · {event.video ? t('paywall.videoOn') : t('paywall.videoOff')}</Text>
+              <Text style={styles.settingDesc}>{event.video ? t('host.upgradeHintGuests') : t('host.upgradeHint')}</Text>
+            </View>
+            <Icon name="arrowRight" size={16} color={colors.text.muted} />
+          </TouchableOpacity>
+        )}
 
         {event.isActive ? (
           <TouchableOpacity style={styles.endBtn} onPress={handleEndEvent} activeOpacity={0.8}>

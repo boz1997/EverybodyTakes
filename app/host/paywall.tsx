@@ -21,10 +21,15 @@ export default function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const { draft, setActiveEventId, resetDraft } = useEventStore();
   const { user } = useAuthStore();
-  const { upgradeId } = useLocalSearchParams<{ upgradeId?: string }>();
+  const { upgradeId, current } = useLocalSearchParams<{ upgradeId?: string; current?: string }>();
   const isUpgrade = !!upgradeId;
 
-  const [selected, setSelected] = useState<PlanId>('small');
+  // In upgrade mode only show plans strictly above the current one.
+  const FULL_ORDER: PlanId[] = ['free', 'small', 'medium', 'unlimited'];
+  const higher = current ? FULL_ORDER.slice(FULL_ORDER.indexOf(current as PlanId) + 1) : PAID_PLAN_ORDER;
+  const planList: PlanId[] = isUpgrade ? higher : ORDER;
+
+  const [selected, setSelected] = useState<PlanId>(isUpgrade ? (higher[0] ?? 'unlimited') : 'small');
   const [loading, setLoading] = useState(false);
 
   const featureLines = (plan: Plan): string[] => {
@@ -96,7 +101,7 @@ export default function PaywallScreen() {
 
         {/* Plans */}
         <View style={styles.plans}>
-          {(isUpgrade ? PAID_PLAN_ORDER : ORDER).map((id) => {
+          {planList.map((id) => {
             const plan = PLANS[id];
             const active = selected === id;
             return (
