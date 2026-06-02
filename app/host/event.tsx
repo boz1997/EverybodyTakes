@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import * as MediaLibrary from 'expo-media-library/legacy';
 import * as FileSystem from 'expo-file-system/legacy';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { EventService, Event, Photo } from '@features/events/services/eventService';
 import { getPlan } from '@constants/plans';
 import { Icon } from '@shared/components/Icon';
@@ -190,8 +191,12 @@ export default function EventManage() {
     ]);
   };
 
+  const selectedIsVideo = selectedPhoto?.mediaType === 'video';
+  const player = useVideoPlayer(selectedIsVideo ? selectedPhoto!.imageUrl : null, (p) => { p.loop = true; p.play(); });
+
   const saveOne = async (photo: Photo) => {
-    const target = FileSystem.cacheDirectory + `${photo.id}.jpg`;
+    const ext = photo.mediaType === 'video' ? 'mp4' : 'jpg';
+    const target = FileSystem.cacheDirectory + `${photo.id}.${ext}`;
     const { uri } = await FileSystem.downloadAsync(photo.imageUrl, target);
     await MediaLibrary.saveToLibraryAsync(uri);
   };
@@ -234,7 +239,13 @@ export default function EventManage() {
       style={styles.photoCell}
       activeOpacity={0.85}
     >
-      <Image source={{ uri: item.imageUrl }} style={styles.photo} />
+      <Image source={{ uri: item.thumbnailUrl || item.imageUrl }} style={styles.photo} />
+      {item.mediaType === 'video' && (
+        <View style={styles.playBadge}><Icon name="play" size={14} color="#fff" /></View>
+      )}
+      {item.flagged && (
+        <View style={styles.flagBadge}><Icon name="alert" size={11} color="#fff" /><Text style={styles.flagText}>{t('moderation.flagged')}</Text></View>
+      )}
     </TouchableOpacity>
   );
 
@@ -310,9 +321,9 @@ export default function EventManage() {
       <Modal visible={!!selectedPhoto} transparent animationType="fade" onRequestClose={() => setSelectedPhoto(null)} statusBarTranslucent>
         <View style={styles.lightbox}>
           <StatusBar barStyle="light-content" />
-          {selectedPhoto && (
-            <Image source={{ uri: selectedPhoto.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />
-          )}
+          {selectedPhoto && (selectedIsVideo
+            ? <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
+            : <Image source={{ uri: selectedPhoto.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />)}
           <View style={[styles.lightboxTop, { paddingTop: insets.top + spacing.sm }]}>
             <TouchableOpacity onPress={() => setSelectedPhoto(null)} style={styles.lbBtn}>
               <Icon name="close" size={22} color="#fff" />
@@ -392,6 +403,9 @@ const styles = StyleSheet.create({
   downloadAllText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold, color: colors.brand.DEFAULT },
   photoCell: { width: PHOTO_SIZE, height: PHOTO_SIZE, borderRadius: radius.md, overflow: 'hidden', margin: spacing.xs / 2 },
   photo: { width: '100%', height: '100%' },
+  playBadge: { position: 'absolute', top: 6, left: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
+  flagBadge: { position: 'absolute', bottom: 6, left: 6, right: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: 'rgba(190,46,46,0.92)', borderRadius: radius.sm, paddingVertical: 3 },
+  flagText: { color: '#fff', fontSize: 10, fontFamily: fonts.bodyBold },
   lightbox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.96)', alignItems: 'center', justifyContent: 'center' },
   lightboxImage: { width: '100%', height: '78%' },
   lightboxTop: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: spacing.lg },

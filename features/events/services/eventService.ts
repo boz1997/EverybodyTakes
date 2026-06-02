@@ -63,8 +63,11 @@ export interface Photo {
   uploaderName: string | null;
   imageUrl: string;
   thumbnailUrl: string;
+  mediaType: 'image' | 'video';   // older docs without this are treated as 'image'
   takenAt: string;
   isVisible: boolean;
+  flagged?: boolean;               // hidden from guests after a report, pending host review
+  reportCount?: number;
   likesCount: number;
   createdAt: string;
 }
@@ -203,7 +206,13 @@ export const EventService = {
     });
   },
 
-  async uploadPhoto(eventId: string, userId: string, uploaderName: string | null, uri: string): Promise<Photo> {
+  async uploadPhoto(
+    eventId: string,
+    userId: string,
+    uploaderName: string | null,
+    uri: string,
+    mediaType: 'image' | 'video' = 'image',
+  ): Promise<Photo> {
     const photoId = nanoid();
     const eventRef = doc(db, 'events', eventId);
 
@@ -223,11 +232,14 @@ export const EventService = {
     // If the upload or doc-write fails after reserving, release the slot so
     // the counter never drifts ahead of the real photo count.
     try {
-      const path = `events/${eventId}/photos/${photoId}.jpg`;
+      const isVideo = mediaType === 'video';
+      const ext = isVideo ? 'mp4' : 'jpg';
+      const contentType = isVideo ? 'video/mp4' : 'image/jpeg';
+      const path = `events/${eventId}/photos/${photoId}.${ext}`;
       const storageRef = ref(storage, path);
 
       const blob = await uriToBlob(uri);
-      await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
+      await uploadBytes(storageRef, blob, { contentType });
       const imageUrl = await getDownloadURL(storageRef);
 
       const photo: Photo = {
@@ -237,6 +249,7 @@ export const EventService = {
         uploaderName,
         imageUrl,
         thumbnailUrl: imageUrl,
+        mediaType,
         takenAt: new Date().toISOString(),
         isVisible: true,
         likesCount: 0,
@@ -284,6 +297,43 @@ export const EventService = {
 
   async deletePhoto(eventId: string, photoId: string): Promise<void> {
     await updateDoc(doc(db, 'events', eventId, 'photos', photoId), { isVisible: false });
+  },
+
+  // UGC moderation (App Store Guideline 1.2): records the report for review and
+  // immediately flags the photo so it's hidden from guests pending host action.
+  async reportPhoto(eventId: string, photoId: string, reporterId: string, reason = 'objectionable'): Promise<void> {
+    await setDoc(doc(db, 'reports', nanoid()), {
+      eventId, photoId, reporterId, reason, createdAt: serverTimestamp(),
+    });
+    await updateDoc(doc(db, 'events', eventId, 'photos', photoId), {
+      flagged: true, reportCount: increment(1),
+    }).catch(() => {});
+  },
+
+  // Account deletion (App Store Guideline 5.1.1): remove everything tied to a
+  // user — events they host (with photos & guests) and content they uploaded
+  // to events they joined — plus their user doc.
+  async purgeUserData(uid: string, joinedEventIds: string[]): Promise<void> {
+    const hosted = await EventService.getHostEvents(uid).catch(() => []);
+    for (const e of hosted) {
+      await EventService.deleteEventDeep(e.id).catch(() => {});
+    }
+    for (const eid of joinedEventIds) {
+      try {
+        const snap = await getDocs(query(collection(db, 'events', eid, 'photos'), where('uploadedBy', '==', uid)));
+        await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+      } catch { /* event may be gone already */ }
+    }
+    await deleteDoc(doc(db, 'users', uid)).catch(() => {});
+  },
+
+  // Deletes an event and its sub-collections (photos, guests).
+  async deleteEventDeep(eventId: string): Promise<void> {
+    const photos = await getDocs(collection(db, 'events', eventId, 'photos'));
+    await Promise.all(photos.docs.map((d) => deleteDoc(d.ref)));
+    const guests = await getDocs(collection(db, 'events', eventId, 'guests'));
+    await Promise.all(guests.docs.map((d) => deleteDoc(d.ref)));
+    await deleteDoc(doc(db, 'events', eventId));
   },
 
   // Host-editable settings (the bits we moved out of the create flow).

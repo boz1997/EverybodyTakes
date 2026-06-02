@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEY = '@guestcam_joined_events';
 const NICK_KEY = '@guestcam_nickname';
+const BLOCKED_KEY = '@guestcam_blocked_users';
 const MAX = 30;
 
 export async function getSavedNickname(): Promise<string> {
@@ -40,4 +41,25 @@ export async function addJoinedEvent(event: JoinedEvent): Promise<void> {
 export async function removeJoinedEvent(id: string): Promise<void> {
   const existing = await getJoinedEvents();
   await AsyncStorage.setItem(KEY, JSON.stringify(existing.filter((e) => e.id !== id)));
+}
+
+// Blocked contributors — their content is hidden from this device's galleries.
+export async function getBlockedUsers(): Promise<string[]> {
+  try {
+    const raw = await AsyncStorage.getItem(BLOCKED_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function addBlockedUser(uid: string): Promise<void> {
+  const existing = await getBlockedUsers();
+  if (existing.includes(uid)) return;
+  await AsyncStorage.setItem(BLOCKED_KEY, JSON.stringify([...existing, uid]));
+}
+
+// Wipe all local GuestCam state (used on account deletion).
+export async function clearAllLocal(): Promise<void> {
+  await AsyncStorage.multiRemove([KEY, NICK_KEY, BLOCKED_KEY]).catch(() => {});
 }

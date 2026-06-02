@@ -5,6 +5,7 @@ import {
   OAuthProvider,
   signInWithCredential,
   signOut,
+  deleteUser,
   onAuthStateChanged,
   User,
 } from 'firebase/auth';
@@ -48,6 +49,12 @@ export const AuthService = {
 
   async signOut(): Promise<void> {
     await signOut(auth);
+  },
+
+  // Deletes the Firebase auth user. Data tied to the account is purged separately
+  // via EventService.purgeUserData before this is called.
+  async deleteAccount(): Promise<void> {
+    if (auth.currentUser) await deleteUser(auth.currentUser);
   },
 
   async ensureUserDoc(user: User): Promise<void> {

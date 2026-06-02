@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   Image,
+  Linking,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,7 @@ import { useAuthStore } from '@store/authStore';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
 import { Icon, BrandIcon } from '@shared/components/Icon';
+import { LINKS } from '@constants/links';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 type AuthStep = 'options' | 'email' | 'sent';
@@ -192,7 +194,12 @@ export default function AuthScreen() {
             </View>
           )}
 
-          <Text style={styles.terms}>{t('auth.termsNote')}</Text>
+          <Text style={styles.terms}>
+            {t('auth.termsNote')}{'\n'}
+            <Text style={styles.termsLink} onPress={() => Linking.openURL(LINKS.terms)}>{t('settings.termsOfService')}</Text>
+            <Text>  ·  </Text>
+            <Text style={styles.termsLink} onPress={() => Linking.openURL(LINKS.privacy)}>{t('settings.privacyPolicy')}</Text>
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
@@ -232,4 +239,5 @@ const styles = StyleSheet.create({
   sentIconWrap: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand.glow, borderWidth: 1, borderColor: colors.border.brand },
   sentHint: { color: colors.text.secondary, textAlign: 'center', fontSize: typography.sizes.sm },
   terms: { textAlign: 'center', color: colors.text.muted, fontSize: typography.sizes.xs, lineHeight: 18 },
+  termsLink: { color: colors.brand.DEFAULT, fontFamily: fonts.bodySemibold },
 });

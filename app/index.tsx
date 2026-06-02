@@ -8,9 +8,11 @@ import * as Haptics from 'expo-haptics';
 import Animated, {
   useSharedValue, useAnimatedStyle, withDelay, withTiming, withSpring,
 } from 'react-native-reanimated';
+import { Linking } from 'react-native';
 import { useAuthStore } from '@store/authStore';
 import { Icon } from '@shared/components/Icon';
 import { LanguageToggle } from '@shared/components/LanguageToggle';
+import { LINKS } from '@constants/links';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 const { height } = Dimensions.get('window');
@@ -57,8 +59,11 @@ export default function WelcomeScreen() {
     <LinearGradient colors={gradients.page} style={styles.container}>
       <View style={[styles.content, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.lg }]}>
 
-        {/* Top — language switcher only */}
+        {/* Top — settings + language switcher */}
         <Animated.View style={[styles.top, kickerStyle]}>
+          <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsBtn} activeOpacity={0.7}>
+            <Icon name="settings" size={20} color={colors.text.secondary} />
+          </TouchableOpacity>
           <LanguageToggle />
         </Animated.View>
 
@@ -92,6 +97,15 @@ export default function WelcomeScreen() {
             </View>
             <Icon name="arrowRight" size={18} color={colors.text.muted} />
           </TouchableOpacity>
+
+          {/* Legal footer (App Store requirement) */}
+          <View style={styles.legalRow}>
+            <TouchableOpacity onPress={() => Linking.openURL(LINKS.privacy)}><Text style={styles.legalLink}>{t('settings.privacyPolicy')}</Text></TouchableOpacity>
+            <Text style={styles.legalDot}>·</Text>
+            <TouchableOpacity onPress={() => Linking.openURL(LINKS.terms)}><Text style={styles.legalLink}>{t('settings.termsOfService')}</Text></TouchableOpacity>
+            <Text style={styles.legalDot}>·</Text>
+            <TouchableOpacity onPress={() => Linking.openURL(LINKS.support)}><Text style={styles.legalLink}>{t('settings.support')}</Text></TouchableOpacity>
+          </View>
         </Animated.View>
       </View>
     </LinearGradient>
@@ -101,7 +115,11 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: spacing.lg, justifyContent: 'space-between' },
-  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  settingsBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg.card, borderWidth: 1, borderColor: colors.border.DEFAULT },
+  legalRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: spacing.md },
+  legalLink: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted },
+  legalDot: { fontSize: typography.sizes.xs, color: colors.text.muted },
   logo: { width: 240, height: 132, marginLeft: -12, marginBottom: spacing.sm },
   headlineBlock: { gap: spacing.sm },
   headline: {

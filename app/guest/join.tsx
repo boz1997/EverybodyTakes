@@ -10,12 +10,13 @@ import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import * as MediaLibrary from 'expo-media-library/legacy';
 import * as FileSystem from 'expo-file-system/legacy';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { format } from 'date-fns';
 import { EventService, Event, Photo, LimitError } from '@features/events/services/eventService';
 import { AuthService } from '@features/auth/services/authService';
 import { useAuthStore } from '@store/authStore';
 import { useEventStore, EventType } from '@store/eventStore';
-import { addJoinedEvent, removeJoinedEvent, getJoinedEvents, getSavedNickname, saveNickname } from '@store/guestEvents';
+import { addJoinedEvent, removeJoinedEvent, getJoinedEvents, getSavedNickname, saveNickname, getBlockedUsers, addBlockedUser } from '@store/guestEvents';
 import { scheduleLocalAt } from '@shared/notifications';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
@@ -52,6 +53,9 @@ export default function EventHubScreen() {
   const [filter, setFilter] = useState<'all' | 'mine'>('all');
   const [selected, setSelected] = useState<Photo | null>(null);
   const [saving, setSaving] = useState(false);
+  const [blocked, setBlocked] = useState<string[]>([]);
+
+  useEffect(() => { getBlockedUsers().then(setBlocked); }, []);
 
   // Land → auto-join (anonymous) → load shots + subscribe to photos.
   useEffect(() => {
@@ -102,18 +106,61 @@ export default function EventHubScreen() {
 
   const onNicknameChange = (v: string) => { setNicknameState(v); saveNickname(v); };
 
-  const hostOnly = event?.revealTiming === 'private' && uid !== event?.hostId;
+  // The hub is always the *guest* experience. When reveal is private, everyone
+  // here (the host included) sees only their own shots — the host's full gallery
+  // lives in the event management screen.
+  const hostOnly = event?.revealTiming === 'private';
   const revealed = event ? isRevealed(event) : false;
-  const visiblePhotos = (hostOnly || filter === 'mine')
-    ? photos.filter((p) => p.uploadedBy === uid)
-    : photos;
+  const visiblePhotos = photos.filter((p) => {
+    if (p.flagged) return false;                      // hidden pending review
+    if (blocked.includes(p.uploadedBy)) return false; // blocked contributor
+    if (hostOnly || filter === 'mine') return p.uploadedBy === uid;
+    return true;
+  });
+
+  const reportSelected = () => {
+    if (!selected) return;
+    Alert.alert(t('moderation.reportTitle'), t('moderation.reportBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('moderation.report'), style: 'destructive',
+        onPress: async () => {
+          await EventService.reportPhoto(event!.id, selected.id, uid ?? 'anon').catch(() => {});
+          setSelected(null);
+          Alert.alert(t('moderation.reported'));
+        },
+      },
+    ]);
+  };
+
+  const blockSelected = () => {
+    if (!selected) return;
+    const target = selected.uploadedBy;
+    Alert.alert(t('moderation.blockTitle'), t('moderation.blockBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('moderation.block'), style: 'destructive',
+        onPress: async () => {
+          await addBlockedUser(target);
+          setBlocked((b) => [...b, target]);
+          setSelected(null);
+          Alert.alert(t('moderation.blocked'));
+        },
+      },
+    ]);
+  };
+
+  // Lightbox video playback (expo-video). Player rebuilds when the selected item changes.
+  const selectedIsVideo = selected?.mediaType === 'video';
+  const player = useVideoPlayer(selectedIsVideo ? selected!.imageUrl : null, (p) => { p.loop = true; p.play(); });
 
   const saveToLibrary = async (photo: Photo) => {
     try {
       setSaving(true);
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
-      const target = FileSystem.cacheDirectory + `${photo.id}.jpg`;
+      const ext = photo.mediaType === 'video' ? 'mp4' : 'jpg';
+      const target = FileSystem.cacheDirectory + `${photo.id}.${ext}`;
       const { uri } = await FileSystem.downloadAsync(photo.imageUrl, target);
       await MediaLibrary.saveToLibraryAsync(uri);
       Alert.alert(t('host.photoSaved'));
@@ -173,7 +220,6 @@ export default function EventHubScreen() {
           <View style={styles.stats}>
             <View style={styles.statChip}><Icon name="camera" size={14} color={colors.text.secondary} /><Text style={styles.statText}>{event.shotsPerGuest} çekim</Text></View>
             {event.disposableMode && <View style={styles.statChip}><Icon name="film" size={14} color={colors.text.secondary} /><Text style={styles.statText}>Disposable</Text></View>}
-            {hostOnly && <View style={styles.statChip}><Icon name="lock" size={14} color={colors.text.secondary} /><Text style={styles.statText}>{t('guest.onlyYours')}</Text></View>}
           </View>
 
           {/* Nickname (remembered) */}
@@ -217,7 +263,10 @@ export default function EventHubScreen() {
             <View style={styles.grid}>
               {visiblePhotos.map((p) => (
                 <TouchableOpacity key={p.id} style={styles.cell} onPress={() => { setSelected(p); Haptics.selectionAsync(); }} activeOpacity={0.85}>
-                  <Image source={{ uri: p.imageUrl }} style={styles.cellImg} />
+                  <Image source={{ uri: p.thumbnailUrl || p.imageUrl }} style={styles.cellImg} />
+                  {p.mediaType === 'video' && (
+                    <View style={styles.playBadge}><Icon name="play" size={14} color="#fff" /></View>
+                  )}
                   {p.uploadedBy === uid && <View style={styles.mine}><Icon name="check" size={10} color="#fff" strokeWidth={3} /></View>}
                 </TouchableOpacity>
               ))}
@@ -230,7 +279,9 @@ export default function EventHubScreen() {
       <Modal visible={!!selected} transparent animationType="fade" onRequestClose={() => setSelected(null)} statusBarTranslucent>
         <View style={styles.lightbox}>
           <StatusBar barStyle="light-content" />
-          {selected && <Image source={{ uri: selected.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />}
+          {selected && (selectedIsVideo
+            ? <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
+            : <Image source={{ uri: selected.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />)}
           <TouchableOpacity onPress={() => setSelected(null)} style={[styles.lbClose, { top: insets.top + spacing.sm }]}>
             <Icon name="close" size={22} color="#fff" />
           </TouchableOpacity>
@@ -239,6 +290,18 @@ export default function EventHubScreen() {
               <Icon name="download" size={24} color="#fff" />
               <Text style={styles.lbActionText}>{saving ? t('common.loading') : t('common.download')}</Text>
             </TouchableOpacity>
+            {selected?.uploadedBy !== uid && (
+              <>
+                <TouchableOpacity onPress={reportSelected} style={styles.lbAction}>
+                  <Icon name="alert" size={24} color="#fff" />
+                  <Text style={styles.lbActionText}>{t('moderation.report')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={blockSelected} style={styles.lbAction}>
+                  <Icon name="lock" size={24} color="#fff" />
+                  <Text style={styles.lbActionText}>{t('moderation.block')}</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
       </Modal>
@@ -281,9 +344,10 @@ const styles = StyleSheet.create({
   cell: { width: PHOTO, height: PHOTO, borderRadius: radius.md, overflow: 'hidden' },
   cellImg: { width: '100%', height: '100%' },
   mine: { position: 'absolute', top: 5, right: 5, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.brand.DEFAULT, alignItems: 'center', justifyContent: 'center' },
+  playBadge: { position: 'absolute', top: 5, left: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
   lightbox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' },
   lbClose: { position: 'absolute', right: spacing.lg, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
-  lbBar: { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center', paddingTop: spacing.lg },
+  lbBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing['2xl'], paddingTop: spacing.lg },
   lbAction: { alignItems: 'center', gap: 6 },
   lbActionText: { color: '#fff', fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium },
 });

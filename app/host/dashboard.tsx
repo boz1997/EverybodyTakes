@@ -107,10 +107,10 @@ export default function HostDashboard() {
     <LinearGradient colors={gradients.page} style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <View>
+        <TouchableOpacity onPress={() => router.replace('/')} activeOpacity={0.7}>
           <Text style={styles.greeting}>GuestCam</Text>
           <Text style={styles.headerTitle}>{t('host.dashboard')}</Text>
-        </View>
+        </TouchableOpacity>
         <View style={styles.headerActions}>
           <TouchableOpacity
             onPress={() => router.push('/guest/scan')}
