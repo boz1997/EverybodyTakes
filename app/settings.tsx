@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   title: { fontSize: typography.sizes['3xl'], fontFamily: fonts.displayBold, color: colors.text.primary, marginTop: spacing.sm, marginBottom: spacing.md },
   sectionTitle: { fontSize: typography.sizes.xs, fontFamily: fonts.bodySemibold, color: colors.brand.DEFAULT, letterSpacing: 1, textTransform: 'uppercase', marginTop: spacing.lg, marginBottom: spacing.xs },
   card: { backgroundColor: colors.bg.card, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
-  langRow: { paddingVertical: spacing.sm },
+  langRow: { paddingVertical: spacing.sm, alignItems: 'flex-start' },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: 14 },
   rowLabel: { flex: 1, fontSize: typography.sizes.base, fontFamily: fonts.bodyMedium, color: colors.text.primary },
   divider: { height: 1, backgroundColor: colors.border.subtle },
