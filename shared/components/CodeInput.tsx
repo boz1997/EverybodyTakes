@@ -4,15 +4,18 @@ import { colors, typography, radius, spacing, fonts } from '@constants/theme';
 
 const LENGTH = 6;
 
-// Accepts a raw 6-char code OR a full event URL (…/e/CODE) and returns the
-// normalized 6-char code (uppercase, alphanumeric only).
+// Accepts a raw 6-char code, a "?code=CODE" link (e.html / deep link), or a
+// legacy "…/e/CODE" URL, and returns the normalized 6-char code.
 export function extractCode(input: string): string {
   let s = input.trim();
-  const m = s.match(/\/e\/([^/?#\s]+)/i);
-  if (m) {
-    s = m[1];
-  } else if (/https?:\/\//i.test(s)) {
-    const parts = s.split('/').filter(Boolean);
+  const byQuery = s.match(/[?&]code=([A-Za-z0-9]+)/i);
+  const byPath = s.match(/\/e\/([^/?#\s]+)/i);
+  if (byQuery) {
+    s = byQuery[1];
+  } else if (byPath) {
+    s = byPath[1];
+  } else if (/^[a-z]+:\/\//i.test(s)) {
+    const parts = s.split(/[/?#]/).filter(Boolean);
     s = parts[parts.length - 1] ?? '';
   }
   return s.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, LENGTH);

@@ -16,7 +16,7 @@ export interface EventDraft {
   disposableMode: boolean;
   revealTiming: RevealTiming;
   allowGalleryUpload: boolean;
-  reminderBefore: '1h' | '24h' | null;
+  reminderBefore: '1d' | null;
 }
 
 interface EventState {

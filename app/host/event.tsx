@@ -18,10 +18,9 @@ import { colors, typography, spacing, radius, fonts, gradients } from '@constant
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = (width - spacing.lg * 2 - spacing.sm * 2) / 3;
 
-const REMINDERS: { key: '1h' | '24h' | null; labelKey: string }[] = [
+const REMINDERS: { key: '1d' | null; labelKey: string }[] = [
   { key: null, labelKey: 'host.noReminder' },
-  { key: '1h', labelKey: 'host.reminder1h' },
-  { key: '24h', labelKey: 'host.reminder24h' },
+  { key: '1d', labelKey: 'host.reminderDayBefore' },
 ];
 
 const REVEALS: { key: 'instant' | 'next_day' | 'private'; labelKey: string }[] = [
@@ -39,6 +38,7 @@ export default function EventManage() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [saving, setSaving] = useState(false);
+  const [dlProgress, setDlProgress] = useState<{ done: number; total: number } | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -223,13 +223,16 @@ export default function EventManage() {
       if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
       let done = 0;
       let lastErr: unknown = null;
+      setDlProgress({ done: 0, total: photos.length });
       for (const p of photos) {
         try { await saveOne(p); done += 1; } catch (e) { lastErr = e; }
+        setDlProgress({ done, total: photos.length });
       }
       if (done === 0 && lastErr) Alert.alert(t('common.error'), String((lastErr as any)?.message ?? lastErr));
       else Alert.alert(t('host.downloadAllDone', { count: done }));
     } finally {
       setSaving(false);
+      setDlProgress(null);
     }
   };
 
@@ -300,7 +303,9 @@ export default function EventManage() {
               {photos.length > 0 && (
                 <TouchableOpacity onPress={handleDownloadAll} style={styles.downloadAllBtn} disabled={saving} activeOpacity={0.7}>
                   <Icon name="download" size={15} color={colors.brand.DEFAULT} />
-                  <Text style={styles.downloadAllText}>{t('host.downloadAll')}</Text>
+                  <Text style={styles.downloadAllText}>
+                    {dlProgress ? t('host.downloadAllProgress', { done: dlProgress.done, total: dlProgress.total }) : t('host.downloadAll')}
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>

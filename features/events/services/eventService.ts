@@ -42,7 +42,7 @@ export interface Event {
   disposableMode: boolean;
   revealTiming: string;       // instant | next_day | private (also encodes visibility)
   allowGalleryUpload: boolean;
-  reminderBefore: '1h' | '24h' | null;
+  reminderBefore: '1d' | null;
   maxGuests: number | null;   // resolved from plan
   photoCap: number | null;    // resolved from plan
   watermark: boolean;         // resolved from plan

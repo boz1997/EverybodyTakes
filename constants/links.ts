@@ -7,4 +7,7 @@ export const LINKS = {
   terms: `${SITE_BASE}/terms.html`,
   support: `${SITE_BASE}/support.html`,
   supportEmail: 'ozdorukberk@gmail.com',
+  // QR target: a real HTTPS page so the phone's native camera can open it.
+  // The page bridges into the app (guestcam://) or shows the code as fallback.
+  eventUrl: (code: string) => `${SITE_BASE}/e.html?code=${encodeURIComponent(code)}`,
 } as const;

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking, Platform,
 } from 'react-native';
@@ -21,6 +21,17 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { user, reset } = useAuthStore();
   const [deleting, setDeleting] = useState(false);
+  // Only surface account deletion once there's actually something to delete —
+  // a brand-new visitor who hasn't joined or hosted anything has no data yet.
+  const [hasData, setHasData] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const joined = await getJoinedEvents();
+      const hosted = user ? await EventService.getHostEvents(user.uid).catch(() => []) : [];
+      setHasData(joined.length > 0 || hosted.length > 0 || !!user?.email);
+    })();
+  }, [user]);
 
   const openLink = (url: string) => Linking.openURL(url).catch(() => Alert.alert(t('common.error')));
 
@@ -90,12 +101,16 @@ export default function SettingsScreen() {
           {linkRow('mail', t('settings.support'), () => openLink(LINKS.support))}
         </View>
 
-        {/* Account */}
-        <Text style={styles.sectionTitle}>{t('settings.account')}</Text>
-        <View style={styles.card}>
-          {linkRow('trash', deleting ? t('settings.deleting') : t('settings.deleteAccount'), confirmDelete, true)}
-          <Text style={styles.deleteHint}>{t('settings.deleteAccountDesc')}</Text>
-        </View>
+        {/* Account — shown only when the user has data to delete */}
+        {hasData && (
+          <>
+            <Text style={styles.sectionTitle}>{t('settings.account')}</Text>
+            <View style={styles.card}>
+              {linkRow('trash', deleting ? t('settings.deleting') : t('settings.deleteAccount'), confirmDelete, true)}
+              <Text style={styles.deleteHint}>{t('settings.deleteAccountDesc')}</Text>
+            </View>
+          </>
+        )}
 
         <Text style={styles.version}>
           {t('settings.version')} {Constants.expoConfig?.version ?? '1.0.0'}

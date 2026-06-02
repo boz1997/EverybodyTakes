@@ -56,7 +56,7 @@ export default {
   },
 
   host: {
-    dashboard: 'My Events',
+    dashboard: 'Events',
     createEvent: 'Create Event',
     noEvents: 'No events yet',
     noEventsSubtitle: 'Create your first event to get started',
@@ -120,9 +120,8 @@ export default {
     maxGuestsHint: 'How many people can join?',
     unlimited: 'Unlimited',
     reminderNotifications: 'Reminder Notifications',
-    reminderBefore: 'Remind before event',
-    reminder1h: '1 hour before',
-    reminder24h: '24 hours before',
+    reminderBefore: 'Remind guests before the event',
+    reminderDayBefore: '1 day before',
     noReminder: 'No reminder',
 
     generateQR: 'Generate QR Code',
@@ -177,8 +176,10 @@ export default {
     enterCamera: 'Enter Camera',
     viewGallery: 'View Gallery',
 
-    nickname: 'Your Nickname',
+    nickname: 'Your name',
     nicknamePlaceholder: 'You can stay anonymous',
+    reminderTitle: 'Tomorrow: {{name}} 📸',
+    reminderBody: 'Your event is tomorrow. Get ready to capture it with GuestCam!',
     participateAnonymously: 'Join Anonymously',
 
     capturing: 'Capturing...',

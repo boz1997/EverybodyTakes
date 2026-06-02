@@ -56,7 +56,7 @@ export default {
   },
 
   host: {
-    dashboard: 'Etkinliklerim',
+    dashboard: 'Etkinlikler',
     createEvent: 'Etkinlik Oluştur',
     noEvents: 'Henüz etkinlik yok',
     noEventsSubtitle: 'İlk etkinliğini oluşturarak başla',
@@ -120,9 +120,8 @@ export default {
     maxGuestsHint: 'Kaç kişi katılabilsin?',
     unlimited: 'Sınırsız',
     reminderNotifications: 'Hatırlatıcı Bildirimler',
-    reminderBefore: 'Etkinlik öncesi hatırlatıcı',
-    reminder1h: '1 saat önce',
-    reminder24h: '24 saat önce',
+    reminderBefore: 'Misafirlere etkinlik öncesi hatırlat',
+    reminderDayBefore: '1 gün önce',
     noReminder: 'Hatırlatıcı yok',
 
     generateQR: 'QR Kodu Oluştur',
@@ -177,8 +176,10 @@ export default {
     enterCamera: 'Kameraya Gir',
     viewGallery: 'Galeriyi Gör',
 
-    nickname: 'Takma Adın',
+    nickname: 'Adın',
     nicknamePlaceholder: 'Anonim kalabilirsin',
+    reminderTitle: 'Yarın: {{name}} 📸',
+    reminderBody: 'Etkinliğin yarın. GuestCam ile anları yakalamaya hazır ol!',
     participateAnonymously: 'Anonim Katıl',
 
     capturing: 'Çekiliyor...',

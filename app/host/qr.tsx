@@ -11,18 +11,18 @@ import QRCode from 'react-native-qrcode-svg';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Icon } from '@shared/components/Icon';
+import { LINKS } from '@constants/links';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 export default function QRScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { id, code } = useLocalSearchParams<{ id: string; code: string }>();
-  const [copied, setCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [savingQr, setSavingQr] = useState(false);
   const qrRef = useRef<{ toDataURL: (cb: (data: string) => void) => void } | null>(null);
 
-  const eventUrl = `https://guestcam.app/e/${code}`;
+  const eventUrl = LINKS.eventUrl(code);
 
   const handleCopyCode = () => {
     Clipboard.setStringAsync(code);
@@ -49,13 +49,6 @@ export default function QRScreen() {
         setSavingQr(false);
       }
     });
-  };
-
-  const handleCopy = () => {
-    Clipboard.setStringAsync(eventUrl);
-    setCopied(true);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -106,18 +99,6 @@ export default function QRScreen() {
               </View>
             </TouchableOpacity>
           </LinearGradient>
-        </Animated.View>
-
-        {/* URL + Copy */}
-        <Animated.View entering={FadeInDown.delay(500)} style={styles.urlRow}>
-          <View style={styles.urlPill}>
-            <Text style={styles.urlText} numberOfLines={1}>{eventUrl}</Text>
-          </View>
-          <TouchableOpacity onPress={handleCopy} style={styles.copyBtn} activeOpacity={0.8}>
-            <LinearGradient colors={copied ? ['#22C55E', '#16A34A'] : ['#2A2A3A', '#1A1A24']} style={styles.copyBtnGradient}>
-              <Icon name={copied ? 'check' : 'copy'} size={18} color="#fff" />
-            </LinearGradient>
-          </TouchableOpacity>
         </Animated.View>
 
         {/* Actions */}

@@ -37,6 +37,15 @@ function revealAtMs(e: Event): number {
 }
 const isRevealed = (e: Event) => e.revealTiming !== 'next_day' || Date.now() >= revealAtMs(e);
 
+// Reminder fires at noon the day before the event date.
+function reminderAtMs(e: Event): number {
+  if (!e.date) return 0;
+  const d = new Date(e.date);
+  d.setDate(d.getDate() - 1);
+  d.setHours(12, 0, 0, 0);
+  return d.getTime();
+}
+
 export default function EventHubScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -89,6 +98,9 @@ export default function EventHubScreen() {
             await addJoinedEvent({ id: ev.id, code: ev.shortCode, name: ev.name, coverImageUrl: ev.coverImageUrl, type: ev.type, joinedAt: Date.now() });
             if (ev.revealTiming === 'next_day') {
               scheduleLocalAt(`reveal_${ev.id}`, revealAtMs(ev), t('guest.revealReadyTitle'), t('guest.revealReadyBody', { name: ev.name }));
+            }
+            if (ev.reminderBefore === '1d' && reminderAtMs(ev) > Date.now()) {
+              scheduleLocalAt(`reminder_${ev.id}`, reminderAtMs(ev), t('guest.reminderTitle', { name: ev.name }), t('guest.reminderBody'));
             }
           } catch (e) {
             if (e instanceof LimitError && e.code === 'event_full') setError(t('errors.maxGuestsReached'));
