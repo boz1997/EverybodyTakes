@@ -4,11 +4,12 @@ import * as Haptics from 'expo-haptics';
 import { changeLanguage } from '@translations/index';
 import { colors, typography, radius, fonts } from '@constants/theme';
 
-const LANGS = ['tr', 'en'] as const;
+const LANGS = ['en', 'es', 'de', 'fr', 'tr'] as const;
 
 export function LanguageToggle() {
   const { i18n } = useTranslation();
-  const current = i18n.language?.startsWith('tr') ? 'tr' : 'en';
+  const code = (i18n.language ?? 'en').slice(0, 2);
+  const current = (LANGS as readonly string[]).includes(code) ? code : 'en';
 
   return (
     <View style={styles.row}>

@@ -12,6 +12,7 @@ import { tr as trLocale } from 'date-fns/locale';
 import { useAuthStore } from '@store/authStore';
 import { EventService, Event } from '@features/events/services/eventService';
 import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
+import { CreateEventArt } from '@shared/components/RoleArt';
 import { EventType } from '@store/eventStore';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
@@ -144,7 +145,7 @@ export default function HostDashboard() {
           !loading ? (
             <View style={styles.empty}>
               <View style={styles.emptyIconWrap}>
-                <Icon name="camera" size={36} color={colors.brand.light} strokeWidth={1.6} />
+                <CreateEventArt size={64} />
               </View>
               <Text style={styles.emptyTitle}>{t('host.noEvents')}</Text>
               <Text style={styles.emptySubtitle}>{t('host.noEventsSubtitle')}</Text>

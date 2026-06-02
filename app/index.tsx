@@ -11,7 +11,7 @@ import Animated, {
 import { Linking } from 'react-native';
 import { useAuthStore } from '@store/authStore';
 import { Icon } from '@shared/components/Icon';
-import { LanguageToggle } from '@shared/components/LanguageToggle';
+import { GuestArt, HostArt } from '@shared/components/RoleArt';
 import { LINKS } from '@constants/links';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
@@ -59,12 +59,11 @@ export default function WelcomeScreen() {
     <LinearGradient colors={gradients.page} style={styles.container}>
       <View style={[styles.content, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.lg }]}>
 
-        {/* Top — settings + language switcher */}
+        {/* Top — settings only (language is chosen in Settings) */}
         <Animated.View style={[styles.top, kickerStyle]}>
           <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsBtn} activeOpacity={0.7}>
             <Icon name="settings" size={20} color={colors.text.secondary} />
           </TouchableOpacity>
-          <LanguageToggle />
         </Animated.View>
 
         {/* Logo + headline */}
@@ -78,7 +77,7 @@ export default function WelcomeScreen() {
         <Animated.View style={[styles.cards, cardsStyle]}>
           <TouchableOpacity style={styles.card} onPress={() => handleRole('guest')} activeOpacity={0.8}>
             <View style={styles.cardIcon}>
-              <Icon name="camera" size={22} color={colors.brand.DEFAULT} />
+              <GuestArt size={44} />
             </View>
             <View style={styles.cardText}>
               <Text style={styles.cardTitle}>{t('welcome.iAmGuest')}</Text>
@@ -89,7 +88,7 @@ export default function WelcomeScreen() {
 
           <TouchableOpacity style={styles.card} onPress={() => handleRole('host')} activeOpacity={0.8}>
             <View style={styles.cardIcon}>
-              <Icon name="party" size={22} color={colors.brand.DEFAULT} />
+              <HostArt size={44} />
             </View>
             <View style={styles.cardText}>
               <Text style={styles.cardTitle}>{t('welcome.iAmHost')}</Text>
@@ -115,7 +114,7 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: spacing.lg, justifyContent: 'space-between' },
-  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
   settingsBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg.card, borderWidth: 1, borderColor: colors.border.DEFAULT },
   legalRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: spacing.md },
   legalLink: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted },
