@@ -62,6 +62,10 @@ export default function CameraScreen() {
   const recordTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const activityId = useRef<string | null>(null);
   const activityState = useRef({ title: '', subtitle: '', progress: 0 });
+  // Serialize background uploads so rapid shutter taps don't fire overlapping
+  // Firestore transactions on the same docs (which caused failed-precondition
+  // conflicts). Capture stays instant; uploads just drain in order.
+  const uploadChain = useRef<Promise<void>>(Promise.resolve());
 
   // CameraView needs mode="video" to record; switching to it on demand keeps
   // photo capture as the fast default.
@@ -109,7 +113,8 @@ export default function CameraScreen() {
     if (!user) return;
     decrementShots();              // optimistic
     setLastPhoto(uri);
-    void (async () => {
+    // Chain onto the previous upload so they run one-at-a-time per device.
+    uploadChain.current = uploadChain.current.then(async () => {
       try {
         await EventService.decrementShots(id!, user.uid);
         let upload = uri;
@@ -130,7 +135,7 @@ export default function CameraScreen() {
           Alert.alert(msg);
         }
       }
-    })();
+    });
   };
 
   const selectMode = (m: 'photo' | 'video') => {
