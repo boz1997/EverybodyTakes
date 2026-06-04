@@ -6,8 +6,8 @@ import Svg, { Circle, Rect, Path, Line, G } from 'react-native-svg';
 import { EventType } from '@store/eventStore';
 import { fonts } from '@constants/theme';
 
-export const CARD_W = 320;
-export const CARD_H = 520;
+export const CARD_W = 300;
+export const CARD_H = 462;
 
 export interface ShareData {
   name: string;
@@ -51,7 +51,7 @@ function Poster({ data, theme, decoration, gradient }: { data: ShareData; theme:
         {!!data.dateLabel && <Text style={[styles.date, { color: theme.sub }]}>{data.dateLabel}</Text>}
       </View>
 
-      <Qr value={data.qrValue} size={146} theme={theme} />
+      <Qr value={data.qrValue} size={128} theme={theme} />
 
       <View style={styles.block}>
         <Text style={[styles.scan, { color: theme.sub }]}>{data.scan}</Text>
@@ -161,15 +161,15 @@ export function orderedTemplates(type: EventType, hasCover: boolean): TemplateMe
 
 const styles = StyleSheet.create({
   card: {
-    width: CARD_W, height: CARD_H, borderRadius: 26, padding: 28,
-    alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden',
+    width: CARD_W, height: CARD_H, borderRadius: 24, paddingHorizontal: 26, paddingVertical: 30,
+    alignItems: 'center', justifyContent: 'center', gap: 26, overflow: 'hidden',
   },
-  coverCard: { backgroundColor: '#000', paddingVertical: 34 },
-  block: { alignItems: 'center', gap: 6 },
-  kicker: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 3 },
-  title: { fontFamily: fonts.displayBold, fontSize: 30, lineHeight: 34, textAlign: 'center', marginTop: 6 },
-  date: { fontFamily: fonts.body, fontSize: 14 },
-  qrWrap: { padding: 12, borderRadius: 16 },
-  scan: { fontFamily: fonts.bodyMedium, fontSize: 13, textAlign: 'center', maxWidth: 240 },
-  footer: { fontFamily: fonts.bodySemibold, fontSize: 12, letterSpacing: 1 },
+  coverCard: { backgroundColor: '#000', justifyContent: 'space-between', gap: 0, paddingVertical: 34 },
+  block: { alignItems: 'center', gap: 5 },
+  kicker: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 2.5 },
+  title: { fontFamily: fonts.displayBold, fontSize: 27, lineHeight: 31, textAlign: 'center', marginTop: 4 },
+  date: { fontFamily: fonts.body, fontSize: 13 },
+  qrWrap: { padding: 11, borderRadius: 14 },
+  scan: { fontFamily: fonts.bodyMedium, fontSize: 12.5, textAlign: 'center', maxWidth: 230, lineHeight: 17 },
+  footer: { fontFamily: fonts.bodySemibold, fontSize: 11, letterSpacing: 1 },
 });

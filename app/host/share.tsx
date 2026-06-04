@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import {
+  View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, ActivityIndicator,
+  Dimensions, NativeSyntheticEvent, NativeScrollEvent,
+} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,11 +14,16 @@ import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library/legacy';
 import * as Haptics from 'expo-haptics';
 import { EventService, Event } from '@features/events/services/eventService';
-import { orderedTemplates, TemplateMeta, ShareData } from '@features/share/templates';
+import { orderedTemplates, TemplateMeta, ShareData, CARD_W } from '@features/share/templates';
 import { EventType } from '@store/eventStore';
 import { Icon } from '@shared/components/Icon';
 import { LINKS } from '@constants/links';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
+
+const SCREEN_W = Dimensions.get('window').width;
+const GAP = 16;
+const STRIDE = CARD_W + GAP;
+const SIDE = (SCREEN_W - CARD_W) / 2 - GAP / 2;   // centers the active card, peeks neighbours
 
 export default function ShareCardScreen() {
   const { t } = useTranslation();
@@ -24,11 +32,10 @@ export default function ShareCardScreen() {
 
   const [event, setEvent] = useState<Event | null>(null);
   const [templates, setTemplates] = useState<TemplateMeta[]>([]);
-  const [index, setIndex] = useState(0);
+  const [active, setActive] = useState(0);
   const [busy, setBusy] = useState(false);
-  // ViewShot is exported as a value, not a type; ref typed loosely on purpose.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const shotRef = useRef<any>(null);
+  const shotRefs = useRef<any[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -57,11 +64,15 @@ export default function ShareCardScreen() {
     scan: t('host.shareScan'),
   };
 
-  const Current = templates[index].comp;
+  const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const i = Math.round(e.nativeEvent.contentOffset.x / STRIDE);
+    const clamped = Math.max(0, Math.min(templates.length - 1, i));
+    if (clamped !== active) { setActive(clamped); Haptics.selectionAsync(); }
+  };
 
   const capture = async (): Promise<string | null> => {
     try {
-      return await captureRef(shotRef, { format: 'png', quality: 1 });
+      return await captureRef(shotRefs.current[active], { format: 'png', quality: 1 });
     } catch {
       return null;
     }
@@ -111,29 +122,38 @@ export default function ShareCardScreen() {
         <Text style={styles.title}>{t('host.shareTitle')}</Text>
       </View>
 
-      {/* Template picker */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chips}
-      >
-        {templates.map((tpl, i) => (
-          <TouchableOpacity
-            key={tpl.key}
-            onPress={() => { setIndex(i); Haptics.selectionAsync(); }}
-            style={[styles.chip, i === index && styles.chipActive]}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.chipText, i === index && styles.chipTextActive]}>{tpl.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {/* Swipeable card carousel */}
+      <View style={styles.carousel}>
+        <FlatList
+          data={templates}
+          keyExtractor={(tpl) => tpl.key}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={STRIDE}
+          decelerationRate="fast"
+          disableIntervalMomentum
+          contentContainerStyle={{ paddingHorizontal: SIDE }}
+          onMomentumScrollEnd={onScrollEnd}
+          renderItem={({ item, index }) => {
+            const Card = item.comp;
+            return (
+              <View style={styles.page}>
+                <View style={styles.cardShadow}>
+                  <ViewShot ref={(el) => { shotRefs.current[index] = el; }} options={{ format: 'png', quality: 1 }}>
+                    <Card data={data} />
+                  </ViewShot>
+                </View>
+              </View>
+            );
+          }}
+        />
+      </View>
 
-      {/* Live preview */}
-      <View style={styles.preview}>
-        <ViewShot ref={shotRef} options={{ format: 'png', quality: 1 }}>
-          <Current data={data} />
-        </ViewShot>
+      {/* Page dots */}
+      <View style={styles.dots}>
+        {templates.map((tpl, i) => (
+          <View key={tpl.key} style={[styles.dot, i === active && styles.dotActive]} />
+        ))}
       </View>
 
       {/* Actions */}
@@ -160,13 +180,17 @@ const styles = StyleSheet.create({
   backBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6 },
   backText: { color: colors.text.secondary, fontSize: typography.sizes.base, fontFamily: fonts.body },
   title: { fontSize: typography.sizes['2xl'], fontFamily: fonts.displayBold, color: colors.text.primary },
-  chips: { paddingHorizontal: spacing.lg, gap: spacing.sm, paddingVertical: spacing.sm },
-  chip: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.full, backgroundColor: colors.bg.card, borderWidth: 1, borderColor: colors.border.DEFAULT },
-  chipActive: { backgroundColor: colors.brand.DEFAULT, borderColor: colors.brand.DEFAULT },
-  chipText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold, color: colors.text.secondary },
-  chipTextActive: { color: '#fff' },
-  preview: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  bar: { flexDirection: 'row', gap: spacing.md, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  carousel: { flex: 1, justifyContent: 'center' },
+  page: { width: CARD_W, marginHorizontal: GAP / 2, justifyContent: 'center' },
+  cardShadow: {
+    borderRadius: 24,
+    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: 12 },
+    elevation: 8,
+  },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 7, paddingVertical: spacing.md },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.border.DEFAULT },
+  dotActive: { backgroundColor: colors.brand.DEFAULT, width: 22 },
+  bar: { flexDirection: 'row', gap: spacing.md, paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   outlineBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: spacing.lg, height: 54, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card },
   outlineText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold, color: colors.text.primary },
   shareBtn: { flex: 1, borderRadius: radius.xl, overflow: 'hidden', height: 54 },
