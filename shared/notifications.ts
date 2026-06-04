@@ -1,3 +1,31 @@
+import Constants from 'expo-constants';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@lib/firebase';
+
+// Registers this device's Expo push token on the user's doc so the
+// notifyHostOnPhoto Cloud Function can push to the host. Safe no-op if the
+// native module is missing (pre-rebuild) or permission is denied.
+export async function registerPushTokenForUser(uid: string): Promise<void> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Notifications = require('expo-notifications');
+
+    let granted = (await Notifications.getPermissionsAsync()).granted;
+    if (!granted) granted = (await Notifications.requestPermissionsAsync()).granted;
+    if (!granted) return;
+
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ??
+      (Constants as { easConfig?: { projectId?: string } }).easConfig?.projectId;
+    const { data: token } = await Notifications.getExpoPushTokenAsync(
+      projectId ? { projectId } : undefined,
+    );
+    if (token) await setDoc(doc(db, 'users', uid), { pushToken: token }, { merge: true });
+  } catch {
+    /* native module missing (pre-rebuild) or permission denied — ignore */
+  }
+}
+
 // Local notifications are best-effort. expo-notifications is loaded lazily so
 // that a build WITHOUT the native module (e.g. an older dev client) degrades to
 // a no-op instead of crashing at import time. Works once the app is rebuilt.

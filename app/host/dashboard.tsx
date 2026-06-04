@@ -13,6 +13,7 @@ import { useAuthStore } from '@store/authStore';
 import { EventService, Event } from '@features/events/services/eventService';
 import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { CreateEventArt } from '@shared/components/RoleArt';
+import { registerPushTokenForUser } from '@shared/notifications';
 import { EventType } from '@store/eventStore';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
@@ -37,6 +38,9 @@ export default function HostDashboard() {
   };
 
   useEffect(() => { load(); }, [user]);
+
+  // Register this device for host push (new-photo notifications).
+  useEffect(() => { if (user) registerPushTokenForUser(user.uid); }, [user]);
 
   const confirmDelete = (item: Event) => {
     Alert.alert(t('host.deleteEvent'), t('host.deleteEventConfirm', { name: item.name }), [
