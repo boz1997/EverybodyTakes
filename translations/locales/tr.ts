@@ -144,6 +144,11 @@ export default {
     eventCreatedSubtitle: 'QR kodunu misafirlerinle paylaş',
 
     manageEvent: 'Etkinliği Yönet',
+    shareCard: 'Davet kartı oluştur',
+    shareTitle: 'Davet Kartı',
+    shareInvited: 'Davetlisiniz',
+    shareScan: 'Fotoğraflarını eklemek için tara',
+    shareSaved: 'Kart galerine kaydedildi',
     livePhotos: 'Canlı Fotoğraflar',
     moderatePhoto: 'Fotoğrafı Yönet',
     approvePhoto: 'Onayla',

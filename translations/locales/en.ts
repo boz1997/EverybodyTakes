@@ -144,6 +144,11 @@ export default {
     eventCreatedSubtitle: 'Share the QR code with your guests',
 
     manageEvent: 'Manage Event',
+    shareCard: 'Create share card',
+    shareTitle: 'Share Card',
+    shareInvited: 'You\'re invited',
+    shareScan: 'Scan to add your photos',
+    shareSaved: 'Card saved to your library',
     livePhotos: 'Live Photos',
     moderatePhoto: 'Moderate Photo',
     approvePhoto: 'Approve',

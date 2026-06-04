@@ -101,6 +101,20 @@ export default function QRScreen() {
           </LinearGradient>
         </Animated.View>
 
+        {/* Share card */}
+        <Animated.View entering={FadeInDown.delay(550)} style={{ width: '100%' }}>
+          <TouchableOpacity
+            onPress={() => router.push(`/host/share?id=${id}` as never)}
+            style={styles.shareCardBtn}
+            activeOpacity={0.85}
+          >
+            <LinearGradient colors={gradients.amber} style={styles.shareCardGradient}>
+              <Icon name="image" size={18} color="#fff" />
+              <Text style={styles.shareCardText}>{t('host.shareCard')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
+
         {/* Actions */}
         <Animated.View entering={FadeInDown.delay(600)} style={styles.actions}>
           <TouchableOpacity onPress={handleDownloadQr} style={styles.actionBtn} activeOpacity={0.85} disabled={savingQr}>
@@ -162,6 +176,9 @@ const styles = StyleSheet.create({
   copyBtn: { width: 46, height: 46, borderRadius: radius.xl, overflow: 'hidden' },
   copyBtnGradient: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   copyIcon: { fontSize: 18, color: '#fff' },
+  shareCardBtn: { width: '100%', borderRadius: radius.xl, overflow: 'hidden', height: 52 },
+  shareCardGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  shareCardText: { fontSize: typography.sizes.base, fontWeight: typography.weights.semibold, color: '#fff' },
   actions: { flexDirection: 'row', gap: spacing.md, width: '100%' },
   actionBtn: { flex: 1, borderRadius: radius.xl, overflow: 'hidden', height: 52 },
   actionBtnGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },

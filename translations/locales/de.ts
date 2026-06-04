@@ -144,6 +144,11 @@ export default {
     eventCreatedSubtitle: 'Teile den QR-Code mit deinen Gästen',
 
     manageEvent: 'Event verwalten',
+    shareCard: 'Einladungskarte erstellen',
+    shareTitle: 'Einladungskarte',
+    shareInvited: 'Du bist eingeladen',
+    shareScan: 'Scannen, um deine Fotos hinzuzufügen',
+    shareSaved: 'Karte in deiner Galerie gespeichert',
     livePhotos: 'Live-Fotos',
     moderatePhoto: 'Foto moderieren',
     approvePhoto: 'Freigeben',

@@ -144,6 +144,11 @@ export default {
     eventCreatedSubtitle: 'Comparte el código QR con tus invitados',
 
     manageEvent: 'Gestionar evento',
+    shareCard: 'Crear tarjeta',
+    shareTitle: 'Tarjeta para compartir',
+    shareInvited: 'Estás invitado',
+    shareScan: 'Escanea para añadir tus fotos',
+    shareSaved: 'Tarjeta guardada en tu galería',
     livePhotos: 'Fotos en vivo',
     moderatePhoto: 'Moderar foto',
     approvePhoto: 'Aprobar',
