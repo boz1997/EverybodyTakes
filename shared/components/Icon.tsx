@@ -3,7 +3,7 @@ import {
   Settings, X, Check, Zap, SwitchCamera, Share2, Copy, Trash2, Crown, Gift,
   Film, Mail, QrCode, Users, Calendar, Sparkles, Gem, Cake, PartyPopper,
   Sailboat, Music, Tent, Building2, Lock, Plus, RefreshCw, CircleAlert,
-  Keyboard, Download, MoreHorizontal, Play, Video,
+  Keyboard, Download, MoreHorizontal, Play, Video, Bell,
 } from 'lucide-react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors } from '@constants/theme';
@@ -42,6 +42,7 @@ const REGISTRY = {
   more: MoreHorizontal,
   play: Play,
   video: Video,
+  bell: Bell,
   // event types
   wedding: Gem,
   birthday: Cake,

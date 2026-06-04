@@ -23,6 +23,7 @@ export default {
     new: 'Yeni',
     free: 'Ücretsiz',
     pro: 'Pro',
+    anonymous: 'Anonim',
   },
 
   welcome: {
@@ -114,6 +115,8 @@ export default {
     upgradeHint: 'Planı yükselt — daha çok misafir, video, filigransız',
     upgradeHintGuests: 'Planı yükselt — daha çok misafir',
     allowGalleryUpload: 'Galeriden yüklemeye izin ver',
+    uploadNotify: 'Yeni fotoğrafta bildir',
+    uploadNotifyDesc: 'Misafir foto ekledikçe bildirim al',
 
     guestSettings: 'Misafir Ayarları',
     maxGuests: 'Maksimum misafir sayısı',

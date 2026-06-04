@@ -93,6 +93,22 @@ export default function EventManage() {
           </TouchableOpacity>
         )}
 
+        {/* Notify the host on every new photo (default on) */}
+        <TouchableOpacity
+          style={styles.settingRow}
+          onPress={() => patchSettings({ uploadNotify: event.uploadNotify === false })}
+          activeOpacity={0.8}
+        >
+          <Icon name="bell" size={20} color={event.uploadNotify !== false ? colors.brand.DEFAULT : colors.text.muted} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.settingLabel}>{t('host.uploadNotify')}</Text>
+            <Text style={styles.settingDesc}>{t('host.uploadNotifyDesc')}</Text>
+          </View>
+          <View style={[styles.toggle, event.uploadNotify !== false && styles.toggleOn]}>
+            <View style={[styles.toggleThumb, event.uploadNotify !== false && styles.toggleThumbOn]} />
+          </View>
+        </TouchableOpacity>
+
         <Text style={styles.settingSub}>{t('host.revealTiming')}</Text>
         <View style={styles.reminderRow}>
           {REVEALS.map((r) => {
@@ -193,6 +209,12 @@ export default function EventManage() {
 
   const selectedIsVideo = selectedPhoto?.mediaType === 'video';
   const player = useVideoPlayer(selectedIsVideo ? selectedPhoto!.imageUrl : null, (p) => { p.loop = true; p.play(); });
+
+  const selectedIndex = selectedPhoto ? photos.findIndex((p) => p.id === selectedPhoto.id) : -1;
+  const navigate = (dir: -1 | 1) => {
+    const next = photos[selectedIndex + dir];
+    if (next) setSelectedPhoto(next);
+  };
 
   const saveOne = async (photo: Photo) => {
     const ext = photo.mediaType === 'video' ? 'mp4' : 'jpg';
@@ -334,6 +356,27 @@ export default function EventManage() {
               <Icon name="close" size={22} color="#fff" />
             </TouchableOpacity>
           </View>
+
+          {/* Prev / next */}
+          {selectedIndex > 0 && (
+            <TouchableOpacity onPress={() => navigate(-1)} style={[styles.lbNav, styles.lbNavLeft]} hitSlop={12}>
+              <Icon name="arrowLeft" size={26} color="#fff" />
+            </TouchableOpacity>
+          )}
+          {selectedIndex >= 0 && selectedIndex < photos.length - 1 && (
+            <TouchableOpacity onPress={() => navigate(1)} style={[styles.lbNav, styles.lbNavRight]} hitSlop={12}>
+              <Icon name="arrowRight" size={26} color="#fff" />
+            </TouchableOpacity>
+          )}
+
+          {/* Caption — who took it */}
+          {selectedPhoto && (
+            <View style={[styles.lbCaption, { bottom: insets.bottom + 92 }]} pointerEvents="none">
+              <Text style={styles.lbBy}>{t('gallery.by')} <Text style={styles.lbByName}>{selectedPhoto.uploaderName?.trim() || t('common.anonymous')}</Text></Text>
+              {selectedIndex >= 0 && <Text style={styles.lbCount}>{selectedIndex + 1} / {photos.length}</Text>}
+            </View>
+          )}
+
           <View style={[styles.lightboxBar, { paddingBottom: insets.bottom + spacing.lg }]}>
             <TouchableOpacity
               onPress={() => selectedPhoto && handleSavePhoto(selectedPhoto)}
@@ -418,6 +461,13 @@ const styles = StyleSheet.create({
   lightboxBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: spacing['2xl'], paddingTop: spacing.lg },
   lbAction: { alignItems: 'center', gap: 6 },
   lbActionText: { color: '#fff', fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium },
+  lbNav: { position: 'absolute', top: '46%', width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
+  lbNavLeft: { left: spacing.md },
+  lbNavRight: { right: spacing.md },
+  lbCaption: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 3 },
+  lbBy: { color: 'rgba(255,255,255,0.7)', fontSize: typography.sizes.sm, fontFamily: fonts.body },
+  lbByName: { color: '#fff', fontFamily: fonts.bodySemibold },
+  lbCount: { color: 'rgba(255,255,255,0.5)', fontSize: typography.sizes.xs, fontFamily: fonts.body },
   empty: { alignItems: 'center', gap: spacing.sm, paddingTop: spacing['2xl'] },
   emptyIconWrap: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand.glow, borderWidth: 1, borderColor: colors.border.brand },
   emptyText: { fontSize: typography.sizes.base, fontWeight: typography.weights.semibold, color: colors.text.primary },

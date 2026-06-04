@@ -23,6 +23,7 @@ export default {
     new: 'Nuevo',
     free: 'Gratis',
     pro: 'Pro',
+    anonymous: 'Anónimo',
   },
 
   welcome: {
@@ -114,6 +115,8 @@ export default {
     upgradeHint: 'Mejora — más invitados, vídeo, sin marca de agua',
     upgradeHintGuests: 'Mejora — más invitados',
     allowGalleryUpload: 'Permitir subidas desde la galería',
+    uploadNotify: 'Avisarme con fotos nuevas',
+    uploadNotifyDesc: 'Recibe un aviso cada vez que un invitado añade una foto',
 
     guestSettings: 'Ajustes de invitados',
     maxGuests: 'Máximo de invitados',

@@ -43,6 +43,7 @@ export interface Event {
   revealTiming: string;       // instant | next_day | private (also encodes visibility)
   allowGalleryUpload: boolean;
   reminderBefore: '1d' | null;
+  uploadNotify: boolean;      // host gets notified on each new photo (push)
   maxGuests: number | null;   // resolved from plan
   photoCap: number | null;    // resolved from plan
   watermark: boolean;         // resolved from plan
@@ -128,6 +129,7 @@ export const EventService = {
       revealTiming: draft.revealTiming,
       allowGalleryUpload: draft.allowGalleryUpload,
       reminderBefore: draft.reminderBefore,
+      uploadNotify: true,
       maxGuests: limits.maxGuests,
       photoCap: limits.photoCap,
       watermark: limits.watermark,
@@ -339,7 +341,7 @@ export const EventService = {
   // Host-editable settings (the bits we moved out of the create flow).
   async updateSettings(
     eventId: string,
-    settings: Partial<Pick<Event, 'disposableMode' | 'allowGalleryUpload' | 'reminderBefore' | 'revealTiming'>>,
+    settings: Partial<Pick<Event, 'disposableMode' | 'allowGalleryUpload' | 'reminderBefore' | 'revealTiming' | 'uploadNotify'>>,
   ): Promise<void> {
     await updateDoc(doc(db, 'events', eventId), settings);
   },

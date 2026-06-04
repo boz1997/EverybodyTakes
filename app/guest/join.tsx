@@ -162,6 +162,13 @@ export default function EventHubScreen() {
     ]);
   };
 
+  // Swipe between photos with the arrows in the lightbox.
+  const selectedIndex = selected ? visiblePhotos.findIndex((p) => p.id === selected.id) : -1;
+  const navigate = (dir: -1 | 1) => {
+    const next = visiblePhotos[selectedIndex + dir];
+    if (next) { setSelected(next); Haptics.selectionAsync(); }
+  };
+
   // Lightbox video playback (expo-video). Player rebuilds when the selected item changes.
   const selectedIsVideo = selected?.mediaType === 'video';
   const player = useVideoPlayer(selectedIsVideo ? selected!.imageUrl : null, (p) => { p.loop = true; p.play(); });
@@ -297,6 +304,27 @@ export default function EventHubScreen() {
           <TouchableOpacity onPress={() => setSelected(null)} style={[styles.lbClose, { top: insets.top + spacing.sm }]}>
             <Icon name="close" size={22} color="#fff" />
           </TouchableOpacity>
+
+          {/* Prev / next */}
+          {selectedIndex > 0 && (
+            <TouchableOpacity onPress={() => navigate(-1)} style={[styles.lbNav, styles.lbNavLeft]} hitSlop={12}>
+              <Icon name="arrowLeft" size={26} color="#fff" />
+            </TouchableOpacity>
+          )}
+          {selectedIndex >= 0 && selectedIndex < visiblePhotos.length - 1 && (
+            <TouchableOpacity onPress={() => navigate(1)} style={[styles.lbNav, styles.lbNavRight]} hitSlop={12}>
+              <Icon name="arrowRight" size={26} color="#fff" />
+            </TouchableOpacity>
+          )}
+
+          {/* Caption — who took it */}
+          {selected && (
+            <View style={[styles.lbCaption, { bottom: insets.bottom + 92 }]} pointerEvents="none">
+              <Text style={styles.lbBy}>{t('gallery.by')} <Text style={styles.lbByName}>{selected.uploaderName?.trim() || t('common.anonymous')}</Text></Text>
+              {selectedIndex >= 0 && <Text style={styles.lbCount}>{selectedIndex + 1} / {visiblePhotos.length}</Text>}
+            </View>
+          )}
+
           <View style={[styles.lbBar, { paddingBottom: insets.bottom + spacing.lg }]}>
             <TouchableOpacity onPress={() => selected && saveToLibrary(selected)} style={styles.lbAction} disabled={saving}>
               <Icon name="download" size={24} color="#fff" />
@@ -359,6 +387,13 @@ const styles = StyleSheet.create({
   playBadge: { position: 'absolute', top: 5, left: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
   lightbox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' },
   lbClose: { position: 'absolute', right: spacing.lg, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
+  lbNav: { position: 'absolute', top: '46%', width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
+  lbNavLeft: { left: spacing.md },
+  lbNavRight: { right: spacing.md },
+  lbCaption: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 3 },
+  lbBy: { color: 'rgba(255,255,255,0.7)', fontSize: typography.sizes.sm, fontFamily: fonts.body },
+  lbByName: { color: '#fff', fontFamily: fonts.bodySemibold },
+  lbCount: { color: 'rgba(255,255,255,0.5)', fontSize: typography.sizes.xs, fontFamily: fonts.body },
   lbBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing['2xl'], paddingTop: spacing.lg },
   lbAction: { alignItems: 'center', gap: 6 },
   lbActionText: { color: '#fff', fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium },
