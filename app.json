@@ -19,6 +19,7 @@
         "NSMicrophoneUsageDescription": "GuestCam uses the microphone only while you record a video, so your clip has sound.",
         "NSPhotoLibraryUsageDescription": "GuestCam accesses your photos only when you choose to add an existing photo to an event.",
         "NSPhotoLibraryAddUsageDescription": "GuestCam saves photos and QR codes to your library only when you tap save.",
+        "NSSupportsLiveActivities": true,
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -54,7 +55,8 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-video"
+      "expo-video",
+      "expo-live-activity"
     ],
     "experiments": {
       "typedRoutes": true

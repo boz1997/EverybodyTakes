@@ -18,6 +18,7 @@ import { EventService, LimitError } from '@features/events/services/eventService
 import { useAuthStore } from '@store/authStore';
 import { useEventStore } from '@store/eventStore';
 import { getSavedNickname } from '@store/guestEvents';
+import { startShotsActivity, updateShotsActivity, stopShotsActivity } from '@shared/liveActivity';
 import { Icon } from '@shared/components/Icon';
 import { colors, typography, spacing, radius } from '@constants/theme';
 
@@ -34,6 +35,8 @@ export default function CameraScreen() {
   const [disposable, setDisposable] = useState(true);       // disposable = instant, no preview
   const [galleryUpload, setGalleryUpload] = useState(false);
   const [mode, setMode] = useState<'photo' | 'video'>('photo');
+  const [eventName, setEventName] = useState('');
+  const [totalShots, setTotalShots] = useState(0);
 
   useEffect(() => { getSavedNickname().then((n) => setNickname(n || null)); }, []);
   useEffect(() => {
@@ -42,6 +45,8 @@ export default function CameraScreen() {
       setVideoAllowed(!!e?.video);
       setDisposable(e?.disposableMode ?? true);
       setGalleryUpload(!!e?.allowGalleryUpload);
+      setEventName(e?.name ?? '');
+      setTotalShots(e?.shotsPerGuest ?? 0);
     });
   }, [id]);
 
@@ -55,6 +60,8 @@ export default function CameraScreen() {
   const [recordSecs, setRecordSecs] = useState(0);
   const cameraRef = useRef<CameraView>(null);
   const recordTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const activityId = useRef<string | null>(null);
+  const activityState = useRef({ title: '', subtitle: '', progress: 0 });
 
   // CameraView needs mode="video" to record; switching to it on demand keeps
   // photo capture as the fast default.
@@ -72,6 +79,28 @@ export default function CameraScreen() {
   useEffect(() => {
     counterScale.value = withSequence(withTiming(1.3, { duration: 110 }), withSpring(1, { damping: 6 }));
   }, [shotsRemaining]);
+
+  // Lock-screen Live Activity: event name + shots remaining, updated as you
+  // shoot. Starts when the event is known; ends when leaving the camera.
+  useEffect(() => {
+    if (!eventName) return;
+    const subtitle = t('guest.shotsRemaining', { count: shotsRemaining });
+    const progress = totalShots ? shotsRemaining / totalShots : undefined;
+    activityState.current = { title: eventName, subtitle, progress: progress ?? 0 };
+    if (!activityId.current) {
+      activityId.current = startShotsActivity(eventName, subtitle, progress);
+    } else {
+      updateShotsActivity(activityId.current, eventName, subtitle, progress);
+    }
+  }, [eventName, shotsRemaining, totalShots]);
+
+  useEffect(() => () => {
+    if (activityId.current) {
+      const s = activityState.current;
+      stopShotsActivity(activityId.current, s.title, s.subtitle, s.progress);
+      activityId.current = null;
+    }
+  }, []);
 
   // Compress + upload silently in the background — the guest never waits and
   // never sees an "uploading" stage. The server transaction is the source of truth.
