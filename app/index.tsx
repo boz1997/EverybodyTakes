@@ -68,6 +68,7 @@ export default function WelcomeScreen() {
 
         {/* Logo + headline */}
         <Animated.View style={[styles.headlineBlock, headlineStyle]}>
+          <Image source={require('../assets/guestmark.png')} style={styles.mark} resizeMode="contain" />
           <Image source={require('../assets/guestlogo.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.headline}>{t('welcome.tagline')}</Text>
           <Text style={styles.subtitle}>{t('welcome.subtitle')}</Text>
@@ -119,7 +120,8 @@ const styles = StyleSheet.create({
   legalRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: spacing.md },
   legalLink: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted },
   legalDot: { fontSize: typography.sizes.xs, color: colors.text.muted },
-  logo: { width: 240, height: 132, marginLeft: -12, marginBottom: spacing.sm },
+  mark: { width: 64, height: 64, marginBottom: spacing.sm },
+  logo: { width: 210, height: 96, marginLeft: -4, marginBottom: spacing.sm },
   headlineBlock: { gap: spacing.sm },
   headline: {
     fontFamily: fonts.displayBold, fontSize: 38, lineHeight: 42,
