@@ -123,8 +123,8 @@ const styles = StyleSheet.create({
   legalLink: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted },
   legalDot: { fontSize: typography.sizes.xs, color: colors.text.muted },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: spacing.md },
-  mark: { width: 62, height: 62 },
-  logo: { height: 50, aspectRatio: 1.48 },
+  mark: { width: 60, height: 60 },
+  logo: { width: 132, height: 56 },
   headlineBlock: { gap: spacing.sm },
   headline: {
     fontFamily: fonts.displayBold, fontSize: 38, lineHeight: 42,
