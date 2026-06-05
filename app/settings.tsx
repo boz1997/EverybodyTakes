@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking, Platform,
 } from 'react-native';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,7 +20,7 @@ import { colors, typography, spacing, radius, fonts, gradients } from '@constant
 export default function SettingsScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { user, reset } = useAuthStore();
+  const { user, setUser, reset } = useAuthStore();
   const [deleting, setDeleting] = useState(false);
   // Only surface account deletion once there's actually something to delete —
   // a brand-new visitor who hasn't joined or hosted anything has no data yet.
@@ -35,6 +36,17 @@ export default function SettingsScreen() {
 
   const signedIn = !!user && !user.isAnonymous;
   const openLink = (url: string) => Linking.openURL(url).catch(() => Alert.alert(t('common.error')));
+
+  const handleApple = async () => {
+    try {
+      const u = await AuthService.signInWithApple();
+      setUser(u);
+    } catch (e: unknown) {
+      const code = (e as { code?: string })?.code;
+      if (code === 'ERR_REQUEST_CANCELED' || code === 'ERR_CANCELED') return;
+      Alert.alert(t('common.error'), String((e as { message?: string })?.message ?? e));
+    }
+  };
 
   const confirmSignOut = () => {
     Alert.alert(t('settings.logout'), t('settings.logoutConfirm'), [
@@ -126,10 +138,19 @@ export default function SettingsScreen() {
               {linkRow('arrowRight', t('settings.logout'), confirmSignOut)}
             </>
           ) : (
-            <>
-              {linkRow('users', t('settings.signInSave'), () => router.push('/auth'))}
-              <Text style={styles.deleteHint}>{t('settings.signInSaveDesc')}</Text>
-            </>
+            <View style={styles.signInBlock}>
+              <Text style={styles.signInTitle}>{t('settings.signInSave')}</Text>
+              <Text style={styles.signInDesc}>{t('settings.signInSaveDesc')}</Text>
+              {Platform.OS === 'ios' && (
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                  cornerRadius={radius.lg}
+                  style={styles.appleBtn}
+                  onPress={handleApple}
+                />
+              )}
+            </View>
           )}
           {hasData && (
             <>
@@ -160,5 +181,9 @@ const styles = StyleSheet.create({
   rowLabel: { flex: 1, fontSize: typography.sizes.base, fontFamily: fonts.bodyMedium, color: colors.text.primary },
   divider: { height: 1, backgroundColor: colors.border.subtle },
   deleteHint: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted, paddingBottom: spacing.sm, paddingHorizontal: 2, lineHeight: 16 },
+  signInBlock: { paddingVertical: spacing.md, gap: 6 },
+  signInTitle: { fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold, color: colors.text.primary },
+  signInDesc: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted, lineHeight: 16, marginBottom: spacing.sm },
+  appleBtn: { height: 48, width: '100%' },
   version: { textAlign: 'center', color: colors.text.muted, fontSize: typography.sizes.xs, marginTop: spacing.xl },
 });
