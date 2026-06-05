@@ -67,8 +67,18 @@ export default function EventHubScreen() {
   const [selected, setSelected] = useState<Photo | null>(null);
   const [saving, setSaving] = useState(false);
   const [blocked, setBlocked] = useState<string[]>([]);
+  const [selecting, setSelecting] = useState(false);
+  const [selSet, setSelSet] = useState<Set<string>>(new Set());
+  const [dlProgress, setDlProgress] = useState<{ done: number; total: number } | null>(null);
 
   useEffect(() => { getBlockedUsers().then(setBlocked); }, []);
+
+  const toggleSel = (id: string) => setSelSet((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+  const exitSelect = () => { setSelecting(false); setSelSet(new Set()); };
 
   // Land → auto-join (anonymous) → load shots + subscribe to photos.
   useEffect(() => {
@@ -177,20 +187,45 @@ export default function EventHubScreen() {
   const selectedIsVideo = selected?.mediaType === 'video';
   const player = useVideoPlayer(selectedIsVideo ? selected!.imageUrl : null, (p) => { p.loop = true; p.play(); });
 
+  const saveOne = async (photo: Photo) => {
+    const ext = photo.mediaType === 'video' ? 'mp4' : 'jpg';
+    const target = FileSystem.cacheDirectory + `${photo.id}.${ext}`;
+    const { uri } = await FileSystem.downloadAsync(photo.imageUrl, target);
+    await MediaLibrary.saveToLibraryAsync(uri);
+  };
+
   const saveToLibrary = async (photo: Photo) => {
     try {
       setSaving(true);
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
-      const ext = photo.mediaType === 'video' ? 'mp4' : 'jpg';
-      const target = FileSystem.cacheDirectory + `${photo.id}.${ext}`;
-      const { uri } = await FileSystem.downloadAsync(photo.imageUrl, target);
-      await MediaLibrary.saveToLibraryAsync(uri);
+      await saveOne(photo);
       Alert.alert(t('host.photoSaved'));
     } catch (e: any) {
       Alert.alert(t('common.error'), String(e?.message ?? e));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const downloadList = async (list: Photo[]) => {
+    if (list.length === 0 || saving) return;
+    try {
+      setSaving(true);
+      const perm = await MediaLibrary.requestPermissionsAsync();
+      if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
+      let done = 0; let lastErr: unknown = null;
+      setDlProgress({ done: 0, total: list.length });
+      for (const p of list) {
+        try { await saveOne(p); done += 1; } catch (e) { lastErr = e; }
+        setDlProgress({ done, total: list.length });
+      }
+      if (done === 0 && lastErr) Alert.alert(t('common.error'), String((lastErr as { message?: string })?.message ?? lastErr));
+      else Alert.alert(t('host.downloadAllDone', { count: done }));
+      exitSelect();
+    } finally {
+      setSaving(false);
+      setDlProgress(null);
     }
   };
 
@@ -259,8 +294,10 @@ export default function EventHubScreen() {
 
           {/* Gallery */}
           <View style={styles.galleryHead}>
-            <Text style={styles.galleryTitle}>{t('gallery.title')}</Text>
-            {!hostOnly && revealed && (
+            <Text style={styles.galleryTitle}>
+              {selecting ? t('gallery.selected', { count: selSet.size }) : t('gallery.title')}
+            </Text>
+            {!hostOnly && revealed && !selecting && (
               <View style={styles.tabs}>
                 {(['all', 'mine'] as const).map((f) => (
                   <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.tab, filter === f && styles.tabActive]}>
@@ -270,6 +307,25 @@ export default function EventHubScreen() {
               </View>
             )}
           </View>
+
+          {/* Gallery actions */}
+          {revealed && visiblePhotos.length > 0 && (
+            <View style={styles.galActions}>
+              {selecting ? (
+                <TouchableOpacity onPress={exitSelect} style={styles.galActionBtn}><Text style={styles.galActionText}>{t('common.cancel')}</Text></TouchableOpacity>
+              ) : (
+                <>
+                  <TouchableOpacity onPress={() => setSelecting(true)} style={styles.galActionBtn} activeOpacity={0.7}>
+                    <Icon name="check" size={15} color={colors.brand.DEFAULT} /><Text style={styles.galActionText}>{t('gallery.select')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => downloadList(visiblePhotos)} style={styles.galActionBtn} disabled={saving} activeOpacity={0.7}>
+                    <Icon name="download" size={15} color={colors.brand.DEFAULT} />
+                    <Text style={styles.galActionText}>{dlProgress ? t('host.downloadAllProgress', { done: dlProgress.done, total: dlProgress.total }) : t('host.downloadAll')}</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          )}
 
           {!revealed ? (
             <View style={styles.locked}>
@@ -290,19 +346,54 @@ export default function EventHubScreen() {
             </View>
           ) : (
             <View style={styles.grid}>
-              {visiblePhotos.map((p) => (
-                <TouchableOpacity key={p.id} style={styles.cell} onPress={() => { setSelected(p); Haptics.selectionAsync(); }} activeOpacity={0.85}>
-                  <Image source={{ uri: p.thumbnailUrl || p.imageUrl }} style={styles.cellImg} />
-                  {p.mediaType === 'video' && (
-                    <View style={styles.playBadge}><Icon name="play" size={14} color="#fff" /></View>
-                  )}
-                  {p.uploadedBy === uid && <View style={styles.mine}><Icon name="check" size={10} color="#fff" strokeWidth={3} /></View>}
-                </TouchableOpacity>
-              ))}
+              {visiblePhotos.map((p) => {
+                const isSel = selSet.has(p.id);
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={styles.cell}
+                    onPress={() => { if (selecting) { toggleSel(p.id); } else { setSelected(p); } Haptics.selectionAsync(); }}
+                    onLongPress={() => { if (!selecting) { setSelecting(true); toggleSel(p.id); } }}
+                    activeOpacity={0.85}
+                  >
+                    <Image source={{ uri: p.thumbnailUrl || p.imageUrl }} style={styles.cellImg} />
+                    {p.mediaType === 'video' && (
+                      <View style={styles.playBadge}><Icon name="play" size={14} color="#fff" /></View>
+                    )}
+                    {!selecting && p.uploadedBy === uid && <View style={styles.mine}><Icon name="check" size={10} color="#fff" strokeWidth={3} /></View>}
+                    {selecting && (
+                      <View style={[styles.selOverlay, isSel && styles.selOverlayOn]}>
+                        <View style={[styles.selCheck, isSel && styles.selCheckOn]}>
+                          {isSel && <Icon name="check" size={14} color="#fff" strokeWidth={3} />}
+                        </View>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
         </View>
       </ScrollView>
+
+      {/* Selection action bar */}
+      {selecting && selSet.size > 0 && (
+        <View style={[styles.selBar, { paddingBottom: insets.bottom + spacing.md }]}>
+          <TouchableOpacity
+            onPress={() => downloadList(visiblePhotos.filter((p) => selSet.has(p.id)))}
+            disabled={saving}
+            style={styles.selBarBtn}
+            activeOpacity={0.85}
+          >
+            <LinearGradient colors={gradients.amber} style={styles.selBarGradient}>
+              <Icon name="download" size={18} color="#fff" />
+              <Text style={styles.selBarText}>
+                {dlProgress ? t('host.downloadAllProgress', { done: dlProgress.done, total: dlProgress.total }) : `${t('common.download')} (${selSet.size})`}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Lightbox */}
       <Modal visible={!!selected} transparent animationType="fade" onRequestClose={() => setSelected(null)} statusBarTranslucent>
@@ -395,6 +486,17 @@ const styles = StyleSheet.create({
   cellImg: { width: '100%', height: '100%', backgroundColor: colors.border.subtle },
   mine: { position: 'absolute', top: 5, right: 5, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.brand.DEFAULT, alignItems: 'center', justifyContent: 'center' },
   playBadge: { position: 'absolute', top: 5, left: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
+  galActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.md, marginTop: -spacing.xs, marginBottom: spacing.xs },
+  galActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  galActionText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold, color: colors.brand.DEFAULT },
+  selOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'flex-end', justifyContent: 'flex-start', padding: 7 },
+  selOverlayOn: { borderWidth: 3, borderColor: colors.brand.DEFAULT, borderRadius: radius.md, backgroundColor: 'rgba(190,106,46,0.18)' },
+  selCheck: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#fff', backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' },
+  selCheckOn: { backgroundColor: colors.brand.DEFAULT, borderColor: '#fff' },
+  selBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: spacing.lg, paddingTop: spacing.md, backgroundColor: 'transparent' },
+  selBarBtn: { borderRadius: radius.xl, overflow: 'hidden', height: 54 },
+  selBarGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  selBarText: { color: '#fff', fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold },
   lightbox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' },
   lbClose: { position: 'absolute', right: spacing.lg, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
   lbNav: { position: 'absolute', top: '46%', width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },

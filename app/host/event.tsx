@@ -41,6 +41,8 @@ export default function EventManage() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [photosLoaded, setPhotosLoaded] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [dlProgress, setDlProgress] = useState<{ done: number; total: number } | null>(null);
 
@@ -241,42 +243,63 @@ export default function EventManage() {
     }
   };
 
-  const handleDownloadAll = async () => {
-    if (photos.length === 0 || saving) return;
+  const downloadList = async (list: Photo[]) => {
+    if (list.length === 0 || saving) return;
     try {
       setSaving(true);
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
       let done = 0;
       let lastErr: unknown = null;
-      setDlProgress({ done: 0, total: photos.length });
-      for (const p of photos) {
+      setDlProgress({ done: 0, total: list.length });
+      for (const p of list) {
         try { await saveOne(p); done += 1; } catch (e) { lastErr = e; }
-        setDlProgress({ done, total: photos.length });
+        setDlProgress({ done, total: list.length });
       }
       if (done === 0 && lastErr) Alert.alert(t('common.error'), String((lastErr as any)?.message ?? lastErr));
       else Alert.alert(t('host.downloadAllDone', { count: done }));
+      exitSelect();
     } finally {
       setSaving(false);
       setDlProgress(null);
     }
   };
 
-  const renderPhoto = ({ item }: { item: Photo }) => (
-    <TouchableOpacity
-      onPress={() => setSelectedPhoto(item)}
-      style={styles.photoCell}
-      activeOpacity={0.85}
-    >
-      <Image source={{ uri: item.thumbnailUrl || item.imageUrl }} style={styles.photo} />
-      {item.mediaType === 'video' && (
-        <View style={styles.playBadge}><Icon name="play" size={14} color="#fff" /></View>
-      )}
-      {item.flagged && (
-        <View style={styles.flagBadge}><Icon name="alert" size={11} color="#fff" /><Text style={styles.flagText}>{t('moderation.flagged')}</Text></View>
-      )}
-    </TouchableOpacity>
-  );
+  const handleDownloadAll = () => downloadList(photos);
+
+  const toggleSelect = (id: string) => setSelected((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+  const exitSelect = () => { setSelecting(false); setSelected(new Set()); };
+
+  const renderPhoto = ({ item }: { item: Photo }) => {
+    const isSel = selected.has(item.id);
+    return (
+      <TouchableOpacity
+        onPress={() => (selecting ? toggleSelect(item.id) : setSelectedPhoto(item))}
+        onLongPress={() => { if (!selecting) { setSelecting(true); toggleSelect(item.id); } }}
+        style={styles.photoCell}
+        activeOpacity={0.85}
+      >
+        <Image source={{ uri: item.thumbnailUrl || item.imageUrl }} style={styles.photo} />
+        {item.mediaType === 'video' && (
+          <View style={styles.playBadge}><Icon name="play" size={14} color="#fff" /></View>
+        )}
+        {item.flagged && (
+          <View style={styles.flagBadge}><Icon name="alert" size={11} color="#fff" /><Text style={styles.flagText}>{t('moderation.flagged')}</Text></View>
+        )}
+        {selecting && (
+          <View style={[styles.selOverlay, isSel && styles.selOverlayOn]}>
+            <View style={[styles.selCheck, isSel && styles.selCheckOn]}>
+              {isSel && <Icon name="check" size={14} color="#fff" strokeWidth={3} />}
+            </View>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <LinearGradient colors={gradients.page} style={styles.container}>
@@ -329,14 +352,28 @@ export default function EventManage() {
           <>
             {renderSettings()}
             <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>{t('host.livePhotos')} ({photos.length})</Text>
+              <Text style={styles.sectionTitle}>
+                {selecting ? t('gallery.selected', { count: selected.size }) : `${t('host.livePhotos')} (${photos.length})`}
+              </Text>
               {photos.length > 0 && (
-                <TouchableOpacity onPress={handleDownloadAll} style={styles.downloadAllBtn} disabled={saving} activeOpacity={0.7}>
-                  <Icon name="download" size={15} color={colors.brand.DEFAULT} />
-                  <Text style={styles.downloadAllText}>
-                    {dlProgress ? t('host.downloadAllProgress', { done: dlProgress.done, total: dlProgress.total }) : t('host.downloadAll')}
-                  </Text>
-                </TouchableOpacity>
+                selecting ? (
+                  <TouchableOpacity onPress={exitSelect} style={styles.downloadAllBtn} activeOpacity={0.7}>
+                    <Text style={styles.downloadAllText}>{t('common.cancel')}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.headActions}>
+                    <TouchableOpacity onPress={() => setSelecting(true)} style={styles.downloadAllBtn} activeOpacity={0.7}>
+                      <Icon name="check" size={15} color={colors.brand.DEFAULT} />
+                      <Text style={styles.downloadAllText}>{t('gallery.select')}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleDownloadAll} style={styles.downloadAllBtn} disabled={saving} activeOpacity={0.7}>
+                      <Icon name="download" size={15} color={colors.brand.DEFAULT} />
+                      <Text style={styles.downloadAllText}>
+                        {dlProgress ? t('host.downloadAllProgress', { done: dlProgress.done, total: dlProgress.total }) : t('host.downloadAll')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )
               )}
             </View>
           </>
@@ -359,6 +396,25 @@ export default function EventManage() {
           )
         }
       />
+
+      {/* Selection action bar */}
+      {selecting && selected.size > 0 && (
+        <View style={[styles.selBar, { paddingBottom: insets.bottom + spacing.md }]}>
+          <TouchableOpacity
+            onPress={() => downloadList(photos.filter((p) => selected.has(p.id)))}
+            disabled={saving}
+            style={styles.selBarBtn}
+            activeOpacity={0.85}
+          >
+            <LinearGradient colors={gradients.amber} style={styles.selBarGradient}>
+              <Icon name="download" size={18} color="#fff" />
+              <Text style={styles.selBarText}>
+                {dlProgress ? t('host.downloadAllProgress', { done: dlProgress.done, total: dlProgress.total }) : `${t('common.download')} (${selected.size})`}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Photo lightbox — view, save, delete */}
       <Modal visible={!!selectedPhoto} transparent animationType="fade" onRequestClose={() => setSelectedPhoto(null)} statusBarTranslucent>
@@ -468,6 +524,15 @@ const styles = StyleSheet.create({
   photoCell: { width: PHOTO_W, height: PHOTO_H, borderRadius: radius.md, overflow: 'hidden', margin: spacing.xs / 2 },
   photo: { width: '100%', height: '100%', backgroundColor: colors.border.subtle },
   skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  headActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  selOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'flex-end', justifyContent: 'flex-start', padding: 8 },
+  selOverlayOn: { borderWidth: 3, borderColor: colors.brand.DEFAULT, borderRadius: radius.md, backgroundColor: 'rgba(190,106,46,0.18)' },
+  selCheck: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#fff', backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' },
+  selCheckOn: { backgroundColor: colors.brand.DEFAULT, borderColor: '#fff' },
+  selBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  selBarBtn: { borderRadius: radius.xl, overflow: 'hidden', height: 54 },
+  selBarGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  selBarText: { color: '#fff', fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold },
   playBadge: { position: 'absolute', top: 6, left: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
   flagBadge: { position: 'absolute', bottom: 6, left: 6, right: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: 'rgba(190,46,46,0.92)', borderRadius: radius.sm, paddingVertical: 3 },
   flagText: { color: '#fff', fontSize: 10, fontFamily: fonts.bodyBold },

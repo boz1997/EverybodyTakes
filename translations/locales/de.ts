@@ -250,6 +250,8 @@ export default {
     photos: 'Fotos',
     by: 'Von',
     moments: '{{count}} Momente',
+    select: 'Auswählen',
+    selected: '{{count}} ausgewählt',
   },
 
   paywall: {

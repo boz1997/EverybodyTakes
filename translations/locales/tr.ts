@@ -250,6 +250,8 @@ export default {
     photos: 'fotoğraf',
     by: 'Çeken:',
     moments: '{{count}} an',
+    select: 'Seç',
+    selected: '{{count}} seçili',
   },
 
   paywall: {
