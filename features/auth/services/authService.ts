@@ -6,6 +6,9 @@ import {
   signInWithCredential,
   linkWithCredential,
   AuthCredential,
+  EmailAuthProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut,
   deleteUser,
   onAuthStateChanged,
@@ -56,6 +59,43 @@ export const AuthService = {
 
   async signInWithGoogle(idToken: string): Promise<User> {
     return AuthService.linkOrSignIn(GoogleAuthProvider.credential(idToken));
+  },
+
+  // Email + password: signs in to an existing account, or creates a new one.
+  // Links to the current anonymous user when possible so data is preserved.
+  // Throws 'wrong-password' when the email exists but the password is wrong.
+  async signInWithEmail(email: string, password: string): Promise<User> {
+    const e = email.trim();
+    const current = auth.currentUser;
+    if (current && current.isAnonymous) {
+      try {
+        const { user } = await linkWithCredential(current, EmailAuthProvider.credential(e, password));
+        await AuthService.ensureUserDoc(user);
+        return user;
+      } catch (err) {
+        const code = (err as { code?: string })?.code;
+        if (code !== 'auth/email-already-in-use' && code !== 'auth/credential-already-in-use') throw err;
+        // Account already exists → fall through to sign in below.
+      }
+    }
+    try {
+      const { user } = await signInWithEmailAndPassword(auth, e, password);
+      await AuthService.ensureUserDoc(user);
+      return user;
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      if (code === 'auth/invalid-credential' || code === 'auth/user-not-found' || code === 'auth/wrong-password') {
+        try {
+          const { user } = await createUserWithEmailAndPassword(auth, e, password);
+          await AuthService.ensureUserDoc(user);
+          return user;
+        } catch (err2) {
+          if ((err2 as { code?: string })?.code === 'auth/email-already-in-use') throw new Error('wrong-password');
+          throw err2;
+        }
+      }
+      throw err;
+    }
   },
 
   // Native Apple Sign-In (also satisfies "Face ID login" via the system sheet).

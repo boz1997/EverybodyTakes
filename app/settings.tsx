@@ -13,6 +13,7 @@ import { useAuthStore } from '@store/authStore';
 import { getJoinedEvents, clearAllLocal } from '@store/guestEvents';
 import { LanguageToggle } from '@shared/components/LanguageToggle';
 import { Icon, IconName, BrandIcon } from '@shared/components/Icon';
+import { InputField } from '@shared/components/InputField';
 import { LINKS } from '@constants/links';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
@@ -24,6 +25,10 @@ export default function SettingsScreen() {
   // Only surface account deletion once there's actually something to delete —
   // a brand-new visitor who hasn't joined or hosted anything has no data yet.
   const [hasData, setHasData] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailVal, setEmailVal] = useState('');
+  const [pwVal, setPwVal] = useState('');
+  const [emailBusy, setEmailBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -44,6 +49,25 @@ export default function SettingsScreen() {
       const code = (e as { code?: string })?.code;
       if (code === 'ERR_REQUEST_CANCELED' || code === 'ERR_CANCELED') return;
       Alert.alert(t('common.error'), String((e as { message?: string })?.message ?? e));
+    }
+  };
+
+  const handleEmail = async () => {
+    if (!emailVal.includes('@') || pwVal.length < 6) {
+      Alert.alert(t('auth.emailPasswordHint'));
+      return;
+    }
+    try {
+      setEmailBusy(true);
+      const u = await AuthService.signInWithEmail(emailVal, pwVal);
+      setUser(u);
+    } catch (e: unknown) {
+      const msg = (e as { message?: string })?.message === 'wrong-password'
+        ? t('auth.wrongPassword')
+        : t('errors.unknownError');
+      Alert.alert(t('common.error'), msg);
+    } finally {
+      setEmailBusy(false);
     }
   };
 
@@ -155,6 +179,21 @@ export default function SettingsScreen() {
                 <Text style={styles.googleBtnText}>{t('auth.continueWithGoogle')}</Text>
                 <Text style={styles.soonTag}>{t('auth.soonShort')}</Text>
               </TouchableOpacity>
+
+              {!emailOpen ? (
+                <TouchableOpacity style={styles.googleBtn} onPress={() => setEmailOpen(true)} activeOpacity={0.85}>
+                  <Icon name="mail" size={18} color={colors.brand.light} />
+                  <Text style={styles.googleBtnText}>{t('auth.continueWithEmail')}</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.emailForm}>
+                  <InputField label={t('auth.email')} placeholder={t('auth.emailPlaceholder')} value={emailVal} onChangeText={setEmailVal} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
+                  <InputField label={t('auth.password')} placeholder={t('auth.passwordPlaceholder')} value={pwVal} onChangeText={setPwVal} secureTextEntry />
+                  <TouchableOpacity style={styles.emailSubmit} onPress={handleEmail} activeOpacity={0.85} disabled={emailBusy}>
+                    <Text style={styles.emailSubmitText}>{emailBusy ? t('common.loading') : t('common.continue')}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           )}
           {hasData && (
@@ -194,5 +233,8 @@ const styles = StyleSheet.create({
   googleBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, height: 50, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.elevated, paddingHorizontal: spacing.lg },
   googleBtnText: { flex: 1, color: colors.text.primary, fontSize: typography.sizes.base, fontFamily: fonts.bodyMedium },
   soonTag: { fontSize: typography.sizes.xs, fontFamily: fonts.bodySemibold, color: colors.text.muted, backgroundColor: colors.bg.card, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 3, overflow: 'hidden' },
+  emailForm: { gap: spacing.sm },
+  emailSubmit: { height: 50, borderRadius: radius.lg, backgroundColor: colors.brand.DEFAULT, alignItems: 'center', justifyContent: 'center' },
+  emailSubmitText: { color: '#fff', fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold },
   version: { textAlign: 'center', color: colors.text.muted, fontSize: typography.sizes.xs, marginTop: spacing.xl },
 });

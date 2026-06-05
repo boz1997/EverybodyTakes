@@ -35,6 +35,7 @@ export default function AuthScreen() {
 
   const [step, setStep] = useState<AuthStep>('options');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
 
   const handleAnonymous = async () => {
@@ -66,17 +67,20 @@ export default function AuthScreen() {
     }
   };
 
-  const handleMagicLink = async () => {
-    if (!email || !email.includes('@')) {
-      setEmailError(t('auth.email') + ' geçersiz');
+  const handleEmailAuth = async () => {
+    if (!email.includes('@') || password.length < 6) {
+      setEmailError(t('auth.emailPasswordHint'));
       return;
     }
     try {
       setLoading(true);
-      await AuthService.sendMagicLink(email);
-      setStep('sent');
-    } catch {
-      Alert.alert(t('common.error'), t('errors.unknownError'));
+      const user = await AuthService.signInWithEmail(email, password);
+      setUser(user);
+      navigateAfterAuth();
+    } catch (e: unknown) {
+      const msg = (e as { message?: string })?.message === 'wrong-password'
+        ? t('auth.wrongPassword') : t('errors.unknownError');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setLoading(false);
     }
@@ -144,7 +148,17 @@ export default function AuthScreen() {
                 <Text style={styles.soonTag}>{t('auth.soonShort')}</Text>
               </TouchableOpacity>
 
-              {/* Email magic-link is hidden until deep-link completion is wired. */}
+              {/* Email + password */}
+              <TouchableOpacity
+                style={[styles.socialBtn, styles.emailBtn]}
+                onPress={() => setStep('email')}
+                activeOpacity={0.8}
+              >
+                <View style={styles.socialIconWrap}>
+                  <Icon name="mail" size={20} color={colors.brand.light} />
+                </View>
+                <Text style={styles.socialLabel}>{t('auth.continueWithEmail')}</Text>
+              </TouchableOpacity>
 
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />
@@ -172,12 +186,20 @@ export default function AuthScreen() {
                 onChangeText={(v) => { setEmail(v); setEmailError(''); }}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
                 autoFocus
+              />
+              <InputField
+                label={t('auth.password')}
+                placeholder={t('auth.passwordPlaceholder')}
+                value={password}
+                onChangeText={(v) => { setPassword(v); setEmailError(''); }}
+                secureTextEntry
                 error={emailError}
               />
               <PrimaryButton
-                label={t('auth.continueWithMagicLink')}
-                onPress={handleMagicLink}
+                label={t('auth.continueWithEmail')}
+                onPress={handleEmailAuth}
                 loading={isLoading}
               />
             </View>
