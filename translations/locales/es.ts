@@ -284,6 +284,8 @@ export default {
     selectPlan: 'Elegir este paquete',
     restorePurchase: 'Restaurar compra',
     termsNote: 'Pago único por evento — sin suscripción, sin costes ocultos',
+    freeSubtitle: 'Crea tu evento y empieza a reunir fotos — gratis.',
+    freeTerms: 'Crear es gratis — reúne las fotos de tu evento en un solo lugar.',
   },
 
   errors: {

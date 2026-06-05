@@ -1,8 +1,7 @@
 rules_version = '2';
 
 // Production security rules for GuestCam.
-// NOT YET DEPLOYED — the live project is still in test mode for development.
-// Deploy with: firebase deploy --only firestore:rules  (once test mode ends).
+// Deploy with: firebase deploy --only firestore:rules
 //
 // Model: hosts own events; guests (anonymous or signed-in) join an event,
 // write their own guest doc and photos, and may bump the event counters.
@@ -16,6 +15,12 @@ service cloud.firestore {
     // Users can only touch their own profile document.
     match /users/{uid} {
       allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Content reports are write-only for users; only Cloud Functions (admin) read.
+    match /reports/{reportId} {
+      allow create: if signedIn();
+      allow read, update, delete: if false;
     }
 
     match /events/{eventId} {
@@ -41,14 +46,24 @@ service cloud.firestore {
         allow delete: if false;
       }
 
-      // Photos: any signed-in guest can add; owner or host can moderate.
+      // Photos: any signed-in guest can add; owner or host can moderate; any
+      // signed-in user may flag (report) by changing only the moderation fields.
       match /photos/{photoId} {
+        function isOwnerOrHost() {
+          return signedIn() && (
+            resource.data.uploadedBy == request.auth.uid ||
+            get(/databases/$(database)/documents/events/$(eventId)).data.hostId == request.auth.uid
+          );
+        }
+        function reportOnly() {
+          return signedIn()
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['flagged', 'reportCount']);
+        }
         allow read: if signedIn();
         allow create: if signedIn() && request.resource.data.uploadedBy == request.auth.uid;
-        allow update, delete: if signedIn() && (
-          resource.data.uploadedBy == request.auth.uid ||
-          get(/databases/$(database)/documents/events/$(eventId)).data.hostId == request.auth.uid
-        );
+        allow update: if isOwnerOrHost() || reportOnly();
+        allow delete: if isOwnerOrHost();
       }
     }
   }

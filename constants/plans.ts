@@ -3,6 +3,12 @@
 // monthly subscription. The plan a host buys determines the event's hard
 // limits, which are copied onto the event document and enforced server-side.
 
+// Launch state: paid plans are OFF until in-app purchases (RevenueCat) are
+// wired and the products are created in App Store Connect. While false, the app
+// never presents a price — required to pass App Store review (Guideline 3.1.1).
+// Flip to true once IAP is live to re-enable the paid tiers below.
+export const PAID_PLANS_ENABLED = false;
+
 export type PlanId = 'free' | 'small' | 'medium' | 'unlimited';
 
 export interface Plan {
@@ -22,7 +28,8 @@ export interface Plan {
 }
 
 export const PLANS: Record<PlanId, Plan> = {
-  free: { id: 'free', maxGuests: 10, photoCap: 100, watermark: true, video: false, hdExport: false, liveWall: false, priceTRY: 0 },
+  // Generous free tier for the no-payments launch (no caps, no watermark, video on).
+  free: { id: 'free', maxGuests: null, photoCap: null, watermark: false, video: true, hdExport: true, liveWall: false, priceTRY: 0 },
   small: { id: 'small', maxGuests: 30, photoCap: null, watermark: false, video: false, hdExport: true, liveWall: false, priceTRY: 149 },
   medium: { id: 'medium', maxGuests: 100, photoCap: null, watermark: false, video: true, hdExport: true, liveWall: true, priceTRY: 449 },
   unlimited: { id: 'unlimited', maxGuests: null, photoCap: null, watermark: false, video: true, hdExport: true, liveWall: true, priceTRY: 1299 },

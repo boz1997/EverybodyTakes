@@ -11,7 +11,7 @@ import * as MediaLibrary from 'expo-media-library/legacy';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { EventService, Event, Photo } from '@features/events/services/eventService';
-import { getPlan } from '@constants/plans';
+import { getPlan, PAID_PLANS_ENABLED } from '@constants/plans';
 import { Icon } from '@shared/components/Icon';
 import { Skeleton } from '@shared/components/Skeleton';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
@@ -151,7 +151,7 @@ export default function EventManage() {
         </View>
 
         {/* Plan + upgrade (sales surface) — hidden on the top plan */}
-        {getPlan(event.plan).id !== 'unlimited' && (
+        {PAID_PLANS_ENABLED && getPlan(event.plan).id !== 'unlimited' && (
           <TouchableOpacity
             style={styles.upgradeRow}
             onPress={() => router.push({ pathname: '/host/paywall', params: { upgradeId: event.id, current: event.plan } })}

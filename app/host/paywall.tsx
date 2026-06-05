@@ -8,7 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useEventStore } from '@store/eventStore';
 import { useAuthStore } from '@store/authStore';
 import { EventService } from '@features/events/services/eventService';
-import { PLANS, PAID_PLAN_ORDER, PlanId, Plan, formatPrice } from '@constants/plans';
+import { PLANS, PAID_PLAN_ORDER, PAID_PLANS_ENABLED, PlanId, Plan, formatPrice } from '@constants/plans';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
@@ -27,9 +27,12 @@ export default function PaywallScreen() {
   // In upgrade mode only show plans strictly above the current one.
   const FULL_ORDER: PlanId[] = ['free', 'small', 'medium', 'unlimited'];
   const higher = current ? FULL_ORDER.slice(FULL_ORDER.indexOf(current as PlanId) + 1) : PAID_PLAN_ORDER;
-  const planList: PlanId[] = isUpgrade ? higher : ORDER;
+  // No payments at launch → only the (generous) free plan is offered; never a price.
+  const planList: PlanId[] = !PAID_PLANS_ENABLED ? ['free'] : (isUpgrade ? higher : ORDER);
 
-  const [selected, setSelected] = useState<PlanId>(isUpgrade ? (higher[0] ?? 'unlimited') : 'small');
+  const [selected, setSelected] = useState<PlanId>(
+    !PAID_PLANS_ENABLED ? 'free' : (isUpgrade ? (higher[0] ?? 'unlimited') : 'small'),
+  );
   const [loading, setLoading] = useState(false);
 
   const featureLines = (plan: Plan): string[] => {
@@ -87,7 +90,7 @@ export default function PaywallScreen() {
 
         <View style={styles.header}>
           <Text style={styles.title}>{isUpgrade ? t('paywall.upgradeTitle') : t('paywall.title')}</Text>
-          <Text style={styles.subtitle}>{isUpgrade ? t('paywall.upgradeSubtitle') : t('paywall.subtitle')}</Text>
+          <Text style={styles.subtitle}>{!PAID_PLANS_ENABLED ? t('paywall.freeSubtitle') : (isUpgrade ? t('paywall.upgradeSubtitle') : t('paywall.subtitle'))}</Text>
         </View>
 
         {/* Event summary pill (create flow only) */}
@@ -145,7 +148,7 @@ export default function PaywallScreen() {
           })}
         </View>
 
-        <Text style={styles.terms}>{t('paywall.termsNote')}</Text>
+        <Text style={styles.terms}>{!PAID_PLANS_ENABLED ? t('paywall.freeTerms') : t('paywall.termsNote')}</Text>
       </ScrollView>
 
       {/* Bottom CTA */}

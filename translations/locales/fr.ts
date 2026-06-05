@@ -284,6 +284,8 @@ export default {
     selectPlan: 'Choisir ce forfait',
     restorePurchase: 'Restaurer l\'achat',
     termsNote: 'Paiement unique par événement — sans abonnement, sans frais cachés',
+    freeSubtitle: 'Créez votre événement et commencez à collecter des photos — gratuit.',
+    freeTerms: 'Création gratuite — rassemblez les photos de votre événement.',
   },
 
   errors: {

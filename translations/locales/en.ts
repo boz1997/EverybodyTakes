@@ -284,6 +284,8 @@ export default {
     selectPlan: 'Select This Package',
     restorePurchase: 'Restore Purchase',
     termsNote: 'One-time event payment — no subscription, no hidden fees',
+    freeSubtitle: 'Create your event and start collecting photos — free.',
+    freeTerms: 'Free to create — collect all your event photos in one place.',
   },
 
   errors: {

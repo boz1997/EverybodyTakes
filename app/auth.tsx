@@ -144,23 +144,7 @@ export default function AuthScreen() {
                 <Text style={styles.soonTag}>{t('auth.soonShort')}</Text>
               </TouchableOpacity>
 
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>{t('common.or')}</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              {/* Email */}
-              <TouchableOpacity
-                style={[styles.socialBtn, styles.emailBtn]}
-                onPress={() => setStep('email')}
-                activeOpacity={0.8}
-              >
-                <View style={styles.socialIconWrap}>
-                  <Icon name="mail" size={20} color={colors.brand.light} />
-                </View>
-                <Text style={styles.socialLabel}>{t('auth.continueWithMagicLink')}</Text>
-              </TouchableOpacity>
+              {/* Email magic-link is hidden until deep-link completion is wired. */}
 
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />

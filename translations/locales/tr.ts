@@ -284,6 +284,8 @@ export default {
     selectPlan: 'Bu Paketi Seç',
     restorePurchase: 'Satın Almayı Geri Yükle',
     termsNote: 'Tek seferlik etkinlik ödemesi — abonelik yok, gizli ücret yok',
+    freeSubtitle: 'Etkinliğini oluştur, fotoğrafları toplamaya başla — ücretsiz.',
+    freeTerms: 'Oluşturmak ücretsiz — etkinliğinin tüm fotoğrafları tek yerde.',
   },
 
   errors: {
