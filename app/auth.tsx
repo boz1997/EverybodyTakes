@@ -92,8 +92,10 @@ export default function AuthScreen() {
 
           {/* Header */}
           <View style={styles.header}>
-            <Image source={require('../assets/guestmark.png')} style={styles.mark} resizeMode="contain" />
-            <Image source={require('../assets/guestlogo.png')} style={styles.logo} resizeMode="contain" />
+            <View style={styles.brandRow}>
+              <Image source={require('../assets/guestmark.png')} style={styles.mark} resizeMode="contain" />
+              <Image source={require('../assets/guestlogo.png')} style={styles.logo} resizeMode="contain" />
+            </View>
             <Text style={styles.title}>
               {step === 'sent' ? t('auth.magicLinkSent') : t('auth.signIn')}
             </Text>
@@ -213,8 +215,9 @@ const styles = StyleSheet.create({
   backBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6 },
   backText: { color: colors.text.secondary, fontSize: typography.sizes.base },
   header: { alignItems: 'center', gap: spacing.sm },
-  mark: { width: 52, height: 52 },
-  logo: { height: 56, aspectRatio: 1.48, marginBottom: spacing.xs },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: spacing.xs },
+  mark: { width: 50, height: 50 },
+  logo: { height: 42, aspectRatio: 1.48 },
   title: { fontSize: typography.sizes['3xl'], fontFamily: fonts.displayBold, color: colors.text.primary, textAlign: 'center' },
   subtitle: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted, textAlign: 'center', lineHeight: 20, paddingHorizontal: spacing.lg },
   options: { gap: spacing.md },

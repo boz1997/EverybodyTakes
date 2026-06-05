@@ -68,8 +68,10 @@ export default function WelcomeScreen() {
 
         {/* Logo + headline */}
         <Animated.View style={[styles.headlineBlock, headlineStyle]}>
-          <Image source={require('../assets/guestmark.png')} style={styles.mark} resizeMode="contain" />
-          <Image source={require('../assets/guestlogo.png')} style={styles.logo} resizeMode="contain" />
+          <View style={styles.brandRow}>
+            <Image source={require('../assets/guestmark.png')} style={styles.mark} resizeMode="contain" />
+            <Image source={require('../assets/guestlogo.png')} style={styles.logo} resizeMode="contain" />
+          </View>
           <Text style={styles.headline}>{t('welcome.tagline')}</Text>
           <Text style={styles.subtitle}>{t('welcome.subtitle')}</Text>
         </Animated.View>
@@ -120,8 +122,9 @@ const styles = StyleSheet.create({
   legalRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: spacing.md },
   legalLink: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted },
   legalDot: { fontSize: typography.sizes.xs, color: colors.text.muted },
-  mark: { width: 64, height: 64, marginBottom: spacing.sm },
-  logo: { width: 210, height: 96, marginLeft: -4, marginBottom: spacing.sm },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: spacing.md },
+  mark: { width: 62, height: 62 },
+  logo: { height: 50, aspectRatio: 1.48 },
   headlineBlock: { gap: spacing.sm },
   headline: {
     fontFamily: fonts.displayBold, fontSize: 38, lineHeight: 42,
