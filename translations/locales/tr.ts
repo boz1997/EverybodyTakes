@@ -116,8 +116,8 @@ export default {
     upgradeHint: 'Planı yükselt — daha çok misafir, video, filigransız',
     upgradeHintGuests: 'Planı yükselt — daha çok misafir',
     allowGalleryUpload: 'Galeriden yüklemeye izin ver',
-    uploadNotify: 'Yeni fotoğrafta bildir',
-    uploadNotifyDesc: 'Misafir foto ekledikçe bildirim al',
+    uploadNotify: 'Etkinlik bildirimleri',
+    uploadNotifyDesc: 'Yeni foto, kilometre taşı ve limit uyarıları',
 
     guestSettings: 'Misafir Ayarları',
     maxGuests: 'Maksimum misafir sayısı',

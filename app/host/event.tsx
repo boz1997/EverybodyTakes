@@ -17,9 +17,10 @@ import { Skeleton } from '@shared/components/Skeleton';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 const { width } = Dimensions.get('window');
-// 2-column album grid — portrait cells (~1.4× tall) for a real photo-album feel.
+// 2-column album grid — portrait cells for a real photo-album feel.
+const CELL_RATIO = 13 / 9;   // height / width (tweak for taller/shorter cells)
 const PHOTO_W = (width - spacing.lg * 2 - spacing.xs * 2) / 2;
-const PHOTO_H = Math.round(PHOTO_W * 1.4);
+const PHOTO_H = Math.round(PHOTO_W * CELL_RATIO);
 
 const REMINDERS: { key: '1d' | null; labelKey: string }[] = [
   { key: null, labelKey: 'host.noReminder' },

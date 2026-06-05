@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@lib/firebase';
+import i18n from '@translations/index';
 
 // Registers this device's Expo push token on the user's doc so the
 // notifyHostOnPhoto Cloud Function can push to the host. Safe no-op if the
@@ -20,7 +21,9 @@ export async function registerPushTokenForUser(uid: string): Promise<void> {
     const { data: token } = await Notifications.getExpoPushTokenAsync(
       projectId ? { projectId } : undefined,
     );
-    if (token) await setDoc(doc(db, 'users', uid), { pushToken: token }, { merge: true });
+    // Save language too so the Cloud Functions push in the host's language.
+    const lang = (i18n.language || 'en').slice(0, 2);
+    if (token) await setDoc(doc(db, 'users', uid), { pushToken: token, lang }, { merge: true });
   } catch {
     /* native module missing (pre-rebuild) or permission denied — ignore */
   }

@@ -116,8 +116,8 @@ export default {
     upgradeHint: 'Mejora — más invitados, vídeo, sin marca de agua',
     upgradeHintGuests: 'Mejora — más invitados',
     allowGalleryUpload: 'Permitir subidas desde la galería',
-    uploadNotify: 'Avisarme con fotos nuevas',
-    uploadNotifyDesc: 'Recibe un aviso cada vez que un invitado añade una foto',
+    uploadNotify: 'Notificaciones del evento',
+    uploadNotifyDesc: 'Fotos nuevas, hitos y avisos de límite',
 
     guestSettings: 'Ajustes de invitados',
     maxGuests: 'Máximo de invitados',

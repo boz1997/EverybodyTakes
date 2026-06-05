@@ -26,9 +26,10 @@ import { colors, typography, spacing, radius, fonts, gradients } from '@constant
 
 const { width } = Dimensions.get('window');
 const GAP = spacing.xs;
-// 2-column album grid — portrait cells (~1.4× tall) for a real photo-album feel.
+// 2-column album grid — portrait cells for a real photo-album feel.
+const CELL_RATIO = 13 / 9;   // height / width (tweak for taller/shorter cells)
 const PHOTO_W = (width - spacing.lg * 2 - GAP) / 2;
-const PHOTO_H = Math.round(PHOTO_W * 1.4);
+const PHOTO_H = Math.round(PHOTO_W * CELL_RATIO);
 
 // next_day → start of the day after the event (surprise reveal).
 function revealAtMs(e: Event): number {

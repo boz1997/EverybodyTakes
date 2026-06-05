@@ -116,8 +116,8 @@ export default {
     upgradeHint: 'Upgrade — mehr Gäste, Video, kein Wasserzeichen',
     upgradeHintGuests: 'Upgrade — mehr Gäste',
     allowGalleryUpload: 'Galerie-Uploads erlauben',
-    uploadNotify: 'Bei neuen Fotos benachrichtigen',
-    uploadNotifyDesc: 'Erhalte eine Mitteilung, wenn ein Gast ein Foto hinzufügt',
+    uploadNotify: 'Event-Benachrichtigungen',
+    uploadNotifyDesc: 'Neue Fotos, Meilensteine und Limit-Hinweise',
 
     guestSettings: 'Gäste-Einstellungen',
     maxGuests: 'Maximale Gästezahl',

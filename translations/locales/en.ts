@@ -116,8 +116,8 @@ export default {
     upgradeHint: 'Upgrade — more guests, video, no watermark',
     upgradeHintGuests: 'Upgrade — more guests',
     allowGalleryUpload: 'Allow gallery uploads',
-    uploadNotify: 'Notify me on new photos',
-    uploadNotifyDesc: 'Get a push each time a guest adds a photo',
+    uploadNotify: 'Event notifications',
+    uploadNotifyDesc: 'New photos, milestones and limit alerts for this event',
 
     guestSettings: 'Guest Settings',
     maxGuests: 'Maximum guests',

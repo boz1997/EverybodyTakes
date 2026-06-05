@@ -52,8 +52,11 @@ export default function RootLayout() {
       const Notifications = require('expo-notifications');
       sub = Notifications.addNotificationResponseReceivedListener((resp: { notification?: { request?: { content?: { data?: Record<string, string> } } } }) => {
         const data = resp?.notification?.request?.content?.data;
-        if (data?.type === 'upgrade' && data.eventId) {
+        if (!data?.eventId) return;
+        if (data.type === 'upgrade') {
           router.push({ pathname: '/host/paywall', params: { upgradeId: data.eventId, current: data.current ?? 'free' } });
+        } else {
+          router.push({ pathname: '/host/event', params: { id: data.eventId } });
         }
       });
     } catch { /* native module missing */ }
