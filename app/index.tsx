@@ -12,6 +12,7 @@ import { Linking } from 'react-native';
 import { useAuthStore } from '@store/authStore';
 import { Icon } from '@shared/components/Icon';
 import { GuestArt, HostArt } from '@shared/components/RoleArt';
+import { Wordmark } from '@shared/components/Wordmark';
 import { LINKS } from '@constants/links';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
@@ -70,7 +71,7 @@ export default function WelcomeScreen() {
         <Animated.View style={[styles.headlineBlock, headlineStyle]}>
           <View style={styles.brandRow}>
             <Image source={require('../assets/guestmark.png')} style={styles.mark} resizeMode="contain" />
-            <Image source={require('../assets/guestlogo.png')} style={styles.logo} resizeMode="contain" />
+            <Wordmark size={30} />
           </View>
           <Text style={styles.headline}>{t('welcome.tagline')}</Text>
           <Text style={styles.subtitle}>{t('welcome.subtitle')}</Text>
@@ -122,9 +123,8 @@ const styles = StyleSheet.create({
   legalRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: spacing.md },
   legalLink: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted },
   legalDot: { fontSize: typography.sizes.xs, color: colors.text.muted },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: spacing.md },
-  mark: { width: 60, height: 60 },
-  logo: { width: 132, height: 56 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: spacing.md },
+  mark: { width: 56, height: 56 },
   headlineBlock: { gap: spacing.sm },
   headline: {
     fontFamily: fonts.displayBold, fontSize: 38, lineHeight: 42,

@@ -21,6 +21,7 @@ import { useAuthStore } from '@store/authStore';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
 import { Icon, BrandIcon } from '@shared/components/Icon';
+import { Wordmark } from '@shared/components/Wordmark';
 import { LINKS } from '@constants/links';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
@@ -94,7 +95,7 @@ export default function AuthScreen() {
           <View style={styles.header}>
             <View style={styles.brandRow}>
               <Image source={require('../assets/guestmark.png')} style={styles.mark} resizeMode="contain" />
-              <Image source={require('../assets/guestlogo.png')} style={styles.logo} resizeMode="contain" />
+              <Wordmark size={24} />
             </View>
             <Text style={styles.title}>
               {step === 'sent' ? t('auth.magicLinkSent') : t('auth.signIn')}
@@ -215,9 +216,8 @@ const styles = StyleSheet.create({
   backBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6 },
   backText: { color: colors.text.secondary, fontSize: typography.sizes.base },
   header: { alignItems: 'center', gap: spacing.sm },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: spacing.xs },
-  mark: { width: 48, height: 48 },
-  logo: { width: 104, height: 44 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: spacing.xs },
+  mark: { width: 46, height: 46 },
   title: { fontSize: typography.sizes['3xl'], fontFamily: fonts.displayBold, color: colors.text.primary, textAlign: 'center' },
   subtitle: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted, textAlign: 'center', lineHeight: 20, paddingHorizontal: spacing.lg },
   options: { gap: spacing.md },
