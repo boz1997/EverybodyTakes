@@ -176,6 +176,7 @@ export default {
     enterCodePlaceholder: 'Event-Code eingeben',
     enterCodeOrLink: 'Gib den 6-stelligen Code ein oder füge den Event-Link ein',
     pasteCode: 'Aus Zwischenablage einfügen',
+    fromAlbum: 'Aus Album',
     joiningEvent: 'Event wird beigetreten...',
     joinEvent: 'Event beitreten',
 
@@ -323,6 +324,9 @@ export default {
     deleteAccountConfirmBody: 'Dies löscht dein Konto, deine Events und die von dir hochgeladenen Fotos endgültig. Dies kann nicht rückgängig gemacht werden.',
     deleting: 'Wird gelöscht…',
     deleteAccountDone: 'Dein Konto und deine Daten wurden gelöscht.',
+    signInSave: 'Anmelden, um dein Konto zu sichern',
+    signInSaveDesc: 'Behalte deine Events und Fotos auch nach Neuinstallation.',
+    signedIn: 'Angemeldet',
   },
 
   moderation: {

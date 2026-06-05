@@ -176,6 +176,7 @@ export default {
     enterCodePlaceholder: 'Etkinlik kodunu gir',
     enterCodeOrLink: '6 haneli kodu gir veya etkinlik linkini yapıştır',
     pasteCode: 'Panodan yapıştır',
+    fromAlbum: 'Albümden oku',
     joiningEvent: 'Etkinliğe katılıyorsun...',
     joinEvent: 'Etkinliğe Katıl',
 
@@ -323,6 +324,9 @@ export default {
     deleteAccountConfirmBody: 'Bu işlem hesabını, etkinliklerini ve yüklediğin fotoğrafları kalıcı olarak siler. Geri alınamaz.',
     deleting: 'Siliniyor…',
     deleteAccountDone: 'Hesabın ve verilerin silindi.',
+    signInSave: 'Hesabını kaydetmek için giriş yap',
+    signInSaveDesc: 'Uygulamayı silsen bile etkinlik ve fotoğraflarını koru.',
+    signedIn: 'Giriş yapıldı',
   },
 
   moderation: {

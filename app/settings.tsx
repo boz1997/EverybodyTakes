@@ -33,7 +33,18 @@ export default function SettingsScreen() {
     })();
   }, [user]);
 
+  const signedIn = !!user && !user.isAnonymous;
   const openLink = (url: string) => Linking.openURL(url).catch(() => Alert.alert(t('common.error')));
+
+  const confirmSignOut = () => {
+    Alert.alert(t('settings.logout'), t('settings.logoutConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('settings.logout'), style: 'destructive',
+        onPress: async () => { await AuthService.signOut().catch(() => {}); reset(); router.replace('/'); },
+      },
+    ]);
+  };
 
   const linkRow = (icon: IconName, label: string, onPress: () => void, danger = false) => (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7} disabled={deleting}>
@@ -99,16 +110,34 @@ export default function SettingsScreen() {
           {linkRow('mail', t('settings.support'), () => openLink(LINKS.support))}
         </View>
 
-        {/* Account — shown only when the user has data to delete */}
-        {hasData && (
-          <>
-            <Text style={styles.sectionTitle}>{t('settings.account')}</Text>
-            <View style={styles.card}>
+        {/* Account */}
+        <Text style={styles.sectionTitle}>{t('settings.account')}</Text>
+        <View style={styles.card}>
+          {signedIn ? (
+            <>
+              <View style={styles.row}>
+                <Icon name="users" size={20} color={colors.brand.DEFAULT} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowLabel}>{user?.email ?? user?.displayName ?? t('settings.signedIn')}</Text>
+                  <Text style={styles.deleteHint}>{t('settings.signedIn')}</Text>
+                </View>
+              </View>
+              <View style={styles.divider} />
+              {linkRow('arrowRight', t('settings.logout'), confirmSignOut)}
+            </>
+          ) : (
+            <>
+              {linkRow('users', t('settings.signInSave'), () => router.push('/auth'))}
+              <Text style={styles.deleteHint}>{t('settings.signInSaveDesc')}</Text>
+            </>
+          )}
+          {hasData && (
+            <>
+              <View style={styles.divider} />
               {linkRow('trash', deleting ? t('settings.deleting') : t('settings.deleteAccount'), confirmDelete, true)}
-              <Text style={styles.deleteHint}>{t('settings.deleteAccountDesc')}</Text>
-            </View>
-          </>
-        )}
+            </>
+          )}
+        </View>
 
         <Text style={styles.version}>
           {t('settings.version')} {Constants.expoConfig?.version ?? '1.0.0'}

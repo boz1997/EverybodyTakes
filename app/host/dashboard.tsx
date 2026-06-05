@@ -118,11 +118,11 @@ export default function HostDashboard() {
         </TouchableOpacity>
         <View style={styles.headerActions}>
           <TouchableOpacity
-            onPress={() => router.push('/guest/scan')}
+            onPress={() => router.push('/settings')}
             style={styles.joinBtn}
             activeOpacity={0.8}
           >
-            <Icon name="qr" size={20} color={colors.text.primary} />
+            <Icon name="settings" size={20} color={colors.text.secondary} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/host/create')} style={styles.createBtn} activeOpacity={0.85}>
             <LinearGradient colors={gradients.amber} style={styles.createBtnGradient}>

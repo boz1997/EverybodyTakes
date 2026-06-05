@@ -176,6 +176,7 @@ export default {
     enterCodePlaceholder: 'Saisissez le code de l\'événement',
     enterCodeOrLink: 'Saisissez le code à 6 chiffres ou collez le lien de l\'événement',
     pasteCode: 'Coller depuis le presse-papiers',
+    fromAlbum: 'Depuis l\'album',
     joiningEvent: 'Connexion à l\'événement...',
     joinEvent: 'Rejoindre l\'événement',
 
@@ -323,6 +324,9 @@ export default {
     deleteAccountConfirmBody: 'Cela supprime définitivement votre compte, vos événements et les photos que vous avez envoyées. Cette action est irréversible.',
     deleting: 'Suppression…',
     deleteAccountDone: 'Votre compte et vos données ont été supprimés.',
+    signInSave: 'Connectez-vous pour sauvegarder votre compte',
+    signInSaveDesc: 'Gardez vos événements et photos même après réinstallation.',
+    signedIn: 'Connecté',
   },
 
   moderation: {

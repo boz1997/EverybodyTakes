@@ -62,9 +62,14 @@ export default function JoinedEventsScreen() {
           <Icon name="arrowLeft" size={24} color={colors.text.secondary} />
         </TouchableOpacity>
         <Text style={styles.title}>{t('guest.myEvents')}</Text>
-        <TouchableOpacity onPress={() => router.replace('/guest/scan')} style={styles.joinBtn} activeOpacity={0.8}>
-          <Icon name="qr" size={20} color={colors.brand.DEFAULT} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => router.push('/settings')} style={styles.joinBtn} activeOpacity={0.8}>
+            <Icon name="settings" size={20} color={colors.text.secondary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.replace('/guest/scan')} style={styles.joinBtn} activeOpacity={0.8}>
+            <Icon name="qr" size={20} color={colors.brand.DEFAULT} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <FlatList
@@ -96,6 +101,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: colors.border.subtle,
   },
   backBtn: { width: 32, height: 32, justifyContent: 'center' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   joinBtn: { width: 36, height: 36, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border.brand, backgroundColor: colors.brand.glow },
   title: { fontSize: typography.sizes.lg, fontFamily: fonts.displayBold, color: colors.text.primary },
   list: { padding: spacing.lg, gap: spacing.sm },

@@ -13,6 +13,7 @@
     },
     "ios": {
       "supportsTablet": false,
+      "usesAppleSignIn": true,
       "bundleIdentifier": "com.guestcam.app",
       "infoPlist": {
         "NSCameraUsageDescription": "GuestCam uses the camera so you can take photos and record videos inside an event you've joined.",
@@ -57,7 +58,8 @@
       "@react-native-community/datetimepicker",
       "expo-video",
       "expo-live-activity",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true

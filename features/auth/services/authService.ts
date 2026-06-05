@@ -4,12 +4,16 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   signInWithCredential,
+  linkWithCredential,
+  AuthCredential,
   signOut,
   deleteUser,
   onAuthStateChanged,
   User,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import { auth, db } from '@lib/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -32,19 +36,55 @@ export const AuthService = {
     });
   },
 
-  async signInWithGoogle(idToken: string): Promise<User> {
-    const credential = GoogleAuthProvider.credential(idToken);
+  // Links the credential to the current anonymous user so their events/photos
+  // are preserved. If the credential already belongs to an existing account
+  // (e.g. reinstall), sign into that account instead to recover the data.
+  async linkOrSignIn(credential: AuthCredential): Promise<User> {
+    const current = auth.currentUser;
+    if (current && current.isAnonymous) {
+      try {
+        const { user } = await linkWithCredential(current, credential);
+        await AuthService.ensureUserDoc(user);
+        return user;
+      } catch (e) {
+        const code = (e as { code?: string })?.code;
+        if (code !== 'auth/credential-already-in-use' && code !== 'auth/email-already-in-use') throw e;
+      }
+    }
     const { user } = await signInWithCredential(auth, credential);
     await AuthService.ensureUserDoc(user);
     return user;
   },
 
-  async signInWithApple(identityToken: string): Promise<User> {
+  async signInWithGoogle(idToken: string): Promise<User> {
+    return AuthService.linkOrSignIn(GoogleAuthProvider.credential(idToken));
+  },
+
+  // Native Apple Sign-In (also satisfies "Face ID login" via the system sheet).
+  async signInWithApple(): Promise<User> {
+    const rawNonce = Crypto.randomUUID();
+    const hashedNonce = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      rawNonce,
+    );
+    const appleCredential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+      nonce: hashedNonce,
+    });
+    if (!appleCredential.identityToken) throw new Error('Apple sign-in failed');
     const provider = new OAuthProvider('apple.com');
-    const credential = provider.credential({ idToken: identityToken });
-    const { user } = await signInWithCredential(auth, credential);
-    await AuthService.ensureUserDoc(user);
-    return user;
+    const credential = provider.credential({
+      idToken: appleCredential.identityToken,
+      rawNonce,
+    });
+    return AuthService.linkOrSignIn(credential);
+  },
+
+  async isAppleAvailable(): Promise<boolean> {
+    try { return await AppleAuthentication.isAvailableAsync(); } catch { return false; }
   },
 
   async signOut(): Promise<void> {

@@ -176,6 +176,7 @@ export default {
     enterCodePlaceholder: 'Enter event code',
     enterCodeOrLink: 'Enter the 6-digit code or paste the event link',
     pasteCode: 'Paste from clipboard',
+    fromAlbum: 'From album',
     joiningEvent: 'Joining event...',
     joinEvent: 'Join Event',
 
@@ -323,6 +324,9 @@ export default {
     deleteAccountConfirmBody: 'This permanently deletes your account, your events and the photos you uploaded. This cannot be undone.',
     deleting: 'Deleting…',
     deleteAccountDone: 'Your account and data have been deleted.',
+    signInSave: 'Sign in to save your account',
+    signInSaveDesc: 'Keep your events and photos even if you reinstall the app.',
+    signedIn: 'Signed in',
   },
 
   moderation: {

@@ -4,13 +4,14 @@ import {
   Platform, Dimensions, Alert,
 } from 'react-native';
 import { router } from 'expo-router';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { CameraView, useCameraPermissions, scanFromURLAsync } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import * as Clipboard from 'expo-clipboard';
+import * as ImagePicker from 'expo-image-picker';
 import { CodeInput, extractCode } from '@shared/components/CodeInput';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { Icon } from '@shared/components/Icon';
@@ -60,6 +61,21 @@ export default function ScanScreen() {
   const handlePaste = async () => {
     const text = await Clipboard.getStringAsync();
     if (text) setCode(extractCode(text));
+  };
+
+  // Pick a saved invite image from the library and decode its QR.
+  const handleAlbum = async () => {
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
+    if (res.canceled || !res.assets?.[0]?.uri) return;
+    try {
+      const found = await scanFromURLAsync(res.assets[0].uri, ['qr']);
+      const data = found?.[0]?.data;
+      const eventCode = data ? extractCode(data) : '';
+      if (eventCode.length === 6) router.push({ pathname: '/guest/join', params: { code: eventCode } });
+      else Alert.alert(t('errors.invalidQR'));
+    } catch {
+      Alert.alert(t('errors.invalidQR'));
+    }
   };
 
   if (!permission?.granted) {
@@ -128,6 +144,10 @@ export default function ScanScreen() {
               <TouchableOpacity onPress={() => setMode('code')} style={styles.scanPill}>
                 <Icon name="keyboard" size={16} color="#fff" />
                 <Text style={styles.scanPillText}>{t('guest.enterCode')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleAlbum} style={styles.scanPill}>
+                <Icon name="image" size={16} color="#fff" />
+                <Text style={styles.scanPillText}>{t('guest.fromAlbum')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => router.push('/guest/joined')} style={[styles.scanPill, styles.scanPillPrimary]}>
                 <Icon name="gallery" size={16} color={colors.text.inverse} />

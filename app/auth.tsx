@@ -51,6 +51,21 @@ export default function AuthScreen() {
     }
   };
 
+  const handleApple = async () => {
+    try {
+      setLoading(true);
+      const user = await AuthService.signInWithApple();
+      setUser(user);
+      navigateAfterAuth();
+    } catch (e: unknown) {
+      const code = (e as { code?: string })?.code;
+      if (code === 'ERR_REQUEST_CANCELED' || code === 'ERR_CANCELED') return; // user dismissed
+      Alert.alert(t('common.error'), String((e as { message?: string })?.message ?? e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleMagicLink = async () => {
     if (!email || !email.includes('@')) {
       setEmailError(t('auth.email') + ' geçersiz');
@@ -68,11 +83,10 @@ export default function AuthScreen() {
   };
 
   const navigateAfterAuth = () => {
-    if (params.role === 'host') {
-      router.replace('/host/dashboard');
-    } else {
-      router.replace('/guest/scan');
-    }
+    if (params.role === 'host') router.replace('/host/dashboard');
+    else if (params.role === 'guest') router.replace('/guest/scan');
+    else if (router.canGoBack()) router.back();       // reached from Settings
+    else router.replace('/');
   };
 
   return (
@@ -112,13 +126,14 @@ export default function AuthScreen() {
           {step === 'options' && (
             <View style={styles.options}>
               {/* Apple */}
-              <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8} onPress={() => Alert.alert(t('auth.socialSoonTitle'), t('auth.socialSoon'))}>
-                <View style={styles.socialIconWrap}>
-                  <BrandIcon brand="apple" size={20} color={colors.text.primary} />
-                </View>
-                <Text style={styles.socialLabel}>{t('auth.continueWithApple')}</Text>
-                <Text style={styles.soonTag}>{t('auth.soonShort')}</Text>
-              </TouchableOpacity>
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8} onPress={handleApple} disabled={isLoading}>
+                  <View style={styles.socialIconWrap}>
+                    <BrandIcon brand="apple" size={20} color={colors.text.primary} />
+                  </View>
+                  <Text style={styles.socialLabel}>{t('auth.continueWithApple')}</Text>
+                </TouchableOpacity>
+              )}
 
               {/* Google */}
               <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8} onPress={() => Alert.alert(t('auth.socialSoonTitle'), t('auth.socialSoon'))}>
