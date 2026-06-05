@@ -41,15 +41,21 @@ export default function SettingsScreen() {
   const signedIn = !!user && !user.isAnonymous;
   const openLink = (url: string) => Linking.openURL(url).catch(() => Alert.alert(t('common.error')));
 
+  const isCancel = (e: unknown) => {
+    const code = (e as { code?: string })?.code;
+    const msg = (e as { message?: string })?.message;
+    return msg === 'cancelled' || code === 'ERR_REQUEST_CANCELED' || code === 'ERR_CANCELED'
+      || code === 'SIGN_IN_CANCELLED' || code === '-5' || code === '12501';
+  };
+
   const handleApple = async () => {
-    try {
-      const u = await AuthService.signInWithApple();
-      setUser(u);
-    } catch (e: unknown) {
-      const code = (e as { code?: string })?.code;
-      if (code === 'ERR_REQUEST_CANCELED' || code === 'ERR_CANCELED') return;
-      Alert.alert(t('common.error'), String((e as { message?: string })?.message ?? e));
-    }
+    try { setUser(await AuthService.signInWithApple()); }
+    catch (e: unknown) { if (!isCancel(e)) Alert.alert(t('common.error'), String((e as { message?: string })?.message ?? e)); }
+  };
+
+  const handleGoogle = async () => {
+    try { setUser(await AuthService.signInWithGoogle()); }
+    catch (e: unknown) { if (!isCancel(e)) Alert.alert(t('common.error'), String((e as { message?: string })?.message ?? e)); }
   };
 
   const handleEmail = async () => {
@@ -170,14 +176,9 @@ export default function SettingsScreen() {
                   <Text style={styles.appleBtnText}>{t('auth.continueWithApple')}</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity
-                style={styles.googleBtn}
-                onPress={() => Alert.alert(t('auth.socialSoonTitle'), t('auth.socialSoon'))}
-                activeOpacity={0.85}
-              >
+              <TouchableOpacity style={styles.googleBtn} onPress={handleGoogle} activeOpacity={0.85}>
                 <BrandIcon brand="google" size={18} color={colors.text.primary} />
                 <Text style={styles.googleBtnText}>{t('auth.continueWithGoogle')}</Text>
-                <Text style={styles.soonTag}>{t('auth.soonShort')}</Text>
               </TouchableOpacity>
 
               {!emailOpen ? (
@@ -230,8 +231,8 @@ const styles = StyleSheet.create({
   signInDesc: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted, lineHeight: 16, marginBottom: spacing.xs },
   appleBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 50, borderRadius: radius.lg, backgroundColor: '#000' },
   appleBtnText: { color: '#fff', fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold },
-  googleBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, height: 50, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.elevated, paddingHorizontal: spacing.lg },
-  googleBtnText: { flex: 1, color: colors.text.primary, fontSize: typography.sizes.base, fontFamily: fonts.bodyMedium },
+  googleBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 50, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.elevated, paddingHorizontal: spacing.lg },
+  googleBtnText: { color: colors.text.primary, fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold },
   soonTag: { fontSize: typography.sizes.xs, fontFamily: fonts.bodySemibold, color: colors.text.muted, backgroundColor: colors.bg.card, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 3, overflow: 'hidden' },
   emailForm: { gap: spacing.sm },
   emailSubmit: { height: 50, borderRadius: radius.lg, backgroundColor: colors.brand.DEFAULT, alignItems: 'center', justifyContent: 'center' },

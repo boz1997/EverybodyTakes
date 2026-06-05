@@ -67,6 +67,22 @@ export default function AuthScreen() {
     }
   };
 
+  const handleGoogle = async () => {
+    try {
+      setLoading(true);
+      const user = await AuthService.signInWithGoogle();
+      setUser(user);
+      navigateAfterAuth();
+    } catch (e: unknown) {
+      const code = (e as { code?: string })?.code;
+      const msg = (e as { message?: string })?.message;
+      if (msg === 'cancelled' || code === 'SIGN_IN_CANCELLED' || code === '-5' || code === '12501') return;
+      Alert.alert(t('common.error'), String(msg ?? e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEmailAuth = async () => {
     if (!email.includes('@') || password.length < 6) {
       setEmailError(t('auth.emailPasswordHint'));
@@ -140,12 +156,11 @@ export default function AuthScreen() {
               )}
 
               {/* Google */}
-              <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8} onPress={() => Alert.alert(t('auth.socialSoonTitle'), t('auth.socialSoon'))}>
+              <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8} onPress={handleGoogle} disabled={isLoading}>
                 <View style={styles.socialIconWrap}>
                   <BrandIcon brand="google" size={18} color={colors.text.primary} />
                 </View>
                 <Text style={styles.socialLabel}>{t('auth.continueWithGoogle')}</Text>
-                <Text style={styles.soonTag}>{t('auth.soonShort')}</Text>
               </TouchableOpacity>
 
               {/* Email + password */}

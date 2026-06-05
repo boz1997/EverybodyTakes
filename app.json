@@ -59,13 +59,20 @@
       "expo-video",
       "expo-live-activity",
       "expo-sharing",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.759909661412-56v7albtji1f8pmsi9ofejthes43rt18"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
       "router": {},
+      "googleIosClientId": "759909661412-56v7albtji1f8pmsi9ofejthes43rt18.apps.googleusercontent.com",
       "eas": {
         "projectId": "b3d702ff-7787-4a6b-8b0b-ffb5a1989da7"
       }

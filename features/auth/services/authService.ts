@@ -57,7 +57,21 @@ export const AuthService = {
     return user;
   },
 
-  async signInWithGoogle(idToken: string): Promise<User> {
+  // Native Google Sign-In. Modules required lazily so a build without them
+  // doesn't crash at import; links to the anonymous user to preserve data.
+  async signInWithGoogle(): Promise<User> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { GoogleSignin } = require('@react-native-google-signin/google-signin');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Constants = require('expo-constants').default;
+
+    const iosClientId = Constants.expoConfig?.extra?.googleIosClientId;
+    GoogleSignin.configure({ iosClientId });
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true }).catch(() => {});
+    const res = await GoogleSignin.signIn();
+    if (res?.type === 'cancelled') throw new Error('cancelled');
+    const idToken = res?.data?.idToken ?? res?.idToken;
+    if (!idToken) throw new Error('Google sign-in failed');
     return AuthService.linkOrSignIn(GoogleAuthProvider.credential(idToken));
   },
 
