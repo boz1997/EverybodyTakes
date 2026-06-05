@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking, Platform,
 } from 'react-native';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,7 +12,7 @@ import { EventService } from '@features/events/services/eventService';
 import { useAuthStore } from '@store/authStore';
 import { getJoinedEvents, clearAllLocal } from '@store/guestEvents';
 import { LanguageToggle } from '@shared/components/LanguageToggle';
-import { Icon, IconName } from '@shared/components/Icon';
+import { Icon, IconName, BrandIcon } from '@shared/components/Icon';
 import { LINKS } from '@constants/links';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
@@ -25,13 +24,6 @@ export default function SettingsScreen() {
   // Only surface account deletion once there's actually something to delete —
   // a brand-new visitor who hasn't joined or hosted anything has no data yet.
   const [hasData, setHasData] = useState(false);
-  // Only render the native Apple button if the module is actually in the build.
-  const [appleReady, setAppleReady] = useState(false);
-
-  useEffect(() => {
-    if (Platform.OS !== 'ios') return;
-    AppleAuthentication.isAvailableAsync().then(setAppleReady).catch(() => setAppleReady(false));
-  }, []);
 
   useEffect(() => {
     (async () => {
@@ -148,15 +140,21 @@ export default function SettingsScreen() {
             <View style={styles.signInBlock}>
               <Text style={styles.signInTitle}>{t('settings.signInSave')}</Text>
               <Text style={styles.signInDesc}>{t('settings.signInSaveDesc')}</Text>
-              {appleReady ? (
-                <AppleAuthentication.AppleAuthenticationButton
-                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                  cornerRadius={radius.lg}
-                  style={styles.appleBtn}
-                  onPress={handleApple}
-                />
-              ) : null}
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity style={styles.appleBtn} onPress={handleApple} activeOpacity={0.85}>
+                  <BrandIcon brand="apple" size={18} color="#fff" />
+                  <Text style={styles.appleBtnText}>{t('auth.continueWithApple')}</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={styles.googleBtn}
+                onPress={() => Alert.alert(t('auth.socialSoonTitle'), t('auth.socialSoon'))}
+                activeOpacity={0.85}
+              >
+                <BrandIcon brand="google" size={18} color={colors.text.primary} />
+                <Text style={styles.googleBtnText}>{t('auth.continueWithGoogle')}</Text>
+                <Text style={styles.soonTag}>{t('auth.soonShort')}</Text>
+              </TouchableOpacity>
             </View>
           )}
           {hasData && (
@@ -188,9 +186,13 @@ const styles = StyleSheet.create({
   rowLabel: { flex: 1, fontSize: typography.sizes.base, fontFamily: fonts.bodyMedium, color: colors.text.primary },
   divider: { height: 1, backgroundColor: colors.border.subtle },
   deleteHint: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted, paddingBottom: spacing.sm, paddingHorizontal: 2, lineHeight: 16 },
-  signInBlock: { paddingVertical: spacing.md, gap: 6 },
+  signInBlock: { paddingVertical: spacing.md, gap: spacing.sm },
   signInTitle: { fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold, color: colors.text.primary },
-  signInDesc: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted, lineHeight: 16, marginBottom: spacing.sm },
-  appleBtn: { height: 48, width: '100%' },
+  signInDesc: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted, lineHeight: 16, marginBottom: spacing.xs },
+  appleBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 50, borderRadius: radius.lg, backgroundColor: '#000' },
+  appleBtnText: { color: '#fff', fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold },
+  googleBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, height: 50, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.elevated, paddingHorizontal: spacing.lg },
+  googleBtnText: { flex: 1, color: colors.text.primary, fontSize: typography.sizes.base, fontFamily: fonts.bodyMedium },
+  soonTag: { fontSize: typography.sizes.xs, fontFamily: fonts.bodySemibold, color: colors.text.muted, backgroundColor: colors.bg.card, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 3, overflow: 'hidden' },
   version: { textAlign: 'center', color: colors.text.muted, fontSize: typography.sizes.xs, marginTop: spacing.xl },
 });
