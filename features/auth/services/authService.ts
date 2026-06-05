@@ -12,8 +12,6 @@ import {
   User,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Crypto from 'expo-crypto';
 import { auth, db } from '@lib/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -61,7 +59,13 @@ export const AuthService = {
   },
 
   // Native Apple Sign-In (also satisfies "Face ID login" via the system sheet).
+  // Modules are required lazily so a build without them doesn't crash at import.
   async signInWithApple(): Promise<User> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const AppleAuthentication = require('expo-apple-authentication');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Crypto = require('expo-crypto');
+
     const rawNonce = Crypto.randomUUID();
     const hashedNonce = await Crypto.digestStringAsync(
       Crypto.CryptoDigestAlgorithm.SHA256,
@@ -81,10 +85,6 @@ export const AuthService = {
       rawNonce,
     });
     return AuthService.linkOrSignIn(credential);
-  },
-
-  async isAppleAvailable(): Promise<boolean> {
-    try { return await AppleAuthentication.isAvailableAsync(); } catch { return false; }
   },
 
   async signOut(): Promise<void> {

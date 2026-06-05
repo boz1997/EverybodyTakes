@@ -25,6 +25,13 @@ export default function SettingsScreen() {
   // Only surface account deletion once there's actually something to delete —
   // a brand-new visitor who hasn't joined or hosted anything has no data yet.
   const [hasData, setHasData] = useState(false);
+  // Only render the native Apple button if the module is actually in the build.
+  const [appleReady, setAppleReady] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    AppleAuthentication.isAvailableAsync().then(setAppleReady).catch(() => setAppleReady(false));
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -141,7 +148,7 @@ export default function SettingsScreen() {
             <View style={styles.signInBlock}>
               <Text style={styles.signInTitle}>{t('settings.signInSave')}</Text>
               <Text style={styles.signInDesc}>{t('settings.signInSaveDesc')}</Text>
-              {Platform.OS === 'ios' && (
+              {appleReady ? (
                 <AppleAuthentication.AppleAuthenticationButton
                   buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
                   buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
@@ -149,7 +156,7 @@ export default function SettingsScreen() {
                   style={styles.appleBtn}
                   onPress={handleApple}
                 />
-              )}
+              ) : null}
             </View>
           )}
           {hasData && (
