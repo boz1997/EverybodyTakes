@@ -13,10 +13,13 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { EventService, Event, Photo } from '@features/events/services/eventService';
 import { getPlan } from '@constants/plans';
 import { Icon } from '@shared/components/Icon';
+import { Skeleton } from '@shared/components/Skeleton';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 const { width } = Dimensions.get('window');
-const PHOTO_SIZE = (width - spacing.lg * 2 - spacing.sm * 2) / 3;
+// 2-column album grid — portrait cells (~1.4× tall) for a real photo-album feel.
+const PHOTO_W = (width - spacing.lg * 2 - spacing.xs * 2) / 2;
+const PHOTO_H = Math.round(PHOTO_W * 1.4);
 
 const REMINDERS: { key: '1d' | null; labelKey: string }[] = [
   { key: null, labelKey: 'host.noReminder' },
@@ -36,6 +39,7 @@ export default function EventManage() {
 
   const [event, setEvent] = useState<Event | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [photosLoaded, setPhotosLoaded] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [saving, setSaving] = useState(false);
   const [dlProgress, setDlProgress] = useState<{ done: number; total: number } | null>(null);
@@ -43,7 +47,7 @@ export default function EventManage() {
   useEffect(() => {
     if (!id) return;
     EventService.getById(id).then(setEvent);
-    const unsub = EventService.subscribeToPhotos(id, setPhotos);
+    const unsub = EventService.subscribeToPhotos(id, (ps) => { setPhotos(ps); setPhotosLoaded(true); });
     return unsub;
   }, [id]);
 
@@ -292,13 +296,17 @@ export default function EventManage() {
       {event && (
         <View style={styles.statsBar}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{photos.length}</Text>
+            <Text style={styles.statValue}>
+              {event.photoCap != null ? `${photos.length}/${event.photoCap}` : photos.length}
+            </Text>
             <Text style={styles.statLabel}>{t('gallery.photos')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{event.guestCount}</Text>
-            <Text style={styles.statLabel}>misafir</Text>
+            <Text style={styles.statValue}>
+              {event.maxGuests != null ? `${event.guestCount}/${event.maxGuests}` : event.guestCount}
+            </Text>
+            <Text style={styles.statLabel}>{t('host.guestsLabel')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={[styles.statItem, styles.liveIndicator]}>
@@ -315,7 +323,7 @@ export default function EventManage() {
         data={photos}
         keyExtractor={(p) => p.id}
         renderItem={renderPhoto}
-        numColumns={3}
+        numColumns={2}
         contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + spacing.xl }]}
         ListHeaderComponent={
           <>
@@ -334,13 +342,21 @@ export default function EventManage() {
           </>
         }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <View style={styles.emptyIconWrap}>
-              <Icon name="camera" size={32} color={colors.brand.light} strokeWidth={1.6} />
+          !photosLoaded && (event?.photoCount ?? 0) > 0 ? (
+            <View style={styles.skeletonGrid}>
+              {Array.from({ length: Math.min(event!.photoCount, 8) }).map((_, i) => (
+                <Skeleton key={i} style={styles.photoCell} />
+              ))}
             </View>
-            <Text style={styles.emptyText}>Henüz fotoğraf yok</Text>
-            <Text style={styles.emptySubText}>Misafirlerin fotoğraf çektikçe burada görünür</Text>
-          </View>
+          ) : (
+            <View style={styles.empty}>
+              <View style={styles.emptyIconWrap}>
+                <Icon name="camera" size={32} color={colors.brand.light} strokeWidth={1.6} />
+              </View>
+              <Text style={styles.emptyText}>{t('gallery.empty')}</Text>
+              <Text style={styles.emptySubText}>{t('gallery.emptySubtitle')}</Text>
+            </View>
+          )
         }
       />
 
@@ -449,8 +465,9 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: typography.sizes.base, fontFamily: fonts.displayBold, color: colors.text.primary },
   downloadAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   downloadAllText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold, color: colors.brand.DEFAULT },
-  photoCell: { width: PHOTO_SIZE, height: PHOTO_SIZE, borderRadius: radius.md, overflow: 'hidden', margin: spacing.xs / 2 },
-  photo: { width: '100%', height: '100%' },
+  photoCell: { width: PHOTO_W, height: PHOTO_H, borderRadius: radius.md, overflow: 'hidden', margin: spacing.xs / 2 },
+  photo: { width: '100%', height: '100%', backgroundColor: colors.border.subtle },
+  skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   playBadge: { position: 'absolute', top: 6, left: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
   flagBadge: { position: 'absolute', bottom: 6, left: 6, right: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: 'rgba(190,46,46,0.92)', borderRadius: radius.sm, paddingVertical: 3 },
   flagText: { color: '#fff', fontSize: 10, fontFamily: fonts.bodyBold },

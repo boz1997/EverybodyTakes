@@ -21,11 +21,14 @@ import { scheduleLocalAt } from '@shared/notifications';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
 import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
+import { Skeleton } from '@shared/components/Skeleton';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
 const { width } = Dimensions.get('window');
 const GAP = spacing.xs;
-const PHOTO = (width - spacing.lg * 2 - GAP * 2) / 3;
+// 2-column album grid — portrait cells (~1.4× tall) for a real photo-album feel.
+const PHOTO_W = (width - spacing.lg * 2 - GAP) / 2;
+const PHOTO_H = Math.round(PHOTO_W * 1.4);
 
 // next_day → start of the day after the event (surprise reveal).
 function revealAtMs(e: Event): number {
@@ -55,6 +58,7 @@ export default function EventHubScreen() {
 
   const [event, setEvent] = useState<Event | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [photosLoaded, setPhotosLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [nickname, setNicknameState] = useState('');
@@ -106,7 +110,7 @@ export default function EventHubScreen() {
             if (e instanceof LimitError && e.code === 'event_full') setError(t('errors.maxGuestsReached'));
           }
         }
-        unsub = EventService.subscribeToPhotos(ev.id, setPhotos);
+        unsub = EventService.subscribeToPhotos(ev.id, (ps) => { setPhotos(ps); setPhotosLoaded(true); });
       } catch {
         setError(t('errors.unknownError'));
       } finally {
@@ -273,6 +277,12 @@ export default function EventHubScreen() {
               <Text style={styles.lockedText}>{t('guest.developing')}</Text>
               <Text style={styles.opensText}>{t('guest.opensAt', { time: format(new Date(revealAtMs(event)), 'd MMM HH:mm') })}</Text>
             </View>
+          ) : !photosLoaded && (event.photoCount ?? 0) > 0 ? (
+            <View style={styles.grid}>
+              {Array.from({ length: Math.min(event.photoCount, 8) }).map((_, i) => (
+                <Skeleton key={i} style={styles.cell} />
+              ))}
+            </View>
           ) : visiblePhotos.length === 0 ? (
             <View style={styles.emptyGal}>
               <Icon name="camera" size={28} color={colors.brand.light} strokeWidth={1.6} />
@@ -381,8 +391,8 @@ const styles = StyleSheet.create({
   emptyGal: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing['2xl'] },
   emptyGalText: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP },
-  cell: { width: PHOTO, height: PHOTO, borderRadius: radius.md, overflow: 'hidden' },
-  cellImg: { width: '100%', height: '100%' },
+  cell: { width: PHOTO_W, height: PHOTO_H, borderRadius: radius.md, overflow: 'hidden' },
+  cellImg: { width: '100%', height: '100%', backgroundColor: colors.border.subtle },
   mine: { position: 'absolute', top: 5, right: 5, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.brand.DEFAULT, alignItems: 'center', justifyContent: 'center' },
   playBadge: { position: 'absolute', top: 5, left: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
   lightbox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' },

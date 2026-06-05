@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -42,6 +42,22 @@ export default function RootLayout() {
       setInitialized(true);
     });
     return unsubscribe;
+  }, []);
+
+  // Tapping an "upgrade" push opens the paywall for that event.
+  useEffect(() => {
+    let sub: { remove: () => void } | undefined;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const Notifications = require('expo-notifications');
+      sub = Notifications.addNotificationResponseReceivedListener((resp: { notification?: { request?: { content?: { data?: Record<string, string> } } } }) => {
+        const data = resp?.notification?.request?.content?.data;
+        if (data?.type === 'upgrade' && data.eventId) {
+          router.push({ pathname: '/host/paywall', params: { upgradeId: data.eventId, current: data.current ?? 'free' } });
+        }
+      });
+    } catch { /* native module missing */ }
+    return () => { try { sub?.remove(); } catch { /* ignore */ } };
   }, []);
 
   if (!i18nReady || !fontsLoaded) {

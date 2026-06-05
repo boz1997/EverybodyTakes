@@ -65,6 +65,7 @@ export default {
     pastEvents: 'Geçmiş Etkinlikler',
     liveGuests: '{{count}} misafir aktif',
     photoCount: '{{count}} fotoğraf',
+    guestsLabel: 'misafir',
 
     createStep1: 'Etkinlik Detayları',
     createStep2: 'Fotoğraf Ayarları',
@@ -181,6 +182,10 @@ export default {
     eventCover: 'Etkinlik',
     shotsRemaining: '{{count}} çekim kaldı',
     noShotsLeft: 'Çekim hakkın bitti',
+    limitReachedTitle: 'Çekim hakkın doldu 🎉',
+    limitReachedBody: 'Bu etkinliğe katkın için teşekkürler!',
+    eventCapTitle: 'Etkinlik foto limiti doldu',
+    eventCapBody: 'Bu etkinliğin toplam foto limiti doldu. Etkinlik sahibinden artırmasını iste.',
     enterCamera: 'Kameraya Gir',
     viewGallery: 'Galeriyi Gör',
 

@@ -129,10 +129,9 @@ export default function CameraScreen() {
       } catch (e) {
         if (__DEV__) console.warn('upload failed:', e);
         if (e instanceof LimitError) {
-          const msg = e.code === 'photo_cap' ? t('guest.eventPhotoCapReached')
-            : e.code === 'event_ended' ? t('errors.eventExpired')
-            : t('guest.noShotsRemaining');
-          Alert.alert(msg);
+          if (e.code === 'photo_cap') Alert.alert(t('guest.eventCapTitle'), t('guest.eventCapBody'));
+          else if (e.code === 'event_ended') Alert.alert(t('errors.eventExpired'));
+          else Alert.alert(t('guest.limitReachedTitle'), t('guest.limitReachedBody'));
         }
       }
     });
@@ -355,12 +354,12 @@ export default function CameraScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Empty state overlay */}
+      {/* Empty state overlay — per-guest limit reached, thank-you */}
       {isEmpty && (
         <View style={styles.emptyOverlay} pointerEvents="none">
           <Icon name="film" size={44} color="rgba(255,255,255,0.7)" strokeWidth={1.6} />
-          <Text style={styles.emptyTitle}>{t('guest.noShotsLeft')}</Text>
-          <Text style={styles.emptySubtitle}>{t('guest.viewGallery')}</Text>
+          <Text style={styles.emptyTitle}>{t('guest.limitReachedTitle')}</Text>
+          <Text style={styles.emptySubtitle}>{t('guest.limitReachedBody')}</Text>
         </View>
       )}
 

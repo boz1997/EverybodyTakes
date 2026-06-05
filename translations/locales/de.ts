@@ -65,6 +65,7 @@ export default {
     pastEvents: 'Vergangene Events',
     liveGuests: '{{count}} Gäste aktiv',
     photoCount: '{{count}} Fotos',
+    guestsLabel: 'Gäste',
 
     createStep1: 'Event-Details',
     createStep2: 'Foto-Einstellungen',
@@ -181,6 +182,10 @@ export default {
     eventCover: 'Event',
     shotsRemaining: 'Noch {{count}} Fotos',
     noShotsLeft: 'Keine Fotos mehr übrig',
+    limitReachedTitle: 'Deine Aufnahmen sind aufgebraucht 🎉',
+    limitReachedBody: 'Danke, dass du dieses Event festgehalten hast!',
+    eventCapTitle: 'Foto-Limit des Events erreicht',
+    eventCapBody: 'Das gesamte Foto-Limit des Events ist voll. Bitte den Gastgeber, es zu erhöhen.',
     enterCamera: 'Kamera öffnen',
     viewGallery: 'Galerie ansehen',
 

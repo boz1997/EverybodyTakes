@@ -7,60 +7,88 @@ const db = getFirestore();
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
-/**
- * When a guest uploads a photo/video, notify the event host via Expo push —
- * unless the host turned the per-event "Notify me on new photos" toggle off.
- * The host's Expo push token is stored on users/{hostId}.pushToken by the app.
- */
-exports.notifyHostOnPhoto = onDocumentCreated('events/{eventId}/photos/{photoId}', async (event) => {
-  const photo = event.data && event.data.data();
-  if (!photo) return;
+// Fire a one-off upgrade nudge when the remaining quota hits these exact values
+// (count increments by 1, so each value triggers once — no extra dedupe needed).
+const PHOTO_WARN_AT = [10, 3];
+const GUEST_WARN_AT = [2];
 
-  const { eventId } = event.params;
-  const eventSnap = await db.doc(`events/${eventId}`).get();
-  if (!eventSnap.exists) return;
-  const ev = eventSnap.data();
+async function getHostToken(hostId) {
+  if (!hostId) return null;
+  const snap = await db.doc(`users/${hostId}`).get();
+  return snap.exists ? (snap.data().pushToken || null) : null;
+}
 
-  // Respect the host's preference (default ON when the field is absent).
-  if (ev.uploadNotify === false) return;
-
-  const hostId = ev.hostId;
-  if (!hostId) return;
-
-  // Don't notify the host about their own uploads.
-  if (photo.uploadedBy && photo.uploadedBy === hostId) return;
-
-  const userSnap = await db.doc(`users/${hostId}`).get();
-  const token = userSnap.exists ? userSnap.data().pushToken : null;
+async function sendPush(token, title, body, data) {
   if (!token) return;
-
-  const who = (photo.uploaderName && String(photo.uploaderName).trim()) || 'Someone';
-  const isVideo = photo.mediaType === 'video';
-
-  const message = {
-    to: token,
-    sound: 'default',
-    title: ev.name || 'New photo',
-    body: `${who} added a ${isVideo ? 'video' : 'photo'} 📸`,
-    data: { eventId },
-  };
-
   try {
     const res = await fetch(EXPO_PUSH_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(message),
+      body: JSON.stringify({ to: token, sound: 'default', title, body, data }),
     });
     const json = await res.json();
-    // Expo returns a DeviceNotRegistered error when a token is stale; clear it.
     const status = json && json.data && json.data.status;
-    if (status === 'error') {
-      const code = json.data.details && json.data.details.error;
-      if (code === 'DeviceNotRegistered') {
-        await db.doc(`users/${hostId}`).update({ pushToken: null }).catch(() => {});
-      }
+    if (status === 'error' && json.data.details && json.data.details.error === 'DeviceNotRegistered') {
+      const hostId = data && data.hostId;
+      if (hostId) await db.doc(`users/${hostId}`).update({ pushToken: null }).catch(() => {});
     }
   } catch (e) {
     console.error('push failed', e);
   }
+}
+
+// New photo → notify the host (if enabled) and nudge to upgrade as the cap nears.
+exports.notifyHostOnPhoto = onDocumentCreated('events/{eventId}/photos/{photoId}', async (event) => {
+  const photo = event.data && event.data.data();
+  if (!photo) return;
+
+  const eventSnap = await db.doc(`events/${event.params.eventId}`).get();
+  if (!eventSnap.exists) return;
+  const ev = eventSnap.data();
+  const hostId = ev.hostId;
+  const token = await getHostToken(hostId);
+  if (!token) return;
+
+  // 1) Per-photo notification (respects the host's toggle, skips own uploads).
+  if (ev.uploadNotify !== false && photo.uploadedBy !== hostId) {
+    const who = (photo.uploaderName && String(photo.uploaderName).trim()) || 'Someone';
+    const isVideo = photo.mediaType === 'video';
+    await sendPush(token, ev.name || 'New photo', `${who} added a ${isVideo ? 'video' : 'photo'} 📸`, { eventId: event.params.eventId, hostId });
+  }
+
+  // 2) Approaching the photo cap → upgrade nudge.
+  if (ev.photoCap != null) {
+    const remaining = ev.photoCap - (ev.photoCount || 0);
+    if (PHOTO_WARN_AT.includes(remaining)) {
+      await sendPush(
+        token,
+        ev.name || 'Almost full',
+        remaining === 0
+          ? 'Your event photo limit is full. Tap to upgrade and keep the memories coming.'
+          : `Only ${remaining} photos left for this event — tap to upgrade and remove the limit.`,
+        { eventId: event.params.eventId, hostId, type: 'upgrade', current: ev.plan || 'free' },
+      );
+    }
+  }
+});
+
+// New guest → nudge the host to upgrade as the guest cap nears.
+exports.notifyHostOnGuest = onDocumentCreated('events/{eventId}/guests/{guestId}', async (event) => {
+  const eventSnap = await db.doc(`events/${event.params.eventId}`).get();
+  if (!eventSnap.exists) return;
+  const ev = eventSnap.data();
+  if (ev.maxGuests == null) return;
+
+  const remaining = ev.maxGuests - (ev.guestCount || 0);
+  if (!GUEST_WARN_AT.includes(remaining)) return;
+
+  const token = await getHostToken(ev.hostId);
+  if (!token) return;
+
+  await sendPush(
+    token,
+    ev.name || 'Almost full',
+    `Only ${remaining} guest ${remaining === 1 ? 'spot' : 'spots'} left — tap to upgrade and invite more.`,
+    { eventId: event.params.eventId, hostId: ev.hostId, type: 'upgrade', current: ev.plan || 'free' },
+  );
 });
