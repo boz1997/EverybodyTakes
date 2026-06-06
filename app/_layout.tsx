@@ -9,6 +9,7 @@ import { useFonts, Fraunces_600SemiBold, Fraunces_700Bold } from '@expo-google-f
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { initI18n } from '@translations/index';
 import { AuthService } from '@features/auth/services/authService';
+import { configurePurchases } from '@features/purchases/purchaseService';
 import { useAuthStore } from '@store/authStore';
 import { colors } from '@constants/theme';
 import '../global.css';
@@ -40,6 +41,7 @@ export default function RootLayout() {
     const unsubscribe = AuthService.onAuthStateChange((user) => {
       setUser(user);
       setInitialized(true);
+      if (user) configurePurchases(user.uid);
     });
     return unsubscribe;
   }, []);

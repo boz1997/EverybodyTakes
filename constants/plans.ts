@@ -1,38 +1,32 @@
 // Single source of truth for monetization.
-// Model (matches Lense/POV): per-event packages priced by guest band, not a
-// monthly subscription. The plan a host buys determines the event's hard
-// limits, which are copied onto the event document and enforced server-side.
+// Model (matches Lense/POV): per-event packages priced by guest band, one-time
+// (not a subscription). The plan a host buys determines the event's hard limits,
+// copied onto the event document and enforced server-side.
 
-// Launch state: paid plans are OFF until in-app purchases (RevenueCat) are
-// wired and the products are created in App Store Connect. While false, the app
-// never presents a price — required to pass App Store review (Guideline 3.1.1).
-// Flip to true once IAP is live to re-enable the paid tiers below.
-export const PAID_PLANS_ENABLED = false;
+// Paid plans are live. The purchase runs through RevenueCat (App Store IAP).
+export const PAID_PLANS_ENABLED = true;
 
 export type PlanId = 'free' | 'small' | 'medium' | 'unlimited';
 
 export interface Plan {
   id: PlanId;
-  /** Max guests who can join. null = unlimited. */
-  maxGuests: number | null;
-  /** Total photos allowed across the whole event. null = unlimited. */
-  photoCap: number | null;
-  /** GuestCam watermark burned into exports. */
+  maxGuests: number | null;   // null = unlimited
+  photoCap: number | null;    // null = unlimited
   watermark: boolean;
-  /** Guests can record video (not just photos). */
   video: boolean;
   hdExport: boolean;
   liveWall: boolean;
-  /** Price in Turkish Lira for the whole event (one-time). 0 = free. */
-  priceTRY: number;
+  /** App Store IAP product id (must match App Store Connect + RevenueCat). */
+  productId: string | null;
+  /** Reference USD price (display fallback; the live price comes from the store). */
+  priceUSD: number;
 }
 
 export const PLANS: Record<PlanId, Plan> = {
-  // Generous free tier for the no-payments launch (no caps, no watermark, video on).
-  free: { id: 'free', maxGuests: null, photoCap: null, watermark: false, video: true, hdExport: true, liveWall: false, priceTRY: 0 },
-  small: { id: 'small', maxGuests: 30, photoCap: null, watermark: false, video: false, hdExport: true, liveWall: false, priceTRY: 149 },
-  medium: { id: 'medium', maxGuests: 100, photoCap: null, watermark: false, video: true, hdExport: true, liveWall: true, priceTRY: 449 },
-  unlimited: { id: 'unlimited', maxGuests: null, photoCap: null, watermark: false, video: true, hdExport: true, liveWall: true, priceTRY: 1299 },
+  free: { id: 'free', maxGuests: 15, photoCap: 100, watermark: true, video: false, hdExport: false, liveWall: false, productId: null, priceUSD: 0 },
+  small: { id: 'small', maxGuests: 30, photoCap: null, watermark: false, video: false, hdExport: true, liveWall: false, productId: 'event_small', priceUSD: 3.99 },
+  medium: { id: 'medium', maxGuests: 100, photoCap: null, watermark: false, video: true, hdExport: true, liveWall: true, productId: 'event_medium', priceUSD: 14.99 },
+  unlimited: { id: 'unlimited', maxGuests: null, photoCap: null, watermark: false, video: true, hdExport: true, liveWall: true, productId: 'event_unlimited', priceUSD: 29.99 },
 };
 
 export const PAID_PLAN_ORDER: PlanId[] = ['small', 'medium', 'unlimited'];
@@ -41,6 +35,7 @@ export function getPlan(id: string): Plan {
   return PLANS[(id as PlanId)] ?? PLANS.free;
 }
 
-export function formatPrice(priceTRY: number): string {
-  return priceTRY === 0 ? '₺0' : `₺${priceTRY.toLocaleString('tr-TR')}`;
+// Fallback display price. The paywall prefers the live localized store price.
+export function formatPrice(priceUSD: number): string {
+  return priceUSD === 0 ? 'Free' : `$${priceUSD.toFixed(2)}`;
 }

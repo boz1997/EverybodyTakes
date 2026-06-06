@@ -288,6 +288,8 @@ export default {
     continueWithFree: 'Continuar con Gratis',
     selectPlan: 'Elegir este paquete',
     restorePurchase: 'Restaurar compra',
+    purchaseUnavailable: 'Las compras no están disponibles ahora.',
+    purchaseFailed: 'No se pudo completar la compra.',
     termsNote: 'Pago único por evento — sin suscripción, sin costes ocultos',
     freeSubtitle: 'Crea tu evento y empieza a reunir fotos — gratis.',
     freeTerms: 'Crear es gratis — reúne las fotos de tu evento en un solo lugar.',

@@ -288,6 +288,8 @@ export default {
     continueWithFree: 'Continue with Free',
     selectPlan: 'Select This Package',
     restorePurchase: 'Restore Purchase',
+    purchaseUnavailable: 'Purchases aren\'t available right now.',
+    purchaseFailed: 'Purchase could not be completed.',
     termsNote: 'One-time event payment — no subscription, no hidden fees',
     freeSubtitle: 'Create your event and start collecting photos — free.',
     freeTerms: 'Free to create — collect all your event photos in one place.',

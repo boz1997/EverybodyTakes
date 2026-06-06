@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,6 +9,7 @@ import { useEventStore } from '@store/eventStore';
 import { useAuthStore } from '@store/authStore';
 import { EventService } from '@features/events/services/eventService';
 import { PLANS, PAID_PLAN_ORDER, PAID_PLANS_ENABLED, PlanId, Plan, formatPrice } from '@constants/plans';
+import { buyProduct, getPriceStrings, restorePurchases, purchasesReady, PurchaseCancelled } from '@features/purchases/purchaseService';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
@@ -34,6 +35,17 @@ export default function PaywallScreen() {
     !PAID_PLANS_ENABLED ? 'free' : (isUpgrade ? (higher[0] ?? 'unlimited') : 'small'),
   );
   const [loading, setLoading] = useState(false);
+  const [priceMap, setPriceMap] = useState<Record<string, string>>({});
+
+  // Pull live localized store prices for the paid products.
+  useEffect(() => {
+    const ids = PAID_PLAN_ORDER.map((id) => PLANS[id].productId).filter(Boolean) as string[];
+    getPriceStrings(ids).then(setPriceMap).catch(() => {});
+  }, []);
+
+  // Prefer the live store price; fall back to the reference USD price.
+  const priceLabel = (plan: Plan): string =>
+    (plan.productId && priceMap[plan.productId]) || formatPrice(plan.priceUSD);
 
   const featureLines = (plan: Plan): string[] => {
     const lines: string[] = [];
@@ -50,10 +62,22 @@ export default function PaywallScreen() {
     if (!user) return;
     try {
       setLoading(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      // TODO: for paid plans, run the in-app purchase here first.
-      // if (selected !== 'free') await PurchaseService.purchase(selected);
+      // Paid plan → run the App Store purchase first; abort if it fails/cancels.
+      if (PAID_PLANS_ENABLED && selected !== 'free') {
+        const plan = PLANS[selected];
+        if (plan.productId) {
+          if (!purchasesReady()) { Alert.alert(t('paywall.purchaseUnavailable')); return; }
+          try {
+            await buyProduct(plan.productId);
+          } catch (e) {
+            if (e instanceof PurchaseCancelled) return;
+            Alert.alert(t('common.error'), t('paywall.purchaseFailed'));
+            return;
+          }
+        }
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       if (isUpgrade) {
         await EventService.updatePlan(upgradeId!, selected);
@@ -125,8 +149,8 @@ export default function PaywallScreen() {
                     </Text>
                   </View>
                   <View style={styles.priceCol}>
-                    <Text style={styles.price}>{formatPrice(plan.priceTRY)}</Text>
-                    {plan.priceTRY > 0 && <Text style={styles.pricePer}>{t('paywall.perEvent')}</Text>}
+                    <Text style={styles.price}>{priceLabel(plan)}</Text>
+                    {plan.priceUSD > 0 && <Text style={styles.pricePer}>{t('paywall.perEvent')}</Text>}
                   </View>
                   <View style={[styles.radio, active && styles.radioActive]}>
                     {active && <View style={styles.radioDot} />}
@@ -149,16 +173,22 @@ export default function PaywallScreen() {
         </View>
 
         <Text style={styles.terms}>{!PAID_PLANS_ENABLED ? t('paywall.freeTerms') : t('paywall.termsNote')}</Text>
+
+        {PAID_PLANS_ENABLED && (
+          <TouchableOpacity onPress={() => restorePurchases().catch(() => {})} style={styles.restoreBtn}>
+            <Text style={styles.restoreText}>{t('paywall.restorePurchase')}</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* Bottom CTA */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.sm }]}>
         <PrimaryButton
           label={isUpgrade
-            ? `${t('paywall.upgradeTo')} · ${formatPrice(selectedPlan.priceTRY)}`
+            ? `${t('paywall.upgradeTo')} · ${priceLabel(selectedPlan)}`
             : selected === 'free'
               ? t('paywall.continueWithFree')
-              : `${t('paywall.selectPlan')} · ${formatPrice(selectedPlan.priceTRY)}`}
+              : `${t('paywall.selectPlan')} · ${priceLabel(selectedPlan)}`}
           onPress={handleContinue}
           variant={!isUpgrade && selected === 'free' ? 'ghost' : 'brand'}
           loading={loading}
@@ -205,5 +235,7 @@ const styles = StyleSheet.create({
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   featureText: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.secondary },
   terms: { textAlign: 'center', color: colors.text.muted, fontSize: typography.sizes.xs, fontFamily: fonts.body },
+  restoreBtn: { alignSelf: 'center', paddingVertical: spacing.sm },
+  restoreText: { color: colors.brand.DEFAULT, fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold },
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing.lg, backgroundColor: colors.bg.primary, borderTopWidth: 1, borderTopColor: colors.border.subtle },
 });

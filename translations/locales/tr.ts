@@ -288,6 +288,8 @@ export default {
     continueWithFree: 'Ücretsiz Devam Et',
     selectPlan: 'Bu Paketi Seç',
     restorePurchase: 'Satın Almayı Geri Yükle',
+    purchaseUnavailable: 'Satın alma şu an kullanılamıyor.',
+    purchaseFailed: 'Satın alma tamamlanamadı.',
     termsNote: 'Tek seferlik etkinlik ödemesi — abonelik yok, gizli ücret yok',
     freeSubtitle: 'Etkinliğini oluştur, fotoğrafları toplamaya başla — ücretsiz.',
     freeTerms: 'Oluşturmak ücretsiz — etkinliğinin tüm fotoğrafları tek yerde.',
