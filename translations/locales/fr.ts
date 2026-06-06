@@ -118,7 +118,7 @@ export default {
     revealNextDayDesc: 'Surprise — les photos s\'ouvrent à tous le lendemain',
     revealPrivate: 'Moi seul',
     revealPrivateDesc: 'Vous seul voyez tout ; les invités ne voient que leurs propres photos',
-    upgradeHint: 'Améliorer — plus d\'invités, vidéo, sans filigrane',
+    upgradeHint: 'Améliorer — plus d\'invités et vidéo',
     upgradeHintGuests: 'Améliorer — plus d\'invités',
     allowGalleryUpload: 'Autoriser les imports depuis la galerie',
     uploadNotify: 'Notifications de l\'événement',

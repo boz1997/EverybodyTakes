@@ -118,7 +118,7 @@ export default {
     revealNextDayDesc: 'Überraschung — die Fotos werden am nächsten Tag für alle freigegeben',
     revealPrivate: 'Nur ich',
     revealPrivateDesc: 'Nur du siehst alles; Gäste sehen nur ihre eigenen Fotos',
-    upgradeHint: 'Upgrade — mehr Gäste, Video, kein Wasserzeichen',
+    upgradeHint: 'Upgrade — mehr Gäste & Video',
     upgradeHintGuests: 'Upgrade — mehr Gäste',
     allowGalleryUpload: 'Galerie-Uploads erlauben',
     uploadNotify: 'Event-Benachrichtigungen',

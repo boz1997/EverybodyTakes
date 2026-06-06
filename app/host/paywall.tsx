@@ -47,14 +47,12 @@ export default function PaywallScreen() {
   const priceLabel = (plan: Plan): string =>
     (plan.productId && priceMap[plan.productId]) || formatPrice(plan.priceUSD);
 
+  // Only advertise features that are actually implemented: guests, photos, video.
   const featureLines = (plan: Plan): string[] => {
     const lines: string[] = [];
     lines.push(plan.maxGuests == null ? t('paywall.unlimitedGuests') : t('paywall.upToGuests', { n: plan.maxGuests }));
     lines.push(plan.photoCap == null ? t('paywall.unlimitedPhotos') : t('paywall.photoCap', { n: plan.photoCap }));
     lines.push(plan.video ? t('paywall.videoOn') : t('paywall.videoOff'));
-    lines.push(plan.watermark ? t('paywall.watermark') : t('paywall.noWatermark'));
-    if (plan.hdExport) lines.push(t('paywall.hdExport'));
-    if (plan.liveWall) lines.push(t('paywall.liveWall'));
     return lines;
   };
 

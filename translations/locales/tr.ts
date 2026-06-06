@@ -118,7 +118,7 @@ export default {
     revealNextDayDesc: 'Sürpriz — fotoğraflar ertesi gün herkese açılır',
     revealPrivate: 'Sadece ben',
     revealPrivateDesc: 'Sadece sen tümünü görürsün; misafirler yalnızca kendi çektiklerini görür',
-    upgradeHint: 'Planı yükselt — daha çok misafir, video, filigransız',
+    upgradeHint: 'Planı yükselt — daha çok misafir ve video',
     upgradeHintGuests: 'Planı yükselt — daha çok misafir',
     allowGalleryUpload: 'Galeriden yüklemeye izin ver',
     uploadNotify: 'Etkinlik bildirimleri',
