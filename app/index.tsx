@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Linking } from 'react-native';
 import { useAuthStore } from '@store/authStore';
+import { AuthService } from '@features/auth/services/authService';
 import { Icon } from '@shared/components/Icon';
 import { GuestArt, HostArt } from '@shared/components/RoleArt';
 import { Wordmark } from '@shared/components/Wordmark';
@@ -21,7 +22,7 @@ const { height } = Dimensions.get('window');
 export default function WelcomeScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
 
   const headlineOpacity = useSharedValue(0);
   const headlineY = useSharedValue(24);
@@ -47,12 +48,18 @@ export default function WelcomeScreen() {
     transform: [{ translateY: cardsY.value }],
   }));
 
-  const handleRole = (role: 'guest' | 'host') => {
+  const handleRole = async (role: 'guest' | 'host') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    if (role === 'guest') {
-      router.push('/guest/scan');
-    } else {
-      router.push(user ? '/host/dashboard' : { pathname: '/auth', params: { role: 'host' } });
+    if (role === 'guest') { router.push('/guest/scan'); return; }
+    // Host: never force login — continue anonymously; signing in is optional
+    // and lives in Settings (it links the anonymous account to preserve data).
+    if (user) { router.push('/host/dashboard'); return; }
+    try {
+      const u = await AuthService.signInAnonymous();
+      setUser(u);
+      router.push('/host/dashboard');
+    } catch {
+      router.push({ pathname: '/auth', params: { role: 'host' } });
     }
   };
 
