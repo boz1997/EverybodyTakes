@@ -12,6 +12,8 @@ import {
   onSnapshot,
   runTransaction,
   increment,
+  arrayUnion,
+  arrayRemove,
   Unsubscribe,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -70,6 +72,7 @@ export interface Photo {
   flagged?: boolean;               // hidden from guests after a report, pending host review
   reportCount?: number;
   likesCount: number;
+  likedBy?: string[];              // uids who liked — source of truth for the count
   createdAt: string;
 }
 
@@ -299,6 +302,15 @@ export const EventService = {
 
   async deletePhoto(eventId: string, photoId: string): Promise<void> {
     await updateDoc(doc(db, 'events', eventId, 'photos', photoId), { isVisible: false });
+  },
+
+  // Toggle a like. likedBy is the source of truth (arrayUnion/arrayRemove are
+  // idempotent); likesCount is kept in sync for any non-detail consumers.
+  async toggleLike(eventId: string, photoId: string, uid: string, liked: boolean): Promise<void> {
+    await updateDoc(doc(db, 'events', eventId, 'photos', photoId), {
+      likedBy: liked ? arrayRemove(uid) : arrayUnion(uid),
+      likesCount: increment(liked ? -1 : 1),
+    });
   },
 
   // UGC moderation (App Store Guideline 1.2): records the report for review and

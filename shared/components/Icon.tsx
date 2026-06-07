@@ -3,7 +3,7 @@ import {
   Settings, X, Check, Zap, SwitchCamera, Share2, Copy, Trash2, Crown, Gift,
   Film, Mail, QrCode, Users, Calendar, Sparkles, Gem, Cake, PartyPopper,
   Sailboat, Music, Tent, Building2, Lock, Plus, RefreshCw, CircleAlert,
-  Keyboard, Download, MoreHorizontal, Play, Video, Bell,
+  Keyboard, Download, MoreHorizontal, Play, Video, Bell, Heart,
 } from 'lucide-react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors } from '@constants/theme';
@@ -43,6 +43,7 @@ const REGISTRY = {
   play: Play,
   video: Video,
   bell: Bell,
+  heart: Heart,
   // event types
   wedding: Gem,
   birthday: Cake,
@@ -60,11 +61,12 @@ interface IconProps {
   size?: number;
   color?: string;
   strokeWidth?: number;
+  fill?: string;
 }
 
-export function Icon({ name, size = 22, color = colors.text.primary, strokeWidth = 2 }: IconProps) {
+export function Icon({ name, size = 22, color = colors.text.primary, strokeWidth = 2, fill = 'none' }: IconProps) {
   const Component = REGISTRY[name];
-  return <Component size={size} color={color} strokeWidth={strokeWidth} />;
+  return <Component size={size} color={color} strokeWidth={strokeWidth} fill={fill} />;
 }
 
 export const EVENT_TYPE_ICON: Record<EventType, IconName> = {

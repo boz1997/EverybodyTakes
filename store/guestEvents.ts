@@ -43,22 +43,6 @@ export async function removeJoinedEvent(id: string): Promise<void> {
   await AsyncStorage.setItem(KEY, JSON.stringify(existing.filter((e) => e.id !== id)));
 }
 
-// Blocked contributors — their content is hidden from this device's galleries.
-export async function getBlockedUsers(): Promise<string[]> {
-  try {
-    const raw = await AsyncStorage.getItem(BLOCKED_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-export async function addBlockedUser(uid: string): Promise<void> {
-  const existing = await getBlockedUsers();
-  if (existing.includes(uid)) return;
-  await AsyncStorage.setItem(BLOCKED_KEY, JSON.stringify([...existing, uid]));
-}
-
 // Wipe all local GuestCam state (used on account deletion).
 export async function clearAllLocal(): Promise<void> {
   await AsyncStorage.multiRemove([KEY, NICK_KEY, BLOCKED_KEY]).catch(() => {});

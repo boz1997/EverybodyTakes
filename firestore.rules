@@ -60,9 +60,15 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys()
                  .hasOnly(['flagged', 'reportCount']);
         }
+        // Any signed-in guest may like — touching only the like fields.
+        function likeOnly() {
+          return signedIn()
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['likedBy', 'likesCount']);
+        }
         allow read: if signedIn();
         allow create: if signedIn() && request.resource.data.uploadedBy == request.auth.uid;
-        allow update: if isOwnerOrHost() || reportOnly();
+        allow update: if isOwnerOrHost() || reportOnly() || likeOnly();
         allow delete: if isOwnerOrHost();
       }
     }

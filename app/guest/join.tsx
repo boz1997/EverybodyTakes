@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Image, Alert, ActivityIndicator,
-  ScrollView, Modal, StatusBar, Dimensions,
+  ScrollView, Modal, StatusBar, Dimensions, FlatList,
+  NativeScrollEvent, NativeSyntheticEvent,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,7 +17,7 @@ import { EventService, Event, Photo, LimitError } from '@features/events/service
 import { AuthService } from '@features/auth/services/authService';
 import { useAuthStore } from '@store/authStore';
 import { useEventStore, EventType } from '@store/eventStore';
-import { addJoinedEvent, removeJoinedEvent, getJoinedEvents, getSavedNickname, saveNickname, getBlockedUsers, addBlockedUser } from '@store/guestEvents';
+import { addJoinedEvent, removeJoinedEvent, getJoinedEvents, getSavedNickname, saveNickname } from '@store/guestEvents';
 import { scheduleLocalAt } from '@shared/notifications';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
@@ -65,14 +66,12 @@ export default function EventHubScreen() {
   const [nickname, setNicknameState] = useState('');
   const [uid, setUid] = useState<string | null>(user?.uid ?? null);
   const [filter, setFilter] = useState<'all' | 'mine'>('all');
-  const [selected, setSelected] = useState<Photo | null>(null);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
-  const [blocked, setBlocked] = useState<string[]>([]);
   const [selecting, setSelecting] = useState(false);
   const [selSet, setSelSet] = useState<Set<string>>(new Set());
   const [dlProgress, setDlProgress] = useState<{ done: number; total: number } | null>(null);
-
-  useEffect(() => { getBlockedUsers().then(setBlocked); }, []);
+  const flatRef = useRef<FlatList<Photo>>(null);
 
   const toggleSel = (id: string) => setSelSet((prev) => {
     const next = new Set(prev);
@@ -140,53 +139,77 @@ export default function EventHubScreen() {
   const revealed = event ? isRevealed(event) : false;
   const visiblePhotos = photos.filter((p) => {
     if (p.flagged) return false;                      // hidden pending review
-    if (blocked.includes(p.uploadedBy)) return false; // blocked contributor
     if (hostOnly || filter === 'mine') return p.uploadedBy === uid;
     return true;
   });
 
-  const reportSelected = () => {
-    if (!selected) return;
+  const current = viewerIndex != null ? visiblePhotos[viewerIndex] ?? null : null;
+
+  const reportCurrent = () => {
+    if (!current) return;
+    const id = current.id;
     Alert.alert(t('moderation.reportTitle'), t('moderation.reportBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('moderation.report'), style: 'destructive',
         onPress: async () => {
-          await EventService.reportPhoto(event!.id, selected.id, uid ?? 'anon').catch(() => {});
-          setSelected(null);
+          await EventService.reportPhoto(event!.id, id, uid ?? 'anon').catch(() => {});
+          setViewerIndex(null);
           Alert.alert(t('moderation.reported'));
         },
       },
     ]);
   };
 
-  const blockSelected = () => {
-    if (!selected) return;
-    const target = selected.uploadedBy;
-    Alert.alert(t('moderation.blockTitle'), t('moderation.blockBody'), [
+  // Guests can remove their own photo — nothing else.
+  const deleteCurrent = () => {
+    if (!current) return;
+    const id = current.id;
+    Alert.alert(t('host.deletePhoto'), t('host.deletePhotoConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
-        text: t('moderation.block'), style: 'destructive',
+        text: t('common.delete'), style: 'destructive',
         onPress: async () => {
-          await addBlockedUser(target);
-          setBlocked((b) => [...b, target]);
-          setSelected(null);
-          Alert.alert(t('moderation.blocked'));
+          setViewerIndex(null);
+          setPhotos((ps) => ps.filter((p) => p.id !== id));   // optimistic
+          await EventService.deletePhoto(event!.id, id).catch(() => {});
         },
       },
     ]);
   };
 
-  // Swipe between photos with the arrows in the lightbox.
-  const selectedIndex = selected ? visiblePhotos.findIndex((p) => p.id === selected.id) : -1;
-  const navigate = (dir: -1 | 1) => {
-    const next = visiblePhotos[selectedIndex + dir];
-    if (next) { setSelected(next); Haptics.selectionAsync(); }
+  const likeCount = current ? (current.likedBy?.length ?? 0) : 0;
+  const liked = !!current && !!uid && (current.likedBy ?? []).includes(uid);
+  const toggleLike = () => {
+    if (!current || !uid) return;
+    const id = current.id;
+    Haptics.selectionAsync();
+    setPhotos((ps) => ps.map((p) => p.id === id ? {
+      ...p,
+      likedBy: liked ? (p.likedBy ?? []).filter((u) => u !== uid) : [...(p.likedBy ?? []), uid],
+      likesCount: (p.likesCount ?? 0) + (liked ? -1 : 1),
+    } : p));
+    EventService.toggleLike(event!.id, id, uid, liked).catch(() => {});
   };
 
-  // Lightbox video playback (expo-video). Player rebuilds when the selected item changes.
-  const selectedIsVideo = selected?.mediaType === 'video';
-  const player = useVideoPlayer(selectedIsVideo ? selected!.imageUrl : null, (p) => { p.loop = true; p.play(); });
+  // Lightbox: native horizontal paging. Arrows and swipe both move the index.
+  const navigate = (dir: -1 | 1) => {
+    if (viewerIndex == null) return;
+    const next = viewerIndex + dir;
+    if (next >= 0 && next < visiblePhotos.length) {
+      flatRef.current?.scrollToIndex({ index: next, animated: true });
+      setViewerIndex(next);
+      Haptics.selectionAsync();
+    }
+  };
+  const onViewerScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const idx = Math.round(e.nativeEvent.contentOffset.x / width);
+    if (idx !== viewerIndex && idx >= 0 && idx < visiblePhotos.length) setViewerIndex(idx);
+  };
+
+  // Lightbox video playback (expo-video) — only the focused page gets a player.
+  const currentIsVideo = current?.mediaType === 'video';
+  const player = useVideoPlayer(currentIsVideo ? current!.imageUrl : null, (p) => { p.loop = true; p.play(); });
 
   const saveOne = async (photo: Photo) => {
     const ext = photo.mediaType === 'video' ? 'mp4' : 'jpg';
@@ -347,13 +370,14 @@ export default function EventHubScreen() {
             </View>
           ) : (
             <View style={styles.grid}>
-              {visiblePhotos.map((p) => {
+              {visiblePhotos.map((p, idx) => {
                 const isSel = selSet.has(p.id);
+                const likes = p.likedBy?.length ?? 0;
                 return (
                   <TouchableOpacity
                     key={p.id}
                     style={styles.cell}
-                    onPress={() => { if (selecting) { toggleSel(p.id); } else { setSelected(p); } Haptics.selectionAsync(); }}
+                    onPress={() => { if (selecting) { toggleSel(p.id); } else { setViewerIndex(idx); } Haptics.selectionAsync(); }}
                     onLongPress={() => { if (!selecting) { setSelecting(true); toggleSel(p.id); } }}
                     activeOpacity={0.85}
                   >
@@ -362,6 +386,12 @@ export default function EventHubScreen() {
                       <View style={styles.playBadge}><Icon name="play" size={14} color="#fff" /></View>
                     )}
                     {!selecting && p.uploadedBy === uid && <View style={styles.mine}><Icon name="check" size={10} color="#fff" strokeWidth={3} /></View>}
+                    {!selecting && likes > 0 && (
+                      <View style={styles.likeBadge}>
+                        <Icon name="heart" size={11} color="#fff" fill="#fff" />
+                        <Text style={styles.likeBadgeText}>{likes}</Text>
+                      </View>
+                    )}
                     {selecting && (
                       <View style={[styles.selOverlay, isSel && styles.selOverlayOn]}>
                         <View style={[styles.selCheck, isSel && styles.selCheckOn]}>
@@ -396,53 +426,77 @@ export default function EventHubScreen() {
         </View>
       )}
 
-      {/* Lightbox */}
-      <Modal visible={!!selected} transparent animationType="fade" onRequestClose={() => setSelected(null)} statusBarTranslucent>
+      {/* Lightbox — swipe horizontally between photos (iOS Photos style) */}
+      <Modal visible={!!current} transparent animationType="fade" onRequestClose={() => setViewerIndex(null)} statusBarTranslucent>
         <View style={styles.lightbox}>
           <StatusBar barStyle="light-content" />
-          {selected && (selectedIsVideo
-            ? <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
-            : <Image source={{ uri: selected.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />)}
-          <TouchableOpacity onPress={() => setSelected(null)} style={[styles.lbClose, { top: insets.top + spacing.sm }]}>
+          {current && (
+            <FlatList
+              ref={flatRef}
+              data={visiblePhotos}
+              keyExtractor={(p) => p.id}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              initialScrollIndex={viewerIndex ?? 0}
+              getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+              onMomentumScrollEnd={onViewerScroll}
+              style={StyleSheet.absoluteFill}
+              renderItem={({ item, index }) => (
+                <View style={styles.page}>
+                  {item.mediaType === 'video'
+                    ? (index === viewerIndex
+                        ? <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
+                        : <Image source={{ uri: item.thumbnailUrl || item.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />)
+                    : <Image source={{ uri: item.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />}
+                </View>
+              )}
+            />
+          )}
+
+          <TouchableOpacity onPress={() => setViewerIndex(null)} style={[styles.lbClose, { top: insets.top + spacing.sm }]}>
             <Icon name="close" size={22} color="#fff" />
           </TouchableOpacity>
 
           {/* Prev / next */}
-          {selectedIndex > 0 && (
+          {viewerIndex != null && viewerIndex > 0 && (
             <TouchableOpacity onPress={() => navigate(-1)} style={[styles.lbNav, styles.lbNavLeft]} hitSlop={12}>
               <Icon name="arrowLeft" size={26} color="#fff" />
             </TouchableOpacity>
           )}
-          {selectedIndex >= 0 && selectedIndex < visiblePhotos.length - 1 && (
+          {viewerIndex != null && viewerIndex < visiblePhotos.length - 1 && (
             <TouchableOpacity onPress={() => navigate(1)} style={[styles.lbNav, styles.lbNavRight]} hitSlop={12}>
               <Icon name="arrowRight" size={26} color="#fff" />
             </TouchableOpacity>
           )}
 
           {/* Caption — who took it */}
-          {selected && (
+          {current && (
             <View style={[styles.lbCaption, { bottom: insets.bottom + 92 }]} pointerEvents="none">
-              <Text style={styles.lbBy}>{t('gallery.by')} <Text style={styles.lbByName}>{selected.uploaderName?.trim() || t('common.anonymous')}</Text></Text>
-              {selectedIndex >= 0 && <Text style={styles.lbCount}>{selectedIndex + 1} / {visiblePhotos.length}</Text>}
+              <Text style={styles.lbBy}>{t('gallery.by')} <Text style={styles.lbByName}>{current.uploaderName?.trim() || t('common.anonymous')}</Text></Text>
+              {viewerIndex != null && <Text style={styles.lbCount}>{viewerIndex + 1} / {visiblePhotos.length}</Text>}
             </View>
           )}
 
           <View style={[styles.lbBar, { paddingBottom: insets.bottom + spacing.lg }]}>
-            <TouchableOpacity onPress={() => selected && saveToLibrary(selected)} style={styles.lbAction} disabled={saving}>
+            <TouchableOpacity onPress={() => current && saveToLibrary(current)} style={styles.lbAction} disabled={saving}>
               <Icon name="download" size={24} color="#fff" />
               <Text style={styles.lbActionText}>{saving ? t('common.loading') : t('common.download')}</Text>
             </TouchableOpacity>
-            {selected?.uploadedBy !== uid && (
-              <>
-                <TouchableOpacity onPress={reportSelected} style={styles.lbAction}>
-                  <Icon name="alert" size={24} color="#fff" />
-                  <Text style={styles.lbActionText}>{t('moderation.report')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={blockSelected} style={styles.lbAction}>
-                  <Icon name="lock" size={24} color="#fff" />
-                  <Text style={styles.lbActionText}>{t('moderation.block')}</Text>
-                </TouchableOpacity>
-              </>
+            <TouchableOpacity onPress={toggleLike} style={styles.lbAction}>
+              <Icon name="heart" size={24} color={liked ? colors.brand.DEFAULT : '#fff'} fill={liked ? colors.brand.DEFAULT : 'none'} />
+              <Text style={styles.lbActionText}>{likeCount > 0 ? t('gallery.likes', { count: likeCount }) : t('gallery.like')}</Text>
+            </TouchableOpacity>
+            {current?.uploadedBy === uid ? (
+              <TouchableOpacity onPress={deleteCurrent} style={styles.lbAction}>
+                <Icon name="trash" size={24} color="#fff" />
+                <Text style={styles.lbActionText}>{t('common.delete')}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={reportCurrent} style={styles.lbAction}>
+                <Icon name="alert" size={24} color="#fff" />
+                <Text style={styles.lbActionText}>{t('moderation.report')}</Text>
+              </TouchableOpacity>
             )}
           </View>
         </View>
@@ -487,6 +541,8 @@ const styles = StyleSheet.create({
   cellImg: { width: '100%', height: '100%', backgroundColor: colors.border.subtle },
   mine: { position: 'absolute', top: 5, right: 5, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.brand.DEFAULT, alignItems: 'center', justifyContent: 'center' },
   playBadge: { position: 'absolute', top: 5, left: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
+  likeBadge: { position: 'absolute', bottom: 5, left: 5, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: radius.full, paddingHorizontal: 6, paddingVertical: 3 },
+  likeBadgeText: { color: '#fff', fontSize: 11, fontFamily: fonts.bodySemibold },
   galActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.md, marginTop: -spacing.xs, marginBottom: spacing.xs },
   galActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   galActionText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold, color: colors.brand.DEFAULT },
@@ -499,6 +555,7 @@ const styles = StyleSheet.create({
   selBarGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   selBarText: { color: '#fff', fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold },
   lightbox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' },
+  page: { width, height: '100%' },
   lbClose: { position: 'absolute', right: spacing.lg, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
   lbNav: { position: 'absolute', top: '46%', width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
   lbNavLeft: { left: spacing.md },
