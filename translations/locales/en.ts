@@ -167,6 +167,8 @@ export default {
     deleteEventConfirm: 'Permanently delete “{{name}}” and all its photos?',
     downloadAllDone: '{{count}} photos saved to your library',
     downloadAllProgress: 'Downloading… {{done}}/{{total}}',
+    zipPreparing: 'Preparing…',
+    zipFailed: 'Could not prepare the ZIP. Try again in a moment.',
     longPressHint: 'Long-press an event to delete it',
     analytics: 'Analytics',
     totalPhotos: 'Total Photos',

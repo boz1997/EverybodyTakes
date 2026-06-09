@@ -143,3 +143,26 @@ export async function toggleLike(eventId: string, photoId: string, userId: strin
     likesCount: increment(liked ? -1 : 1),
   });
 }
+
+/** Guests may remove their own photo (soft-hide, same as the app). */
+export async function deletePhoto(eventId: string, photoId: string): Promise<void> {
+  await updateDoc(doc(db, 'events', eventId, 'photos', photoId), { isVisible: false });
+}
+
+// UGC moderation (mirrors the app): record the report and flag the photo so
+// it's hidden from guests pending host review.
+export async function reportPhoto(eventId: string, photoId: string, reporterId: string): Promise<void> {
+  await setDoc(doc(db, 'reports', uid()), {
+    eventId, photoId, reporterId, reason: 'objectionable', createdAt: serverTimestamp(),
+  });
+  await updateDoc(doc(db, 'events', eventId, 'photos', photoId), {
+    flagged: true, reportCount: increment(1),
+  }).catch(() => {});
+}
+
+/** Give a shot back when an upload fails after the optimistic decrement. */
+export async function refundShot(eventId: string, userId: string): Promise<void> {
+  await updateDoc(doc(db, 'events', eventId, 'guests', userId), {
+    shotsRemaining: increment(1),
+  }).catch(() => {});
+}

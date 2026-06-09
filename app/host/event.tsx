@@ -10,7 +10,9 @@ import { useTranslation } from 'react-i18next';
 import * as MediaLibrary from 'expo-media-library/legacy';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { Linking } from 'react-native';
 import { EventService, Event, Photo } from '@features/events/services/eventService';
+import { createEventZip } from '@features/events/services/exportService';
 import { getPlan, PAID_PLANS_ENABLED } from '@constants/plans';
 import { Icon } from '@shared/components/Icon';
 import { Skeleton } from '@shared/components/Skeleton';
@@ -268,6 +270,21 @@ export default function EventManage() {
 
   const handleDownloadAll = () => downloadList(photos);
 
+  // Server-side ZIP of the whole gallery — the sane path for big events.
+  const [zipping, setZipping] = useState(false);
+  const handleZip = async () => {
+    if (!event || zipping) return;
+    try {
+      setZipping(true);
+      const { url } = await createEventZip(event.id);
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(t('common.error'), t('host.zipFailed'));
+    } finally {
+      setZipping(false);
+    }
+  };
+
   const toggleSelect = (id: string) => setSelected((prev) => {
     const next = new Set(prev);
     next.has(id) ? next.delete(id) : next.add(id);
@@ -372,6 +389,10 @@ export default function EventManage() {
                       <Text style={styles.downloadAllText}>
                         {dlProgress ? t('host.downloadAllProgress', { done: dlProgress.done, total: dlProgress.total }) : t('host.downloadAll')}
                       </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleZip} style={styles.downloadAllBtn} disabled={zipping} activeOpacity={0.7}>
+                      <Icon name="film" size={15} color={colors.brand.DEFAULT} />
+                      <Text style={styles.downloadAllText}>{zipping ? t('host.zipPreparing') : 'ZIP'}</Text>
                     </TouchableOpacity>
                   </View>
                 )

@@ -167,6 +167,8 @@ export default {
     deleteEventConfirm: '“{{name}}” etkinliğini ve tüm fotoğraflarını kalıcı olarak silmek istediğine emin misin?',
     downloadAllDone: '{{count}} fotoğraf galerine kaydedildi',
     downloadAllProgress: 'İndiriliyor… {{done}}/{{total}}',
+    zipPreparing: 'Hazırlanıyor…',
+    zipFailed: 'ZIP hazırlanamadı. Birazdan tekrar dene.',
     longPressHint: 'Silmek için bir etkinliğe uzun bas',
     analytics: 'İstatistikler',
     totalPhotos: 'Toplam Fotoğraf',

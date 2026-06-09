@@ -43,21 +43,26 @@ service cloud.firestore {
       allow update: if isHost() || onlyCounters();
       allow delete: if isHost();
 
-      // A guest owns their own guest doc; the host can read the roster.
+      // A guest owns their own guest doc; only the host can read the roster.
       match /guests/{guestId} {
-        allow read: if signedIn();
+        allow read: if signedIn()
+          && (request.auth.uid == guestId
+              || get(/databases/$(database)/documents/events/$(eventId)).data.hostId == request.auth.uid);
         allow create, update: if signedIn() && request.auth.uid == guestId;
         allow delete: if false;
       }
 
-      // Photos: any signed-in guest can add; owner or host can moderate; any
-      // signed-in user may flag (report) by changing only the moderation fields.
+      // Photos are visible to participants only: the host, or a guest who has
+      // actually joined (has a guest doc). Knowing an event id is not enough.
       match /photos/{photoId} {
+        function isEventHost() {
+          return get(/databases/$(database)/documents/events/$(eventId)).data.hostId == request.auth.uid;
+        }
+        function isParticipant() {
+          return exists(/databases/$(database)/documents/events/$(eventId)/guests/$(request.auth.uid));
+        }
         function isOwnerOrHost() {
-          return signedIn() && (
-            resource.data.uploadedBy == request.auth.uid ||
-            get(/databases/$(database)/documents/events/$(eventId)).data.hostId == request.auth.uid
-          );
+          return signedIn() && (resource.data.uploadedBy == request.auth.uid || isEventHost());
         }
         function reportOnly() {
           return signedIn()
@@ -70,9 +75,11 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys()
                  .hasOnly(['likedBy', 'likesCount']);
         }
-        allow read: if signedIn();
-        allow create: if signedIn() && request.resource.data.uploadedBy == request.auth.uid;
-        allow update: if isOwnerOrHost() || reportOnly() || likeOnly();
+        allow read: if signedIn() && (isParticipant() || isEventHost());
+        allow create: if signedIn()
+          && request.resource.data.uploadedBy == request.auth.uid
+          && (isParticipant() || isEventHost());
+        allow update: if isOwnerOrHost() || ((reportOnly() || likeOnly()) && isParticipant());
         allow delete: if isOwnerOrHost();
       }
     }

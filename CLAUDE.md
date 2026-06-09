@@ -43,7 +43,7 @@ Büyük interface yerine küçük, odaklı tipler.
 
 ### D — Dependency Inversion
 Component'ler concrete implementasyona değil abstraction'a bağımlı olur.
-Supabase client doğrudan component'e import edilmez — service/repository katmanından geçer.
+Firebase client doğrudan component'e import edilmez — service/repository katmanından geçer.
 
 ---
 
@@ -74,8 +74,7 @@ shared/
   constants/
 
 lib/
-  supabase.ts          → Client init, sadece burada
-  storage.ts           → R2/S3 abstraction
+  firebase.ts          → Client init (Auth/Firestore/Storage), sadece burada
 ```
 
 **Kural:** `app/` içindeki dosyalar import zinciri başlatmaz. Sadece feature modüllerini compose eder.
@@ -128,11 +127,11 @@ Global Zustand store'da sadece gerçekten global olan şeyler yaşar:
 
 ## 7. API / Service Katmanı
 
-Supabase doğrudan component'ten çağrılmaz. Her zaman service fonksiyonu:
+Firestore doğrudan component'ten çağrılmaz. Her zaman service fonksiyonu:
 
 ```typescript
 // YANLIŞ
-const { data } = await supabase.from('events').select('*')
+const snap = await getDoc(doc(db, 'events', eventId))
 
 // DOĞRU
 const event = await EventService.getById(eventId)
@@ -147,10 +146,10 @@ Service fonksiyonları:
 
 ## 8. Güvenlik
 
-- `.env` dosyasına secret yazılmaz — Expo secret store veya server-side
-- RLS (Row Level Security) Supabase'de her tablo için aktif
-- Guest token'ları signed JWT olur, plain ID geçilmez
-- QR code içindeki URL'ler token tabanlı olur, tahmin edilemez
+- Gerçek secret'lar `.env`'e yazılmaz (Firebase web key'leri public'tir, onlar serbest)
+- Firestore + Storage güvenlik kuralları her koleksiyon için kısıtlayıcı tutulur ve deploy edilir
+- Galeri erişimi katılımcıya bağlıdır (guest doc), event id bilmek yetmez
+- Join kodları tahmin edilmesi zor 6 haneli koddur (ambiguous karakterler hariç)
 
 ---
 
@@ -189,16 +188,14 @@ Commit mesajı ne yaptığını değil **neden** yaptığını açıklar.
 | Alan | Teknoloji |
 |---|---|
 | Mobile | Expo (React Native) |
-| Web (Host Dashboard) | Next.js |
+| Web (Guest, `web/`) | Vite + React + Tailwind |
 | Styling | NativeWind (Tailwind for RN) |
-| Backend | Supabase (auth + db + realtime + storage) |
-| Storage | Supabase Storage (MVP) → Cloudflare R2 (scale) |
+| Backend | Firebase (Auth + Firestore + Storage + Cloud Functions) |
 | State | Zustand + React Query |
-| Forms | React Hook Form + Zod |
 | QR | react-native-qrcode-svg |
-| Camera | expo-camera |
-| Real-time | Supabase Realtime |
-| AI (Phase 2) | OpenAI Vision API |
+| Camera | expo-camera (app) / input-capture (web) |
+| Real-time | Firestore onSnapshot |
+| Payments | RevenueCat (App Store IAP) |
 
 ---
 

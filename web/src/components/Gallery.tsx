@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { toggleLike } from '../events';
+import { deletePhoto, reportPhoto, toggleLike } from '../events';
 import type { Event, Photo } from '../types';
 import { t } from '../i18n';
 
@@ -57,6 +57,21 @@ export function Gallery({ event, uid, photos }: Props) {
     toggleLike(event.id, p.id, uid, liked).catch(() => {});
   };
 
+  const removeOwn = (p: Photo) => {
+    if (!window.confirm(t('deleteConfirm'))) return;
+    setViewer(null);
+    setItems((prev) => prev.filter((x) => x.id !== p.id)); // optimistic
+    deletePhoto(event.id, p.id).catch(() => {});
+  };
+
+  const report = (p: Photo) => {
+    if (!window.confirm(t('reportConfirm'))) return;
+    setViewer(null);
+    setItems((prev) => prev.filter((x) => x.id !== p.id)); // hidden pending review
+    reportPhoto(event.id, p.id, uid).catch(() => {});
+    window.alert(t('reported'));
+  };
+
   const current = viewer != null ? visible[viewer] : null;
 
   return (
@@ -76,7 +91,12 @@ export function Gallery({ event, uid, photos }: Props) {
       </div>
 
       {!revealed ? (
-        <Empty>{t('developing')}</Empty>
+        <Empty>
+          {t('developing')}
+          <span className="mt-1 block text-xs font-semibold text-brand">
+            {t('opensAt', { time: new Date(revealAtMs(event)).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })}
+          </span>
+        </Empty>
       ) : visible.length === 0 ? (
         <Empty>{t('empty')}</Empty>
       ) : (
@@ -126,6 +146,15 @@ export function Gallery({ event, uid, photos }: Props) {
               <a href={current.imageUrl} target="_blank" rel="noreferrer" download className="flex flex-col items-center gap-1 text-xs">
                 <IconDownload /> {t('download')}
               </a>
+              {current.uploadedBy === uid ? (
+                <button onClick={() => removeOwn(current)} className="flex flex-col items-center gap-1 text-xs">
+                  <IconTrash /> {t('deleteBtn')}
+                </button>
+              ) : (
+                <button onClick={() => report(current)} className="flex flex-col items-center gap-1 text-xs">
+                  <IconFlag /> {t('report')}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -145,6 +174,12 @@ function IconX() {
 }
 function IconDownload() {
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>;
+}
+function IconTrash() {
+  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>;
+}
+function IconFlag() {
+  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7" /></svg>;
 }
 function IconHeart({ filled, big }: { filled?: boolean; big?: boolean }) {
   const s = big ? 24 : 12;

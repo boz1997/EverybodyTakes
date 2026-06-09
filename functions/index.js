@@ -1,6 +1,11 @@
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
+const { getStorage } = require('firebase-admin/storage');
+const { randomUUID } = require('crypto');
+const archiver = require('archiver');
 
 initializeApp();
 const db = getFirestore();
@@ -148,4 +153,58 @@ exports.notifyHostOnReport = onDocumentCreated('reports/{reportId}', async (even
   if (!ctx || !ctx.token) return;
   if (ctx.ev.uploadNotify === false) return;
   await sendPush(ctx, strings(ctx.lang).reported);
+});
+
+// ---- Auto-end: events don't stay open forever ----
+// Daily sweep: any event still active 48h past its date stops accepting
+// joins/uploads (isActive=false). Galleries stay viewable.
+const AUTO_END_AFTER_MS = 48 * 60 * 60 * 1000;
+
+exports.autoEndEvents = onSchedule('every 24 hours', async () => {
+  const cutoff = new Date(Date.now() - AUTO_END_AFTER_MS).toISOString();
+  const snap = await db.collection('events')
+    .where('isActive', '==', true)
+    .where('date', '<', cutoff)
+    .get();
+  await Promise.all(snap.docs.map((d) => d.ref.update({ isActive: false }).catch(() => {})));
+  console.log(`autoEndEvents: ended ${snap.size} events`);
+});
+
+// ---- ZIP export: host downloads the whole gallery as one archive ----
+// Streams every photo/video into a store-only zip (media is already
+// compressed) and returns a tokenized download URL valid like any other
+// Firebase Storage link. Re-running overwrites the previous export.
+exports.createEventZip = onCall({ memory: '1GiB', timeoutSeconds: 540 }, async (req) => {
+  const uid = req.auth && req.auth.uid;
+  const eventId = req.data && req.data.eventId;
+  if (!uid) throw new HttpsError('unauthenticated', 'Sign in required');
+  if (!eventId) throw new HttpsError('invalid-argument', 'eventId required');
+
+  const eventSnap = await db.doc(`events/${eventId}`).get();
+  if (!eventSnap.exists) throw new HttpsError('not-found', 'Event not found');
+  if (eventSnap.data().hostId !== uid) throw new HttpsError('permission-denied', 'Host only');
+
+  const bucket = getStorage().bucket();
+  const [files] = await bucket.getFiles({ prefix: `events/${eventId}/photos/` });
+  if (files.length === 0) throw new HttpsError('not-found', 'No photos yet');
+
+  const zipFile = bucket.file(`events/${eventId}/export/photos.zip`);
+  const archive = archiver('zip', { store: true });
+  const out = zipFile.createWriteStream({ contentType: 'application/zip' });
+  const finished = new Promise((resolve, reject) => {
+    out.on('finish', resolve);
+    out.on('error', reject);
+    archive.on('error', reject);
+  });
+  archive.pipe(out);
+  for (const f of files) {
+    archive.append(f.createReadStream(), { name: f.name.split('/').pop() });
+  }
+  await archive.finalize();
+  await finished;
+
+  const token = randomUUID();
+  await zipFile.setMetadata({ metadata: { firebaseStorageDownloadTokens: token } });
+  const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(zipFile.name)}?alt=media&token=${token}`;
+  return { url, count: files.length };
 });

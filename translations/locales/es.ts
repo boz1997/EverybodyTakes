@@ -167,6 +167,8 @@ export default {
     deleteEventConfirm: '¿Eliminar permanentemente «{{name}}» y todas sus fotos?',
     downloadAllDone: '{{count}} fotos guardadas en tu galería',
     downloadAllProgress: 'Descargando… {{done}}/{{total}}',
+    zipPreparing: 'Preparando…',
+    zipFailed: 'No se pudo preparar el ZIP. Inténtalo de nuevo en un momento.',
     longPressHint: 'Mantén pulsado un evento para eliminarlo',
     analytics: 'Estadísticas',
     totalPhotos: 'Fotos totales',

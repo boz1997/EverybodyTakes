@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ensureAnon } from './firebase';
+import { ensureAnon, track } from './firebase';
 import { getByShortCode, joinEvent, subscribeToPhotos, LimitError } from './events';
 import type { Event, Photo } from './types';
 import { t } from './i18n';
@@ -37,6 +37,7 @@ export default function App() {
         try {
           const remaining = await joinEvent(ev.id, userId, nickname || null);
           setShots(remaining);
+          track('web_join', { eventType: ev.type });
         } catch (e) {
           if (e instanceof LimitError && e.code === 'event_full') { /* full: gallery only */ }
         }

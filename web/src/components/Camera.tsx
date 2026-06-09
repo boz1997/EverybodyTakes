@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { decrementShots, uploadPhoto, LimitError } from '../events';
+import { decrementShots, refundShot, uploadPhoto, LimitError } from '../events';
+import { track } from '../firebase';
 import type { Event } from '../types';
 import { t } from '../i18n';
 
@@ -13,6 +14,7 @@ interface Props {
 
 export function Camera({ event, uid, nickname, shots, onShotsChange }: Props) {
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   const photoRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
   const albumRef = useRef<HTMLInputElement>(null);
@@ -25,15 +27,24 @@ export function Camera({ event, uid, nickname, shots, onShotsChange }: Props) {
     if (!file || busy || noShots) return;
     const mediaType = forced ?? (file.type.startsWith('video') ? 'video' : 'image');
     setBusy(true);
+    setError('');
+    let decremented = false;
     try {
       await decrementShots(event.id, uid);
+      decremented = true;
       onShotsChange(shots - 1);
       await uploadPhoto(event.id, uid, nickname.trim() || null, file, mediaType);
+      track('web_upload', { mediaType });
     } catch (err) {
       if (err instanceof LimitError) {
-        alert(err.code === 'no_shots' ? t('noShots') : err.code === 'photo_cap' ? t('capReached') : t('ended'));
+        setError(err.code === 'no_shots' ? t('noShots') : err.code === 'photo_cap' ? t('capReached') : t('ended'));
       } else {
-        alert(t('uploading') + ' ✗');
+        // Give the shot back — a flaky network shouldn't cost a capture.
+        if (decremented) {
+          await refundShot(event.id, uid);
+          onShotsChange(shots);
+        }
+        setError(t('uploadFailed'));
       }
     } finally {
       setBusy(false);
@@ -43,6 +54,7 @@ export function Camera({ event, uid, nickname, shots, onShotsChange }: Props) {
   return (
     <div className="fixed inset-x-0 bottom-0 border-t border-line bg-paper/95 backdrop-blur">
       <div className="mx-auto max-w-md px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        {error && <p className="mb-2 text-center text-xs font-semibold text-brand">{error}</p>}
         {/* Remaining-shots pill */}
         <div className="mb-2 flex justify-center">
           <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${noShots ? 'bg-brand/10 text-brand' : 'bg-paper-card text-ink-soft'}`}>

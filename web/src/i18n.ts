@@ -8,6 +8,10 @@ const dict: Record<string, Record<string, string>> = {
     ended: 'This event has ended', gallery: 'Gallery', empty: 'No photos yet — be the first!',
     all: 'All', mine: 'Mine', by: 'By', download: 'Download', developing: 'Photos reveal after the event',
     full: 'This event is full', capReached: 'Photo limit reached for this event',
+    opensAt: 'Opens {time}', uploadFailed: 'Upload failed — your shot was returned. Try again.',
+    report: 'Report', reportConfirm: 'Report this photo? It will be hidden and reviewed.',
+    reported: 'Thanks — the content was reported and hidden.',
+    deleteBtn: 'Delete', deleteConfirm: 'Delete this photo?',
   },
   tr: {
     joining: 'Etkinliğe katılıyor…', notFound: 'Etkinlik bulunamadı', enterCode: 'Etkinlik kodunu gir',
@@ -17,6 +21,10 @@ const dict: Record<string, Record<string, string>> = {
     ended: 'Bu etkinlik sona erdi', gallery: 'Galeri', empty: 'Henüz fotoğraf yok — ilk sen ol!',
     all: 'Tümü', mine: 'Benim', by: 'Çeken', download: 'İndir', developing: 'Fotoğraflar etkinlikten sonra açılır',
     full: 'Bu etkinlik dolu', capReached: 'Bu etkinliğin fotoğraf limiti doldu',
+    opensAt: '{time} açılır', uploadFailed: 'Yükleme başarısız — çekim hakkın iade edildi. Tekrar dene.',
+    report: 'Bildir', reportConfirm: 'Bu fotoğraf bildirilsin mi? Gizlenir ve incelenir.',
+    reported: 'Teşekkürler — içerik bildirildi ve gizlendi.',
+    deleteBtn: 'Sil', deleteConfirm: 'Bu fotoğraf silinsin mi?',
   },
 };
 
