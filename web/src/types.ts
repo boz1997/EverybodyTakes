@@ -8,6 +8,7 @@ export interface Event {
   coverImageUrl: string | null;
   shotsPerGuest: number;
   disposableMode: boolean;
+  allowGalleryUpload: boolean;
   revealTiming: string; // instant | next_day | private
   isActive: boolean;
   maxGuests: number | null;

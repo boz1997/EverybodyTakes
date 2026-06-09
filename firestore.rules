@@ -27,11 +27,15 @@ service cloud.firestore {
       function isHost() {
         return signedIn() && resource.data.hostId == request.auth.uid;
       }
-      // Guests may only ever change the two counters, nothing else.
+      // Guests may only nudge the two counters by a single step — never write
+      // an arbitrary value (which could zero out a cap or lock an event).
       function onlyCounters() {
+        let d = request.resource.data;
+        let r = resource.data;
         return signedIn()
-          && request.resource.data.diff(resource.data).affectedKeys()
-               .hasOnly(['guestCount', 'photoCount']);
+          && d.diff(r).affectedKeys().hasOnly(['guestCount', 'photoCount'])
+          && (d.guestCount == r.guestCount || d.guestCount == r.guestCount + 1)
+          && (d.photoCount == r.photoCount || d.photoCount == r.photoCount + 1 || d.photoCount == r.photoCount - 1);
       }
 
       allow read: if signedIn();

@@ -83,27 +83,32 @@ export default function App() {
     return <Centered><Logo /><p className="text-ink-soft">{t('notFound')}</p></Centered>;
   }
 
+  const dateStr = event.date
+    ? new Date(event.date).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
+    : '';
+
   return (
-    <div className="min-h-full pb-32">
+    <div className="min-h-full pb-36">
       {/* Cover */}
-      <div className="relative h-44 w-full overflow-hidden bg-paper-deep">
+      <div className="relative h-60 w-full overflow-hidden">
         {event.coverImageUrl
           ? <img src={event.coverImageUrl} alt="" className="h-full w-full object-cover" />
-          : <div className="flex h-full items-center justify-center"><Logo small /></div>}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-4">
-          <h1 className="text-2xl font-bold text-white drop-shadow">{event.name}</h1>
+          : <div className="flex h-full items-center justify-center bg-gradient-to-br from-brand to-brand-dark"><Logo /></div>}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent px-5 pb-5 pt-16">
+          <h1 className="text-3xl font-extrabold leading-tight text-white drop-shadow-sm">{event.name}</h1>
+          {dateStr && <p className="mt-0.5 text-sm font-medium text-white/80">{dateStr}</p>}
         </div>
       </div>
 
       <div className="mx-auto max-w-md px-4">
         {/* Nickname */}
-        <label className="mt-4 block text-sm font-medium text-ink-soft">{t('yourName')}</label>
+        <label className="mt-5 block text-xs font-semibold uppercase tracking-wide text-ink-muted">{t('yourName')}</label>
         <input
           value={nickname}
           onChange={(e) => onNick(e.target.value)}
           placeholder={t('namePlaceholder')}
           maxLength={30}
-          className="mt-1 w-full rounded-xl border border-line bg-paper-card px-3 py-2.5 outline-none focus:border-brand"
+          className="mt-1.5 w-full rounded-xl border border-line bg-paper-card px-3.5 py-3 outline-none transition focus:border-brand"
         />
 
         <Gallery event={event} uid={uid} photos={photos} />
