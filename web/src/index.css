@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: #EFE7D6;
+  color: #221D16;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* Horizontal scroll-snap powers the native-feeling swipe in the lightbox. */
+.snap-x-mandatory { scroll-snap-type: x mandatory; }
+.snap-center { scroll-snap-align: center; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
