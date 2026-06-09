@@ -5,26 +5,82 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Join event — GuestCam</title>
   <link rel="stylesheet" href="style.css" />
-  <script>
-    // Single QR entry point. Guests join the event in the browser — no app
-    // download. Forward the code straight to the web guest app.
-    (function () {
-      var params = new URLSearchParams(window.location.search);
-      var code = (params.get('code') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
-      window.location.replace('app/' + (code ? ('?code=' + encodeURIComponent(code)) : ''));
-    })();
-  </script>
 </head>
 <body>
+  <header class="site">
+    <a class="brand" href="index.html">Guest<span>Cam</span></a>
+    <nav><a href="support.html">Support</a></nav>
+  </header>
+
   <div class="wrap" style="text-align:center;">
-    <p class="muted" style="margin-top:60px;">Opening your event…</p>
-    <p class="muted" style="margin-top:12px;"><a id="manual" href="app/">Tap here if it doesn’t open</a></p>
+    <h1 style="margin-top:40px;">You're invited 🎉</h1>
+
+    <div class="card" style="margin-top:20px;">
+      <p class="muted" style="letter-spacing:2px;margin:0;font-size:13px;">EVENT CODE</p>
+      <p id="code" style="font-size:40px;font-weight:800;letter-spacing:8px;margin:6px 0;">——————</p>
+    </div>
+
+    <p id="loading" class="muted" style="margin-top:28px;">Opening your event…</p>
+
+    <div id="choice" style="display:none;margin-top:24px;">
+      <a id="appBtn" class="btn" href="#">Open in GuestCam app</a>
+      <a id="webBtn" class="btn" href="app/"
+         style="margin-top:12px;background:transparent;border:1px solid currentColor;">
+        Continue in browser
+      </a>
+    </div>
+
+    <footer>
+      <a href="privacy.html">Privacy</a> ·
+      <a href="terms.html">Terms</a> ·
+      <a href="support.html">Support</a>
+    </footer>
   </div>
+
   <script>
     (function () {
+      // Smart single-QR entry:
+      //  • iPhone  → let the guest choose: open the native app (App Store) or stay on web.
+      //  • Android / desktop → straight to the web guest app (no iOS app there).
+      // TODO: paste the App Store numeric id (App Store Connect → App Information → Apple ID).
+      var APP_STORE_ID = '';
+
       var params = new URLSearchParams(window.location.search);
       var code = (params.get('code') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
-      if (code) document.getElementById('manual').setAttribute('href', 'app/?code=' + encodeURIComponent(code));
+      if (code) document.getElementById('code').textContent = code;
+
+      var web = 'app/' + (code ? '?code=' + encodeURIComponent(code) : '');
+      var deep = 'guestcam://guest/join?code=' + encodeURIComponent(code);
+      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+      document.getElementById('webBtn').setAttribute('href', web);
+
+      if (!isIOS) {
+        window.location.replace(web);
+        return;
+      }
+
+      // iPhone: show the choice.
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('choice').style.display = 'block';
+
+      document.getElementById('appBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        var start = Date.now();
+        // If the app opens, the page is backgrounded — cancel the fallback.
+        var fallback = setTimeout(function () {
+          if (Date.now() - start < 2000) {
+            window.location.href = APP_STORE_ID
+              ? 'https://apps.apple.com/app/id' + APP_STORE_ID
+              : web; // no store id yet (pre-launch) → keep the guest moving on web
+          }
+        }, 1200);
+        document.addEventListener('visibilitychange', function () {
+          if (document.hidden) clearTimeout(fallback);
+        });
+        window.location.href = deep; // try to open the app
+      });
     })();
   </script>
 </body>
