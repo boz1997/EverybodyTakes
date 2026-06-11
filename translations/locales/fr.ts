@@ -47,6 +47,7 @@ export default {
     passwordPlaceholder: 'Au moins 6 caractères',
     emailPasswordHint: 'Saisissez un e-mail valide et un mot de passe d\'au moins 6 caractères.',
     wrongPassword: 'Mot de passe incorrect pour cet e-mail.',
+    appleSignInFailed: 'Connexion avec Apple impossible. Veuillez réessayer.',
     continueAnonymously: 'Continuer anonymement',
     email: 'E-mail',
     emailPlaceholder: 'vous@exemple.com',
@@ -300,6 +301,9 @@ export default {
   errors: {
     cameraPermission: 'Autorisation de la caméra requise',
     cameraPermissionDesc: 'Activez l\'accès à la caméra dans les Réglages',
+    cameraPermissionAsk: 'GuestCam a besoin de la caméra pour capturer les moments de l\'événement.',
+    cameraGrant: 'Autoriser l\'accès à la caméra',
+    openSettings: 'Ouvrir Réglages',
     networkError: 'Pas de connexion internet',
     uploadFailed: 'Échec de l\'envoi de la photo',
     eventNotFound: 'Événement introuvable',

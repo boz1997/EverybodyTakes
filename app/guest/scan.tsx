@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView,
-  Platform, Dimensions, Alert,
+  Platform, Dimensions, Alert, Linking,
 } from 'react-native';
 import { router } from 'expo-router';
 import { CameraView, useCameraPermissions, scanFromURLAsync } from 'expo-camera';
@@ -25,6 +25,12 @@ export default function ScanScreen() {
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const [mode, setMode] = useState<'scan' | 'code'>('scan');
+
+  // Ask iOS for camera access automatically — don't pre-empt the system prompt
+  // with a Settings redirect (App Store 5.1.1).
+  useEffect(() => {
+    if (permission && !permission.granted && permission.canAskAgain) requestPermission();
+  }, [permission?.granted, permission?.canAskAgain]);
   const [code, setCode] = useState('');
   const [scanned, setScanned] = useState(false);
 
@@ -78,14 +84,27 @@ export default function ScanScreen() {
     }
   };
 
-  if (!permission?.granted) {
+  if (!permission) {
+    return <LinearGradient colors={gradients.page} style={styles.container} />;   // resolving
+  }
+  // Only the scan tab needs the camera — the code tab works without it.
+  if (!permission.granted && mode === 'scan') {
+    const canAsk = permission.canAskAgain;
     return (
       <LinearGradient colors={gradients.page} style={styles.container}>
         <View style={[styles.permContent, { paddingTop: insets.top + spacing.lg }]}>
           <Icon name="camera" size={56} color={colors.brand.light} strokeWidth={1.6} />
           <Text style={styles.permTitle}>{t('errors.cameraPermission')}</Text>
-          <Text style={styles.permDesc}>{t('errors.cameraPermissionDesc')}</Text>
-          <PrimaryButton label={t('errors.cameraPermission')} onPress={requestPermission} />
+          <Text style={styles.permDesc}>{canAsk ? t('errors.cameraPermissionAsk') : t('errors.cameraPermissionDesc')}</Text>
+          <PrimaryButton
+            label={canAsk ? t('errors.cameraGrant') : t('errors.openSettings')}
+            onPress={canAsk ? requestPermission : () => Linking.openSettings()}
+          />
+          {/* The camera isn't a hard gate — let guests type the code instead. */}
+          <TouchableOpacity onPress={() => setMode('code')} style={styles.permCodeBtn}>
+            <Icon name="keyboard" size={18} color={colors.brand.DEFAULT} />
+            <Text style={styles.permCodeText}>{t('guest.enterCode')}</Text>
+          </TouchableOpacity>
         </View>
       </LinearGradient>
     );
@@ -183,6 +202,8 @@ const styles = StyleSheet.create({
   permContent: { flex: 1, paddingHorizontal: spacing.lg, alignItems: 'center', justifyContent: 'center', gap: spacing.lg },
   permTitle: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: colors.text.primary, textAlign: 'center' },
   permDesc: { fontSize: typography.sizes.sm, color: colors.text.muted, textAlign: 'center' },
+  permCodeBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: spacing.sm },
+  permCodeText: { fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold, color: colors.brand.DEFAULT },
   topBar: {
     position: 'absolute', top: 0, left: 0, right: 0,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

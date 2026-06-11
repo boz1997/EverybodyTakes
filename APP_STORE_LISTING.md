@@ -1,3 +1,44 @@
+# RESUBMISSION (build 5) — reply to Apple's June 11 rejection
+
+## Reply message to paste in App Store Connect (Resolution Center)
+```
+Hello, thank you for the detailed review. We've addressed every item in this build:
+
+Guideline 5.1.1(iv) — Camera permission:
+The app now requests camera access through the standard iOS system prompt as soon as the camera/scan screen opens. We no longer point users to Settings before iOS has asked. An "Open Settings" option appears only if access was previously denied. Guests can also join with the 6-digit code without granting the camera.
+
+Guideline 2.1(b) — In-App Purchase:
+We fixed a navigation defect where, after a successful purchase on iPad, two stacked modal screens could remain presented and hide the new event's QR screen — which made it look like the event was not created. The event is now created and the QR screen is shown reliably after purchase. The IAP products are consumables tested in the sandbox, and the Paid Applications Agreement is active.
+
+Guideline 2.1(a) — Sign in with Apple:
+We fixed a bug in the account-linking flow that could surface an error when an Apple ID already had an account (for example after a reinstall). Sign in with Apple has been tested on device.
+
+Guideline 2.1(a) — Access / demo content:
+Sign-in is NOT required — the app is fully usable anonymously. To verify a populated gallery immediately: tap Guest → Enter code → [DEMO_CODE]. To verify hosting: tap Host → create an event (the free plan needs no purchase) → you receive a QR/6-digit code; join it as a guest (another device or the code) to add photos. A demo event with pre-populated photos is available with the code above.
+
+Thank you!
+```
+> [DEMO_CODE] = create a "GuestCam Demo" event on device with a FAR-FUTURE date (so it never auto-ends), join as guest, upload ~6 photos, then put its 6-digit code here.
+
+## Updated App Review Information → Notes (replace the old notes)
+```
+Sign-in is NOT required. GuestCam is fully usable anonymously.
+
+Pre-populated demo: Guest → "Enter code" → [DEMO_CODE]  (a gallery with photos, likes, report/delete).
+
+Host flow (no purchase needed): Host → create an event → continue to the plan step → choose the free "Starter" plan → you get a QR + 6-digit code. Switch to Guest, enter that code, and capture photos.
+
+Camera: the system permission prompt appears automatically; if you deny it you can still join and browse via the code.
+
+In-App Purchases (event_small / event_medium / event_unlimited) are one-time consumables that raise guest/photo limits and unlock video. They are optional.
+
+Optional sign-in (Apple / Google / email) is in Settings and is used so a host can recover their events after reinstalling.
+
+Contact: ozdorukberk@gmail.com
+```
+
+---
+
 # App Store Connect — GuestCam 1.0 Listing
 
 Bu dosya, App Store Connect "1.0 Prepare for Submission" sayfasına girilecek tüm metinleri içerir.

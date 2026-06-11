@@ -47,6 +47,7 @@ export default {
     passwordPlaceholder: 'Al menos 6 caracteres',
     emailPasswordHint: 'Introduce un correo válido y una contraseña de 6+ caracteres.',
     wrongPassword: 'Contraseña incorrecta para este correo.',
+    appleSignInFailed: 'No se pudo iniciar sesión con Apple. Inténtalo de nuevo.',
     continueAnonymously: 'Continuar de forma anónima',
     email: 'Correo electrónico',
     emailPlaceholder: 'tu@ejemplo.com',
@@ -300,6 +301,9 @@ export default {
   errors: {
     cameraPermission: 'Se requiere permiso de cámara',
     cameraPermissionDesc: 'Activa el acceso a la cámara en Ajustes',
+    cameraPermissionAsk: 'GuestCam necesita la cámara para capturar los momentos del evento.',
+    cameraGrant: 'Permitir acceso a la cámara',
+    openSettings: 'Abrir Ajustes',
     networkError: 'Sin conexión a internet',
     uploadFailed: 'Error al subir la foto',
     eventNotFound: 'Evento no encontrado',

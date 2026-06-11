@@ -47,6 +47,7 @@ export default {
     passwordPlaceholder: 'En az 6 karakter',
     emailPasswordHint: 'Geçerli bir e-posta ve en az 6 karakterli bir şifre gir.',
     wrongPassword: 'Bu e-posta için şifre yanlış.',
+    appleSignInFailed: 'Apple ile giriş yapılamadı. Lütfen tekrar deneyin.',
     continueAnonymously: 'Hesap Açmadan Devam Et',
     email: 'E-posta',
     emailPlaceholder: 'ornek@email.com',
@@ -300,6 +301,9 @@ export default {
   errors: {
     cameraPermission: 'Kamera izni gerekli',
     cameraPermissionDesc: 'Ayarlardan kamera iznini etkinleştir',
+    cameraPermissionAsk: 'Anları yakalamak için GuestCam kameraya erişmek istiyor.',
+    cameraGrant: 'Kamera erişimine izin ver',
+    openSettings: 'Ayarları aç',
     networkError: 'İnternet bağlantısı yok',
     uploadFailed: 'Fotoğraf yüklenemedi',
     eventNotFound: 'Etkinlik bulunamadı',

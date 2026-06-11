@@ -38,8 +38,8 @@ export const AuthService = {
   },
 
   // Links the credential to the current anonymous user so their events/photos
-  // are preserved. If the credential already belongs to an existing account
-  // (e.g. reinstall), sign into that account instead to recover the data.
+  // are preserved. If the identity already has an account (e.g. delete +
+  // reinstall), sign into that account to recover the data.
   async linkOrSignIn(credential: AuthCredential): Promise<User> {
     const current = auth.currentUser;
     if (current && current.isAnonymous) {
@@ -50,6 +50,16 @@ export const AuthService = {
       } catch (e) {
         const code = (e as { code?: string })?.code;
         if (code !== 'auth/credential-already-in-use' && code !== 'auth/email-already-in-use') throw e;
+        // The link attempt consumed the original Apple/Google token, so we must
+        // sign in with the fresh credential Firebase attaches to the error —
+        // reusing `credential` here would fail as already-consumed.
+        const recovered =
+          OAuthProvider.credentialFromError(e as never) ??
+          GoogleAuthProvider.credentialFromError(e as never) ??
+          credential;
+        const { user } = await signInWithCredential(auth, recovered);
+        await AuthService.ensureUserDoc(user);
+        return user;
       }
     }
     const { user } = await signInWithCredential(auth, credential);
@@ -119,6 +129,10 @@ export const AuthService = {
     const AppleAuthentication = require('expo-apple-authentication');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const Crypto = require('expo-crypto');
+
+    if (!(await AppleAuthentication.isAvailableAsync())) {
+      throw new Error('apple-unavailable');
+    }
 
     const rawNonce = Crypto.randomUUID();
     const hashedNonce = await Crypto.digestStringAsync(

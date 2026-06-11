@@ -47,6 +47,7 @@ export default {
     passwordPlaceholder: 'Mindestens 6 Zeichen',
     emailPasswordHint: 'Gib eine gültige E-Mail und ein Passwort mit 6+ Zeichen ein.',
     wrongPassword: 'Falsches Passwort für diese E-Mail.',
+    appleSignInFailed: 'Anmeldung mit Apple fehlgeschlagen. Bitte erneut versuchen.',
     continueAnonymously: 'Anonym fortfahren',
     email: 'E-Mail',
     emailPlaceholder: 'du@beispiel.com',
@@ -300,6 +301,9 @@ export default {
   errors: {
     cameraPermission: 'Kamerazugriff erforderlich',
     cameraPermissionDesc: 'Aktiviere den Kamerazugriff in den Einstellungen',
+    cameraPermissionAsk: 'GuestCam braucht die Kamera, um Event-Momente festzuhalten.',
+    cameraGrant: 'Kamerazugriff erlauben',
+    openSettings: 'Einstellungen öffnen',
     networkError: 'Keine Internetverbindung',
     uploadFailed: 'Foto-Upload fehlgeschlagen',
     eventNotFound: 'Event nicht gefunden',

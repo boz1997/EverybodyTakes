@@ -61,7 +61,8 @@ export default function AuthScreen() {
     } catch (e: unknown) {
       const code = (e as { code?: string })?.code;
       if (code === 'ERR_REQUEST_CANCELED' || code === 'ERR_CANCELED') return; // user dismissed
-      Alert.alert(t('common.error'), String((e as { message?: string })?.message ?? e));
+      if (__DEV__) console.warn('apple sign-in failed:', e);
+      Alert.alert(t('common.error'), t('auth.appleSignInFailed'));
     } finally {
       setLoading(false);
     }

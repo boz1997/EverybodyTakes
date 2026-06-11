@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Alert, Platform, Image,
+  Alert, Platform, Image, Linking,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CameraView, CameraType, FlashMode, CameraMode, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
@@ -52,6 +52,12 @@ export default function CameraScreen() {
 
   const [permission, requestPermission] = useCameraPermissions();
   const [micPermission, requestMicPermission] = useMicrophonePermissions();
+
+  // Show the system permission prompt automatically when undetermined — never
+  // send the user to Settings before iOS has even asked (App Store 5.1.1).
+  useEffect(() => {
+    if (permission && !permission.granted && permission.canAskAgain) requestPermission();
+  }, [permission?.granted, permission?.canAskAgain]);
   const [facing, setFacing] = useState<CameraType>('back');
   const [flash, setFlash] = useState<FlashMode>('off');
   const [lastPhoto, setLastPhoto] = useState<string | null>(null);
@@ -226,14 +232,19 @@ export default function CameraScreen() {
     setPreview(null);
   };
 
-  if (!permission?.granted) {
+  if (!permission) {
+    return <View style={[styles.container, { backgroundColor: '#0A0A0F' }]} />;   // resolving
+  }
+  if (!permission.granted) {
+    const canAsk = permission.canAskAgain;
     return (
       <LinearGradient colors={['#0A0A0F', '#160A2E', '#0A0A0F']} style={styles.container}>
         <View style={styles.permContent}>
           <Icon name="camera" size={56} color={colors.brand.light} strokeWidth={1.6} />
           <Text style={styles.permTitle}>{t('errors.cameraPermission')}</Text>
-          <TouchableOpacity onPress={requestPermission} style={styles.permBtn}>
-            <Text style={styles.permBtnText}>{t('errors.cameraPermissionDesc')}</Text>
+          <Text style={styles.permDesc}>{canAsk ? t('errors.cameraPermissionAsk') : t('errors.cameraPermissionDesc')}</Text>
+          <TouchableOpacity onPress={canAsk ? requestPermission : () => Linking.openSettings()} style={styles.permBtn}>
+            <Text style={styles.permBtnText}>{canAsk ? t('errors.cameraGrant') : t('errors.openSettings')}</Text>
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -387,6 +398,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   permContent: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, padding: spacing.lg },
   permTitle: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: '#fff', textAlign: 'center' },
+  permDesc: { fontSize: typography.sizes.sm, color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: -spacing.sm },
   permBtn: { backgroundColor: colors.brand.DEFAULT, borderRadius: radius.xl, paddingHorizontal: spacing.xl, paddingVertical: 14 },
   permBtnText: { color: '#fff', fontWeight: typography.weights.semibold },
   flashOverlay: { backgroundColor: '#fff', zIndex: 5 },

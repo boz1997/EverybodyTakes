@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, InteractionManager } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -86,10 +86,14 @@ export default function PaywallScreen() {
       const event = await EventService.create(user.uid, draft, selected);
       setActiveEventId(event.id);
       resetDraft();
-      // Close the create/paywall modals, then open QR over the dashboard so the
-      // host can't navigate back into setup/payment after the event exists.
+      // Close the create + paywall modals, THEN open QR over the dashboard. The
+      // push is deferred until the dismissal animation finishes — on iPad two
+      // stacked modals could otherwise be left presented, hiding the QR behind
+      // them (the host would see the reveal step and think nothing happened).
       router.dismissAll();
-      router.push({ pathname: '/host/qr', params: { id: event.id, code: event.shortCode } });
+      InteractionManager.runAfterInteractions(() => {
+        router.push({ pathname: '/host/qr', params: { id: event.id, code: event.shortCode } });
+      });
     } catch {
       Alert.alert(t('common.error'), t('errors.unknownError'));
     } finally {
