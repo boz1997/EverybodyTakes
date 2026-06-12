@@ -39,30 +39,25 @@ export const AuthService = {
 
   // Links the credential to the current anonymous user so their events/photos
   // are preserved. If the identity already has an account (e.g. delete +
-  // reinstall), sign into that account to recover the data.
-  async linkOrSignIn(credential: AuthCredential): Promise<User> {
+  // reinstall), sign into that account to recover its data instead.
+  //
+  // Takes a credential *factory* because OAuth tokens are single-use: the
+  // failed link attempt consumes the first token, so signing into the existing
+  // account needs a freshly issued one (Apple enforces this via the nonce —
+  // reusing it yields auth/missing-or-invalid-nonce "Duplicate credential").
+  async linkOrSignIn(getCredential: () => Promise<AuthCredential>): Promise<User> {
     const current = auth.currentUser;
     if (current && current.isAnonymous) {
       try {
-        const { user } = await linkWithCredential(current, credential);
+        const { user } = await linkWithCredential(current, await getCredential());
         await AuthService.ensureUserDoc(user);
         return user;
       } catch (e) {
         const code = (e as { code?: string })?.code;
         if (code !== 'auth/credential-already-in-use' && code !== 'auth/email-already-in-use') throw e;
-        // The link attempt consumed the original Apple/Google token, so we must
-        // sign in with the fresh credential Firebase attaches to the error —
-        // reusing `credential` here would fail as already-consumed.
-        const recovered =
-          OAuthProvider.credentialFromError(e as never) ??
-          GoogleAuthProvider.credentialFromError(e as never) ??
-          credential;
-        const { user } = await signInWithCredential(auth, recovered);
-        await AuthService.ensureUserDoc(user);
-        return user;
       }
     }
-    const { user } = await signInWithCredential(auth, credential);
+    const { user } = await signInWithCredential(auth, await getCredential());
     await AuthService.ensureUserDoc(user);
     return user;
   },
@@ -78,11 +73,19 @@ export const AuthService = {
     const iosClientId = Constants.expoConfig?.extra?.googleIosClientId;
     GoogleSignin.configure({ iosClientId });
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true }).catch(() => {});
-    const res = await GoogleSignin.signIn();
-    if (res?.type === 'cancelled') throw new Error('cancelled');
-    const idToken = res?.data?.idToken ?? res?.idToken;
-    if (!idToken) throw new Error('Google sign-in failed');
-    return AuthService.linkOrSignIn(GoogleAuthProvider.credential(idToken));
+
+    let first = true;
+    const getCredential = async () => {
+      // A repeat call needs a fresh token; signInSilently avoids re-showing
+      // the account picker since the user just chose an account.
+      const res = first ? await GoogleSignin.signIn() : await GoogleSignin.signInSilently();
+      first = false;
+      if (res?.type === 'cancelled') throw new Error('cancelled');
+      const idToken = res?.data?.idToken ?? res?.idToken;
+      if (!idToken) throw new Error('Google sign-in failed');
+      return GoogleAuthProvider.credential(idToken);
+    };
+    return AuthService.linkOrSignIn(getCredential);
   },
 
   // Email + password: signs in to an existing account, or creates a new one.
@@ -134,25 +137,29 @@ export const AuthService = {
       throw new Error('apple-unavailable');
     }
 
-    const rawNonce = Crypto.randomUUID();
-    const hashedNonce = await Crypto.digestStringAsync(
-      Crypto.CryptoDigestAlgorithm.SHA256,
-      rawNonce,
-    );
-    const appleCredential = await AppleAuthentication.signInAsync({
-      requestedScopes: [
-        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-        AppleAuthentication.AppleAuthenticationScope.EMAIL,
-      ],
-      nonce: hashedNonce,
-    });
-    if (!appleCredential.identityToken) throw new Error('Apple sign-in failed');
-    const provider = new OAuthProvider('apple.com');
-    const credential = provider.credential({
-      idToken: appleCredential.identityToken,
-      rawNonce,
-    });
-    return AuthService.linkOrSignIn(credential);
+    // Each call runs the full Apple flow with a fresh nonce — Apple tokens are
+    // single-use, so the existing-account fallback re-prompts (a quick Face ID
+    // confirm; Apple has no silent re-issue).
+    const getCredential = async () => {
+      const rawNonce = Crypto.randomUUID();
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        rawNonce,
+      );
+      const appleCredential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+      if (!appleCredential.identityToken) throw new Error('Apple sign-in failed');
+      return new OAuthProvider('apple.com').credential({
+        idToken: appleCredential.identityToken,
+        rawNonce,
+      });
+    };
+    return AuthService.linkOrSignIn(getCredential);
   },
 
   async signOut(): Promise<void> {
