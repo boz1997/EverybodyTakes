@@ -14,7 +14,7 @@ Guideline 2.1(b) — In-App Purchase:
 The products are one-time consumables (not subscriptions). Purchases complete successfully in the sandbox — a screen recording of a full sandbox purchase (product sheet → success → event QR screen) is attached. We also hardened product loading in this build: the error you saw was our generic alert shown when the product list was momentarily empty in the sandbox; the app now retries the fetch and the alert includes the underlying StoreKit reason.
 
 Guideline 2.1(a) — Demo QR:
-A demo QR code image is attached in App Review Information, and the demo event code 6Y2UAR (Guest → "Enter code") opens a pre-populated gallery.
+A demo QR code image is attached in App Review Information, and the demo event code 3NSCNM (Guest → "Enter code") opens a pre-populated gallery.
 
 Thank you!
 ```
@@ -22,7 +22,7 @@ Thank you!
 ## App Review Information — Attachment alanına yüklenecekler
 - [ ] Hesap silme akışı ekran kaydı (gerçek cihaz: giriş → Settings → Delete account & data → onay → silindi)
 - [ ] Sandbox satın alma ekran kaydı (paywall → sandbox sheet → "Satın alma başarılı" → QR ekranı)
-- [ ] Demo QR görseli (6Y2UAR share kartı)
+- [ ] Demo QR görseli (3NSCNM share kartı)
 
 ---
 
