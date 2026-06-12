@@ -60,7 +60,8 @@ export default function AuthScreen() {
       navigateAfterAuth();
     } catch (e: unknown) {
       const code = (e as { code?: string })?.code;
-      if (code === 'ERR_REQUEST_CANCELED' || code === 'ERR_CANCELED') return; // user dismissed
+      const msg = ((e as { message?: string })?.message ?? '').toLowerCase();
+      if (code === 'ERR_REQUEST_CANCELED' || code === 'ERR_CANCELED' || msg.includes('cancel')) return; // user dismissed
       if (__DEV__) console.warn('apple sign-in failed:', e);
       Alert.alert(t('common.error'), t('auth.appleSignInFailed'));
     } finally {

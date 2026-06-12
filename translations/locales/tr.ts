@@ -48,6 +48,8 @@ export default {
     emailPasswordHint: 'Geçerli bir e-posta ve en az 6 karakterli bir şifre gir.',
     wrongPassword: 'Bu e-posta için şifre yanlış.',
     appleSignInFailed: 'Apple ile giriş yapılamadı. Lütfen tekrar deneyin.',
+    existingAccountTitle: 'Hesap bulundu',
+    existingAccountBody: 'Bu Apple kimliğine bağlı bir GuestCam hesabı zaten var. O hesaba girmek için Apple ile bir kez daha onayla.',
     continueAnonymously: 'Hesap Açmadan Devam Et',
     email: 'E-posta',
     emailPlaceholder: 'ornek@email.com',

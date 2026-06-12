@@ -48,6 +48,8 @@ export default {
     emailPasswordHint: 'Enter a valid email and a password of 6+ characters.',
     wrongPassword: 'Incorrect password for this email.',
     appleSignInFailed: 'Could not sign in with Apple. Please try again.',
+    existingAccountTitle: 'Account found',
+    existingAccountBody: 'This Apple ID is already linked to a GuestCam account. Confirm with Apple once more to sign in to it.',
     continueAnonymously: 'Continue Anonymously',
     email: 'Email',
     emailPlaceholder: 'you@example.com',

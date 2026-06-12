@@ -15,10 +15,29 @@ import {
   User,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { Alert } from 'react-native';
 import { auth, db } from '@lib/firebase';
+import i18n from '@translations/index';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const EMAIL_KEY = '@guestcam_pending_email';
+
+// Apple's sheet has to appear a second time when the Apple ID already has an
+// account (single-use tokens) — without a heads-up users assume it's a glitch
+// and dismiss it. Ask first, in their language.
+function confirmExistingAccount(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    Alert.alert(
+      i18n.t('auth.existingAccountTitle'),
+      i18n.t('auth.existingAccountBody'),
+      [
+        { text: i18n.t('common.cancel'), style: 'cancel', onPress: () => reject(new Error('cancelled')) },
+        { text: i18n.t('common.continue'), onPress: () => resolve() },
+      ],
+      { cancelable: false },
+    );
+  });
+}
 
 export const AuthService = {
   async signInAnonymous(): Promise<User> {
@@ -140,7 +159,10 @@ export const AuthService = {
     // Each call runs the full Apple flow with a fresh nonce — Apple tokens are
     // single-use, so the existing-account fallback re-prompts (a quick Face ID
     // confirm; Apple has no silent re-issue).
+    let first = true;
     const getCredential = async () => {
+      if (!first) await confirmExistingAccount();
+      first = false;
       const rawNonce = Crypto.randomUUID();
       const hashedNonce = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,

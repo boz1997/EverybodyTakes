@@ -32,9 +32,9 @@ export default function SettingsScreen() {
 
   const isCancel = (e: unknown) => {
     const code = (e as { code?: string })?.code;
-    const msg = (e as { message?: string })?.message;
-    return msg === 'cancelled' || code === 'ERR_REQUEST_CANCELED' || code === 'ERR_CANCELED'
-      || code === 'SIGN_IN_CANCELLED' || code === '-5' || code === '12501';
+    const msg = ((e as { message?: string })?.message ?? '').toLowerCase();
+    return msg === 'cancelled' || msg.includes('cancel') || code === 'ERR_REQUEST_CANCELED'
+      || code === 'ERR_CANCELED' || code === 'SIGN_IN_CANCELLED' || code === '-5' || code === '12501';
   };
 
   const handleApple = async () => {
