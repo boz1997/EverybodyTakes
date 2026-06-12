@@ -161,7 +161,12 @@ export const AuthService = {
     // confirm; Apple has no silent re-issue).
     let first = true;
     const getCredential = async () => {
-      if (!first) await confirmExistingAccount();
+      if (!first) {
+        await confirmExistingAccount();
+        // Back-to-back ASAuthorization prompts get auto-canceled by iOS while
+        // the first sheet is still tearing down — give it a beat.
+        await new Promise((r) => setTimeout(r, 500));
+      }
       first = false;
       const rawNonce = Crypto.randomUUID();
       const hashedNonce = await Crypto.digestStringAsync(
