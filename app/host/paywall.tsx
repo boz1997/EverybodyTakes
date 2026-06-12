@@ -70,7 +70,11 @@ export default function PaywallScreen() {
             await buyProduct(plan.productId);
           } catch (e) {
             if (e instanceof PurchaseCancelled) return;
-            Alert.alert(t('common.error'), t('paywall.purchaseFailed'));
+            // Surface the underlying StoreKit/RevenueCat reason — a bare
+            // "could not be completed" leaves failures (and review screenshots)
+            // undiagnosable.
+            const detail = (e as { message?: string })?.message;
+            Alert.alert(t('common.error'), detail ? `${t('paywall.purchaseFailed')}\n\n(${detail})` : t('paywall.purchaseFailed'));
             return;
           }
         }

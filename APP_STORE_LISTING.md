@@ -1,4 +1,32 @@
-# RESUBMISSION (build 5) — reply to Apple's June 11 rejection
+# RESUBMISSION 2 (build 6) — reply to Apple's June 12 rejection
+
+## Reply message (Resolution Center) — paste after uploading build 6
+```
+Hello, thank you for the follow-up review. We've addressed each item:
+
+Guideline 5.1.1(v) — Account deletion:
+Account deletion already exists in the app (Settings → "Delete account & data": it deletes the auth account, hosted events, uploaded photos and local data). It was previously hidden for brand-new users who had no account or data yet — which is why it may not have been visible during review. It is now always visible in Settings for every user. A screen recording of the full flow (sign in → Settings → Delete account & data → confirmation → deletion) is attached.
+
+Guideline 2.3.3 — Screenshots:
+We replaced the 6.5-inch screenshots with captures of the actual app UI (host dashboard, event QR screen, guest camera, shared gallery).
+
+Guideline 2.1(b) — In-App Purchase:
+The products are one-time consumables (not subscriptions). Purchases complete successfully in the sandbox — a screen recording of a full sandbox purchase (product sheet → success → event QR screen) is attached. We also hardened product loading in this build: the error you saw was our generic alert shown when the product list was momentarily empty in the sandbox; the app now retries the fetch and the alert includes the underlying StoreKit reason.
+
+Guideline 2.1(a) — Demo QR:
+A demo QR code image is attached in App Review Information, and the demo event code 6Y2UAR (Guest → "Enter code") opens a pre-populated gallery.
+
+Thank you!
+```
+
+## App Review Information — Attachment alanına yüklenecekler
+- [ ] Hesap silme akışı ekran kaydı (gerçek cihaz: giriş → Settings → Delete account & data → onay → silindi)
+- [ ] Sandbox satın alma ekran kaydı (paywall → sandbox sheet → "Satın alma başarılı" → QR ekranı)
+- [ ] Demo QR görseli (6Y2UAR share kartı)
+
+---
+
+# RESUBMISSION 1 (build 5) — reply to Apple's June 11 rejection
 
 ## Reply message to paste in App Store Connect (Resolution Center)
 ```
@@ -14,17 +42,17 @@ Guideline 2.1(a) — Sign in with Apple:
 We fixed a bug in the account-linking flow that could surface an error when an Apple ID already had an account (for example after a reinstall). Sign in with Apple has been tested on device.
 
 Guideline 2.1(a) — Access / demo content:
-Sign-in is NOT required — the app is fully usable anonymously. To verify a populated gallery immediately: tap Guest → Enter code → [DEMO_CODE]. To verify hosting: tap Host → create an event (the free plan needs no purchase) → you receive a QR/6-digit code; join it as a guest (another device or the code) to add photos. A demo event with pre-populated photos is available with the code above.
+Sign-in is NOT required — the app is fully usable anonymously. To verify a populated gallery immediately: tap Guest → Enter code → 6Y2UAR. To verify hosting: tap Host → create an event (the free plan needs no purchase) → you receive a QR/6-digit code; join it as a guest (another device or the code) to add photos. A demo event with pre-populated photos is available with the code above.
 
 Thank you!
 ```
-> [DEMO_CODE] = create a "GuestCam Demo" event on device with a FAR-FUTURE date (so it never auto-ends), join as guest, upload ~6 photos, then put its 6-digit code here.
+> 6Y2UAR = create a "GuestCam Demo" event on device with a FAR-FUTURE date (so it never auto-ends), join as guest, upload ~6 photos, then put its 6-digit code here.
 
 ## Updated App Review Information → Notes (replace the old notes)
 ```
 Sign-in is NOT required. GuestCam is fully usable anonymously.
 
-Pre-populated demo: Guest → "Enter code" → [DEMO_CODE]  (a gallery with photos, likes, report/delete).
+Pre-populated demo: Guest → "Enter code" → 6Y2UAR  (a gallery with photos, likes, report/delete).
 
 Host flow (no purchase needed): Host → create an event → continue to the plan step → choose the free "Starter" plan → you get a QR + 6-digit code. Switch to Guest, enter that code, and capture photos.
 

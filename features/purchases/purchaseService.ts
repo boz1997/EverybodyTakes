@@ -38,11 +38,25 @@ export class PurchaseCancelled extends Error {
   constructor() { super('cancelled'); }
 }
 
+// StoreKit product fetches are flaky right after configure (and in the review
+// sandbox): an empty first response is common. One short retry absorbs it.
+async function fetchProducts(productIds: string[]) {
+  const Purchases = getPurchases();
+  if (!Purchases) return [];
+  let products = await Purchases.getProducts(productIds);
+  if (!products.length) {
+    await new Promise((r) => setTimeout(r, 1500));
+    products = await Purchases.getProducts(productIds);
+  }
+  return products;
+}
+
 /** Buys a one-time event product. Returns true on success, throws PurchaseCancelled on dismiss. */
 export async function buyProduct(productId: string): Promise<boolean> {
   const Purchases = getPurchases();
   if (!Purchases || !purchasesReady()) throw new Error('purchases-unavailable');
-  const products = await Purchases.getProducts([productId]);
+  configurePurchases();   // safety net — don't depend on auth-listener timing
+  const products = await fetchProducts([productId]);
   if (!products.length) throw new Error('product-not-found');
   try {
     await Purchases.purchaseStoreProduct(products[0]);
@@ -57,8 +71,9 @@ export async function buyProduct(productId: string): Promise<boolean> {
 export async function getPriceStrings(productIds: string[]): Promise<Record<string, string>> {
   const Purchases = getPurchases();
   if (!Purchases || !purchasesReady() || productIds.length === 0) return {};
+  configurePurchases();   // paywall can mount before the auth listener configures us
   try {
-    const products = await Purchases.getProducts(productIds);
+    const products = await fetchProducts(productIds);
     const map: Record<string, string> = {};
     for (const p of products) map[p.identifier] = p.priceString;
     return map;

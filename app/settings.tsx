@@ -22,21 +22,10 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { user, setUser, reset } = useAuthStore();
   const [deleting, setDeleting] = useState(false);
-  // Only surface account deletion once there's actually something to delete —
-  // a brand-new visitor who hasn't joined or hosted anything has no data yet.
-  const [hasData, setHasData] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [emailVal, setEmailVal] = useState('');
   const [pwVal, setPwVal] = useState('');
   const [emailBusy, setEmailBusy] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      const joined = await getJoinedEvents();
-      const hosted = user ? await EventService.getHostEvents(user.uid).catch(() => []) : [];
-      setHasData(joined.length > 0 || hosted.length > 0 || !!user?.email);
-    })();
-  }, [user]);
 
   const signedIn = !!user && !user.isAnonymous;
   const openLink = (url: string) => Linking.openURL(url).catch(() => Alert.alert(t('common.error')));
@@ -197,12 +186,10 @@ export default function SettingsScreen() {
               )}
             </View>
           )}
-          {hasData && (
-            <>
-              <View style={styles.divider} />
-              {linkRow('trash', deleting ? t('settings.deleting') : t('settings.deleteAccount'), confirmDelete, true)}
-            </>
-          )}
+          {/* Always visible — App Store 5.1.1(v) requires a discoverable account
+              deletion entry point regardless of how much data the user has. */}
+          <View style={styles.divider} />
+          {linkRow('trash', deleting ? t('settings.deleting') : t('settings.deleteAccount'), confirmDelete, true)}
         </View>
 
         <Text style={styles.version}>
