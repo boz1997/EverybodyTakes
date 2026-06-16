@@ -271,8 +271,8 @@ export default function CameraScreen() {
 
       {/* Top Bar */}
       <View style={[styles.topBar, { paddingTop: insets.top + spacing.sm }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.topBtn}>
-          <Icon name="close" size={22} color="#fff" />
+        <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn} hitSlop={10}>
+          <Icon name="close" size={28} color="#fff" strokeWidth={2.4} />
         </TouchableOpacity>
 
         {/* Fun shot counter — big number that bounces & shrinks as you shoot */}
@@ -317,23 +317,23 @@ export default function CameraScreen() {
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.lg }]}>
 
         {/* Left: pick from gallery (non-disposable) or jump to the event gallery */}
-        {galleryUpload && !disposable ? (
-          <TouchableOpacity onPress={pickFromLibrary} disabled={isEmpty} style={styles.galleryBtn} activeOpacity={0.85}>
+        <View style={styles.sideCol}>
+          <TouchableOpacity
+            onPress={galleryUpload && !disposable ? pickFromLibrary : () => router.back()}
+            disabled={isEmpty && galleryUpload && !disposable}
+            style={styles.galleryBtn}
+            activeOpacity={0.85}
+          >
             {lastPhoto ? (
               <Image source={{ uri: lastPhoto }} style={styles.galleryThumb} />
             ) : (
-              <Icon name="gallery" size={22} color="#fff" />
+              <Icon name={galleryUpload && !disposable ? 'image' : 'gallery'} size={22} color="#fff" />
             )}
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity onPress={() => router.back()} style={styles.galleryBtn} activeOpacity={0.85}>
-            {lastPhoto ? (
-              <Image source={{ uri: lastPhoto }} style={styles.galleryThumb} />
-            ) : (
-              <Icon name="gallery" size={22} color="#fff" />
-            )}
-          </TouchableOpacity>
-        )}
+          <Text style={styles.sideLabel}>
+            {galleryUpload && !disposable ? t('guest.fromAlbum') : t('guest.viewGallery')}
+          </Text>
+        </View>
 
         {/* Shutter — circle for photo, red dot for video, red square while recording */}
         <Animated.View style={shutterStyle}>
@@ -357,13 +357,16 @@ export default function CameraScreen() {
         </Animated.View>
 
         {/* Flip Camera — disabled mid-recording */}
-        <TouchableOpacity
-          onPress={() => !recording && setFacing(f => f === 'back' ? 'front' : 'back')}
-          style={[styles.sideBtn, recording && styles.disabledBtn]}
-          disabled={recording}
-        >
-          <Icon name="flip" size={24} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.sideCol}>
+          <TouchableOpacity
+            onPress={() => !recording && setFacing(f => f === 'back' ? 'front' : 'back')}
+            style={[styles.sideBtn, recording && styles.disabledBtn]}
+            disabled={recording}
+          >
+            <Icon name="flip" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.sideLabel}> </Text>
+        </View>
       </View>
 
       {/* Empty state overlay — per-guest limit reached, thank-you */}
@@ -409,6 +412,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, paddingBottom: spacing.md, zIndex: 10,
   },
   topBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
+  closeBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
+  sideCol: { alignItems: 'center', gap: 6, width: 72 },
+  sideLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '600' },
   topBtnActive: { backgroundColor: colors.gold.DEFAULT },
   shotCounter: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,

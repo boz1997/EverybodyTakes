@@ -139,8 +139,13 @@ export default function ShareCardScreen() {
             return (
               <View style={styles.page}>
                 <View style={styles.cardShadow}>
+                  {/* Capture on a solid paper frame so the rounded card has no
+                      transparent corners (which showed as white/black blocks
+                      when the saved PNG was viewed in Photos). */}
                   <ViewShot ref={(el) => { shotRefs.current[index] = el; }} options={{ format: 'png', quality: 1 }}>
-                    <Card data={data} />
+                    <View style={styles.captureFrame}>
+                      <Card data={data} />
+                    </View>
                   </ViewShot>
                 </View>
               </View>
@@ -187,6 +192,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: 12 },
     elevation: 8,
   },
+  captureFrame: { backgroundColor: colors.bg.primary, padding: 18, borderRadius: 24 },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 7, paddingVertical: spacing.md },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.border.DEFAULT },
   dotActive: { backgroundColor: colors.brand.DEFAULT, width: 22 },

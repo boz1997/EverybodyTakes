@@ -169,9 +169,14 @@ exports.createEventZip = onCall({ memory: '1GiB', timeoutSeconds: 540 }, async (
 
   const eventSnap = await db.doc(`events/${eventId}`).get();
   if (!eventSnap.exists) throw new HttpsError('not-found', 'Event not found');
-  if (eventSnap.data().hostId !== uid) throw new HttpsError('permission-denied', 'Host only');
+  // Host or any guest who actually joined may export the gallery.
+  const isHost = eventSnap.data().hostId === uid;
+  const isGuest = (await db.doc(`events/${eventId}/guests/${uid}`).get()).exists;
+  if (!isHost && !isGuest) throw new HttpsError('permission-denied', 'Not a participant');
 
-  const bucket = getStorage().bucket();
+  // Explicit bucket name — the admin SDK default can resolve to the legacy
+  // <project>.appspot.com bucket while media lives in .firebasestorage.app.
+  const bucket = getStorage().bucket('everybodytakes.firebasestorage.app');
   const [files] = await bucket.getFiles({ prefix: `events/${eventId}/photos/` });
   if (files.length === 0) throw new HttpsError('not-found', 'No photos yet');
 

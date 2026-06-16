@@ -12,14 +12,14 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { format } from 'date-fns';
 import { tr as trLocale } from 'date-fns/locale';
-import { useEventStore, EventType, RevealTiming } from '@store/eventStore';
+import { useEventStore, EventType } from '@store/eventStore';
 import { StepIndicator } from '@shared/components/StepIndicator';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
-import { Icon, IconName, EVENT_TYPE_ICON } from '@shared/components/Icon';
+import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 3;
 
 const EVENT_TYPES: { key: EventType; labelKey: string }[] = [
   { key: 'wedding', labelKey: 'host.eventTypes.wedding' },
@@ -33,11 +33,6 @@ const EVENT_TYPES: { key: EventType; labelKey: string }[] = [
 ];
 
 const SHOT_OPTIONS = [10, 12, 24, 36, 48, 72];
-const REVEAL_OPTIONS: { key: RevealTiming; icon: IconName; labelKey: string; descKey: string }[] = [
-  { key: 'instant', icon: 'flash', labelKey: 'host.revealInstant', descKey: 'host.revealInstantDesc' },
-  { key: 'next_day', icon: 'film', labelKey: 'host.revealNextDay', descKey: 'host.revealNextDayDesc' },
-  { key: 'private', icon: 'lock', labelKey: 'host.revealPrivate', descKey: 'host.revealPrivateDesc' },
-];
 
 export default function CreateEvent() {
   const { t } = useTranslation();
@@ -52,7 +47,6 @@ export default function CreateEvent() {
     t('host.createStep1'),   // Cover + name
     t('host.eventType'),     // Type + date
     t('host.shotsPerGuest'), // Shots (alone)
-    t('host.revealTiming'),  // Reveal (alone)
   ];
 
   const pickCover = async () => {
@@ -234,35 +228,6 @@ export default function CreateEvent() {
               </>
             )}
 
-            {/* STEP 3: Reveal timing (alone) */}
-            {step === 3 && (
-              <View style={styles.questionBlock}>
-                <Text style={styles.questionTitle}>{t('host.revealTiming')}</Text>
-                <View style={styles.revealOptions}>
-                  {REVEAL_OPTIONS.map((opt) => (
-                    <TouchableOpacity
-                      key={opt.key}
-                      style={[styles.revealCard, draft.revealTiming === opt.key && styles.revealCardActive]}
-                      onPress={() => updateDraft({ revealTiming: opt.key })}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.revealIconWrap}>
-                        <Icon name={opt.icon} size={20} color={draft.revealTiming === opt.key ? colors.brand.DEFAULT : colors.text.muted} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.revealTitle, draft.revealTiming === opt.key && styles.revealTitleActive]}>
-                          {t(opt.labelKey)}
-                        </Text>
-                        <Text style={styles.revealDesc}>{t(opt.descKey)}</Text>
-                      </View>
-                      <View style={[styles.radio, draft.revealTiming === opt.key && styles.radioActive]}>
-                        {draft.revealTiming === opt.key && <View style={styles.radioDot} />}
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            )}
           </Animated.View>
         </ScrollView>
 
@@ -328,13 +293,6 @@ const styles = StyleSheet.create({
   toggleOn: { backgroundColor: colors.brand.DEFAULT },
   toggleThumb: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.text.muted },
   toggleThumbOn: { backgroundColor: '#fff', marginLeft: 18 },
-  revealOptions: { gap: spacing.sm, marginTop: spacing.xs },
-  revealCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card },
-  revealCardActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
-  revealIconWrap: { width: 36, height: 36, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg.elevated },
-  revealTitle: { fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text.secondary },
-  revealTitleActive: { color: colors.brand.DEFAULT },
-  revealDesc: { fontSize: typography.sizes.xs, color: colors.text.muted, marginTop: 2 },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.border.DEFAULT, alignItems: 'center', justifyContent: 'center' },
   radioActive: { borderColor: colors.brand.DEFAULT },
   radioDot: { width: 11, height: 11, borderRadius: 6, backgroundColor: colors.brand.DEFAULT },

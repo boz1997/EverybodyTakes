@@ -29,11 +29,6 @@ const REMINDERS: { key: '1d' | null; labelKey: string }[] = [
   { key: '1d', labelKey: 'host.reminderDayBefore' },
 ];
 
-const REVEALS: { key: 'instant' | 'next_day' | 'private'; labelKey: string }[] = [
-  { key: 'instant', labelKey: 'host.revealInstant' },
-  { key: 'next_day', labelKey: 'host.revealNextDay' },
-  { key: 'private', labelKey: 'host.revealPrivate' },
-];
 
 export default function EventManage() {
   const { t } = useTranslation();
@@ -69,71 +64,34 @@ export default function EventManage() {
       <View style={styles.settingsCard}>
         <Text style={styles.settingsTitle}>{t('host.eventSettings')}</Text>
 
-        {/* Disposable ON forces gallery uploads OFF (you can't pick from the
-            roll in disposable mode). Turning it off re-enables the choice. */}
-        <TouchableOpacity
-          style={styles.settingRow}
-          onPress={() => patchSettings(event.disposableMode
-            ? { disposableMode: false }
-            : { disposableMode: true, allowGalleryUpload: false })}
-          activeOpacity={0.8}
-        >
-          <Icon name="film" size={20} color={event.disposableMode ? colors.brand.DEFAULT : colors.text.muted} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.settingLabel}>{t('host.disposableMode')}</Text>
-            <Text style={styles.settingDesc}>{t('host.disposableModeDesc')}</Text>
-          </View>
-          <View style={[styles.toggle, event.disposableMode && styles.toggleOn]}>
-            <View style={[styles.toggleThumb, event.disposableMode && styles.toggleThumbOn]} />
-          </View>
-        </TouchableOpacity>
-
-        {!event.disposableMode && (
-          <TouchableOpacity
-            style={styles.settingRow}
-            onPress={() => patchSettings({ allowGalleryUpload: !event.allowGalleryUpload })}
-            activeOpacity={0.8}
-          >
-            <Icon name="image" size={20} color={event.allowGalleryUpload ? colors.brand.DEFAULT : colors.text.muted} />
-            <Text style={styles.settingLabel}>{t('host.allowGalleryUpload')}</Text>
-            <View style={[styles.toggle, event.allowGalleryUpload && styles.toggleOn]}>
-              <View style={[styles.toggleThumb, event.allowGalleryUpload && styles.toggleThumbOn]} />
-            </View>
-          </TouchableOpacity>
-        )}
-
-        {/* Notify the host on every new photo (default on) */}
-        <TouchableOpacity
-          style={styles.settingRow}
-          onPress={() => patchSettings({ uploadNotify: event.uploadNotify === false })}
-          activeOpacity={0.8}
-        >
-          <Icon name="bell" size={20} color={event.uploadNotify !== false ? colors.brand.DEFAULT : colors.text.muted} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.settingLabel}>{t('host.uploadNotify')}</Text>
-            <Text style={styles.settingDesc}>{t('host.uploadNotifyDesc')}</Text>
-          </View>
-          <View style={[styles.toggle, event.uploadNotify !== false && styles.toggleOn]}>
-            <View style={[styles.toggleThumb, event.uploadNotify !== false && styles.toggleThumbOn]} />
-          </View>
-        </TouchableOpacity>
-
-        <Text style={styles.settingSub}>{t('host.revealTiming')}</Text>
-        <View style={styles.reminderRow}>
-          {REVEALS.map((r) => {
-            const active = event.revealTiming === r.key;
-            return (
-              <TouchableOpacity
-                key={r.key}
-                style={[styles.reminderChip, active && styles.reminderChipActive]}
-                onPress={() => patchSettings({ revealTiming: r.key })}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.reminderText, active && styles.reminderTextActive]}>{t(r.labelKey)}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {/* Capture mode — one choice: disposable (no preview) OR open gallery
+            (guests can pick from their roll and preview before sharing). */}
+        <Text style={styles.settingSub}>{t('host.captureMode')}</Text>
+        {([
+          { disposable: true, icon: 'film' as const, title: t('host.disposableMode'), desc: t('host.disposableModeDesc') },
+          { disposable: false, icon: 'image' as const, title: t('host.modeOpenTitle'), desc: t('host.modeOpenDesc') },
+        ]).map((m) => {
+          const active = event.disposableMode === m.disposable;
+          return (
+            <TouchableOpacity
+              key={String(m.disposable)}
+              style={styles.settingRow}
+              onPress={() => patchSettings(m.disposable
+                ? { disposableMode: true, allowGalleryUpload: false }
+                : { disposableMode: false, allowGalleryUpload: true })}
+              activeOpacity={0.8}
+            >
+              <Icon name={m.icon} size={20} color={active ? colors.brand.DEFAULT : colors.text.muted} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingLabel}>{m.title}</Text>
+                <Text style={styles.settingDesc}>{m.desc}</Text>
+              </View>
+              <View style={[styles.modeRadio, active && styles.modeRadioActive]}>
+                {active && <View style={styles.modeRadioDot} />}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
 
         <Text style={styles.settingSub}>{t('host.reminderBefore')}</Text>
         <View style={styles.reminderRow}>
@@ -369,33 +327,35 @@ export default function EventManage() {
         ListHeaderComponent={
           <>
             {renderSettings()}
-            <View style={styles.sectionRow}>
+            <View style={styles.sectionHead}>
               <Text style={styles.sectionTitle}>
                 {selecting ? t('gallery.selected', { count: selected.size }) : `${t('host.livePhotos')} (${photos.length})`}
               </Text>
               {photos.length > 0 && (
-                selecting ? (
-                  <TouchableOpacity onPress={exitSelect} style={styles.downloadAllBtn} activeOpacity={0.7}>
-                    <Text style={styles.downloadAllText}>{t('common.cancel')}</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <View style={styles.headActions}>
-                    <TouchableOpacity onPress={() => setSelecting(true)} style={styles.downloadAllBtn} activeOpacity={0.7}>
-                      <Icon name="check" size={15} color={colors.brand.DEFAULT} />
-                      <Text style={styles.downloadAllText}>{t('gallery.select')}</Text>
+                <View style={styles.headActions}>
+                  {selecting ? (
+                    <TouchableOpacity onPress={exitSelect} style={styles.downloadAllBtn} activeOpacity={0.7}>
+                      <Text style={styles.downloadAllText}>{t('common.cancel')}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={handleDownloadAll} style={styles.downloadAllBtn} disabled={saving} activeOpacity={0.7}>
-                      <Icon name="download" size={15} color={colors.brand.DEFAULT} />
-                      <Text style={styles.downloadAllText}>
-                        {dlProgress ? t('host.downloadAllProgress', { done: dlProgress.done, total: dlProgress.total }) : t('host.downloadAll')}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={handleZip} style={styles.downloadAllBtn} disabled={zipping} activeOpacity={0.7}>
-                      <Icon name="film" size={15} color={colors.brand.DEFAULT} />
-                      <Text style={styles.downloadAllText}>{zipping ? t('host.zipPreparing') : 'ZIP'}</Text>
-                    </TouchableOpacity>
-                  </View>
-                )
+                  ) : (
+                    <>
+                      <TouchableOpacity onPress={() => setSelecting(true)} style={styles.downloadAllBtn} activeOpacity={0.7}>
+                        <Icon name="check" size={15} color={colors.brand.DEFAULT} />
+                        <Text style={styles.downloadAllText}>{t('gallery.select')}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={handleDownloadAll} style={styles.downloadAllBtn} disabled={saving} activeOpacity={0.7}>
+                        <Icon name="download" size={15} color={colors.brand.DEFAULT} />
+                        <Text style={styles.downloadAllText} numberOfLines={1}>
+                          {dlProgress ? t('host.downloadAllProgress', { done: dlProgress.done, total: dlProgress.total }) : t('host.downloadAll')}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={handleZip} style={styles.downloadAllBtn} disabled={zipping} activeOpacity={0.7}>
+                        <Icon name="film" size={15} color={colors.brand.DEFAULT} />
+                        <Text style={styles.downloadAllText}>{zipping ? t('host.zipPreparing') : 'ZIP'}</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </View>
               )}
             </View>
           </>
@@ -530,6 +490,9 @@ const styles = StyleSheet.create({
   settingLabel: { flex: 1, fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium, color: colors.text.primary },
   settingDesc: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted, marginTop: 1 },
   settingSub: { fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium, color: colors.text.secondary, marginTop: spacing.sm },
+  modeRadio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.border.DEFAULT, alignItems: 'center', justifyContent: 'center' },
+  modeRadioActive: { borderColor: colors.brand.DEFAULT },
+  modeRadioDot: { width: 11, height: 11, borderRadius: 6, backgroundColor: colors.brand.DEFAULT },
   reminderRow: { flexDirection: 'row', gap: spacing.sm },
   reminderChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border.DEFAULT },
   reminderChipActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
@@ -540,13 +503,14 @@ const styles = StyleSheet.create({
   toggleThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.text.muted },
   toggleThumbOn: { backgroundColor: '#fff', marginLeft: 18 },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
+  sectionHead: { marginBottom: spacing.md, gap: spacing.sm },
   sectionTitle: { fontSize: typography.sizes.base, fontFamily: fonts.displayBold, color: colors.text.primary },
   downloadAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   downloadAllText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold, color: colors.brand.DEFAULT },
   photoCell: { width: PHOTO_W, height: PHOTO_H, borderRadius: radius.md, overflow: 'hidden', margin: spacing.xs / 2 },
   photo: { width: '100%', height: '100%', backgroundColor: colors.border.subtle },
   skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  headActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  headActions: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.md },
   selOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'flex-end', justifyContent: 'flex-start', padding: 8 },
   selOverlayOn: { borderWidth: 3, borderColor: colors.brand.DEFAULT, borderRadius: radius.md, backgroundColor: 'rgba(190,106,46,0.18)' },
   selCheck: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#fff', backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' },

@@ -23,9 +23,9 @@ export interface Plan {
 }
 
 export const PLANS: Record<PlanId, Plan> = {
-  free: { id: 'free', maxGuests: 15, photoCap: 100, watermark: true, video: false, hdExport: false, liveWall: false, productId: null, priceUSD: 0 },
-  small: { id: 'small', maxGuests: 30, photoCap: null, watermark: false, video: false, hdExport: true, liveWall: false, productId: 'event_small', priceUSD: 3.99 },
-  medium: { id: 'medium', maxGuests: 100, photoCap: null, watermark: false, video: true, hdExport: true, liveWall: true, productId: 'event_medium', priceUSD: 14.99 },
+  free: { id: 'free', maxGuests: 10, photoCap: 100, watermark: true, video: false, hdExport: false, liveWall: false, productId: null, priceUSD: 0 },
+  small: { id: 'small', maxGuests: 20, photoCap: null, watermark: false, video: false, hdExport: true, liveWall: false, productId: 'event_small', priceUSD: 3.99 },
+  medium: { id: 'medium', maxGuests: 50, photoCap: null, watermark: false, video: false, hdExport: true, liveWall: true, productId: 'event_medium', priceUSD: 14.99 },
   unlimited: { id: 'unlimited', maxGuests: null, photoCap: null, watermark: false, video: true, hdExport: true, liveWall: true, productId: 'event_unlimited', priceUSD: 29.99 },
 };
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Image, Alert, ActivityIndicator,
-  ScrollView, Modal, StatusBar, Dimensions, FlatList,
+  ScrollView, Modal, StatusBar, Dimensions, FlatList, Linking,
   NativeScrollEvent, NativeSyntheticEvent,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -14,6 +14,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { format } from 'date-fns';
 import { EventService, Event, Photo, LimitError } from '@features/events/services/eventService';
+import { createEventZip } from '@features/events/services/exportService';
 import { AuthService } from '@features/auth/services/authService';
 import { useAuthStore } from '@store/authStore';
 import { useEventStore, EventType } from '@store/eventStore';
@@ -72,7 +73,22 @@ export default function EventHubScreen() {
   const [selecting, setSelecting] = useState(false);
   const [selSet, setSelSet] = useState<Set<string>>(new Set());
   const [dlProgress, setDlProgress] = useState<{ done: number; total: number } | null>(null);
+  const [zipping, setZipping] = useState(false);
   const flatRef = useRef<FlatList<Photo>>(null);
+
+  const handleZip = async () => {
+    if (!event || zipping) return;
+    try {
+      setZipping(true);
+      const { url } = await createEventZip(event.id);
+      await Linking.openURL(url);
+    } catch (e) {
+      logError('guest_zip', e);
+      Alert.alert(t('common.error'), t('host.zipFailed'));
+    } finally {
+      setZipping(false);
+    }
+  };
 
   const toggleSel = (id: string) => setSelSet((prev) => {
     const next = new Set(prev);
@@ -353,6 +369,10 @@ export default function EventHubScreen() {
                     <Icon name="download" size={15} color={colors.brand.DEFAULT} />
                     <Text style={styles.galActionText}>{dlProgress ? t('host.downloadAllProgress', { done: dlProgress.done, total: dlProgress.total }) : t('host.downloadAll')}</Text>
                   </TouchableOpacity>
+                  <TouchableOpacity onPress={handleZip} style={styles.galActionBtn} disabled={zipping} activeOpacity={0.7}>
+                    <Icon name="film" size={15} color={colors.brand.DEFAULT} />
+                    <Text style={styles.galActionText}>{zipping ? t('host.zipPreparing') : 'ZIP'}</Text>
+                  </TouchableOpacity>
                 </>
               )}
             </View>
@@ -392,7 +412,9 @@ export default function EventHubScreen() {
                     {p.mediaType === 'video' && (
                       <View style={styles.playBadge}><Icon name="play" size={14} color="#fff" /></View>
                     )}
-                    {!selecting && p.uploadedBy === uid && <View style={styles.mine}><Icon name="check" size={10} color="#fff" strokeWidth={3} /></View>}
+                    {/* "Yours" marker — a small dot, deliberately NOT a checkmark
+                        so it isn't mistaken for a selection state. */}
+                    {!selecting && p.uploadedBy === uid && <View style={styles.mine} />}
                     {!selecting && likes > 0 && (
                       <View style={styles.likeBadge}>
                         <Icon name="heart" size={11} color="#fff" fill="#fff" />
@@ -546,7 +568,7 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP },
   cell: { width: PHOTO_W, height: PHOTO_H, borderRadius: radius.md, overflow: 'hidden' },
   cellImg: { width: '100%', height: '100%', backgroundColor: colors.border.subtle },
-  mine: { position: 'absolute', top: 5, right: 5, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.brand.DEFAULT, alignItems: 'center', justifyContent: 'center' },
+  mine: { position: 'absolute', top: 6, right: 6, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.brand.DEFAULT, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.9)' },
   playBadge: { position: 'absolute', top: 5, left: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
   likeBadge: { position: 'absolute', bottom: 5, left: 5, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: radius.full, paddingHorizontal: 6, paddingVertical: 3 },
   likeBadgeText: { color: '#fff', fontSize: 11, fontFamily: fonts.bodySemibold },
