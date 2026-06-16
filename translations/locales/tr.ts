@@ -102,6 +102,7 @@ export default {
     photoSettings: 'Fotoğraf Ayarları',
     shotsPerGuest: 'Misafir başına çekim',
     shotsPerGuestHint: 'Her misafir kaç fotoğraf çekebilsin?',
+    shotsPerGuestShort: 'çekim/kişi',
     settingsLaterHint: 'Tek kullanımlık mod, galeri yükleme ve hatırlatıcıyı etkinlik oluştuktan sonra ayarlardan değiştirebilirsin.',
     eventSettings: 'Etkinlik Ayarları',
     hostOnlyGallery: 'Fotoğrafları sadece ben göreyim',
@@ -192,6 +193,7 @@ export default {
 
     eventCover: 'Etkinlik',
     shotsRemaining: '{{count}} çekim kaldı',
+    shotsShort: '{{count}} çekim',
     noShotsLeft: 'Çekim hakkın bitti',
     limitReachedTitle: 'Çekim hakkın doldu 🎉',
     limitReachedBody: 'Bu etkinliğe katkın için teşekkürler!',

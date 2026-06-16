@@ -18,6 +18,7 @@ import { EventService, LimitError } from '@features/events/services/eventService
 import { useAuthStore } from '@store/authStore';
 import { useEventStore } from '@store/eventStore';
 import { getSavedNickname } from '@store/guestEvents';
+import { logError } from '@shared/errorLog';
 import { startShotsActivity, updateShotsActivity, stopShotsActivity } from '@shared/liveActivity';
 import { Icon } from '@shared/components/Icon';
 import { colors, typography, spacing, radius } from '@constants/theme';
@@ -133,7 +134,7 @@ export default function CameraScreen() {
         }
         await EventService.uploadPhoto(id!, user.uid, nickname, upload, kind);
       } catch (e) {
-        if (__DEV__) console.warn('upload failed:', e);
+        if (!(e instanceof LimitError)) logError('camera_upload', e, { kind });
         if (e instanceof LimitError) {
           if (e.code === 'photo_cap') Alert.alert(t('guest.eventCapTitle'), t('guest.eventCapBody'));
           else if (e.code === 'event_ended') Alert.alert(t('errors.eventExpired'));

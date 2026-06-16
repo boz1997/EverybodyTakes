@@ -95,12 +95,12 @@ export default function HostDashboard() {
             <View style={styles.statDivider} />
             <View style={styles.stat}>
               <Text style={styles.statValue}>{item.guestCount}</Text>
-              <Text style={styles.statLabel}>misafir</Text>
+              <Text style={styles.statLabel}>{t('host.guestsLabel')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
               <Text style={styles.statValue}>{item.shotsPerGuest}</Text>
-              <Text style={styles.statLabel}>çekim/kişi</Text>
+              <Text style={styles.statLabel}>{t('host.shotsPerGuestShort')}</Text>
             </View>
           </View>
         </View>

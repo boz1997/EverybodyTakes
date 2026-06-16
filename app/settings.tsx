@@ -12,6 +12,7 @@ import { EventService } from '@features/events/services/eventService';
 import { useAuthStore } from '@store/authStore';
 import { getJoinedEvents, clearAllLocal } from '@store/guestEvents';
 import { LanguageToggle } from '@shared/components/LanguageToggle';
+import { logError } from '@shared/errorLog';
 import { Icon, IconName, BrandIcon } from '@shared/components/Icon';
 import { InputField } from '@shared/components/InputField';
 import { LINKS } from '@constants/links';
@@ -39,12 +40,12 @@ export default function SettingsScreen() {
 
   const handleApple = async () => {
     try { setUser(await AuthService.signInWithApple()); }
-    catch (e: unknown) { if (!isCancel(e)) Alert.alert(t('common.error'), String((e as { message?: string })?.message ?? e)); }
+    catch (e: unknown) { if (!isCancel(e)) { logError('apple_signin', e); Alert.alert(t('common.error'), t('auth.appleSignInFailed')); } }
   };
 
   const handleGoogle = async () => {
     try { setUser(await AuthService.signInWithGoogle()); }
-    catch (e: unknown) { if (!isCancel(e)) Alert.alert(t('common.error'), String((e as { message?: string })?.message ?? e)); }
+    catch (e: unknown) { if (!isCancel(e)) { logError('google_signin', e); Alert.alert(t('common.error'), t('errors.unknownError')); } }
   };
 
   const handleEmail = async () => {

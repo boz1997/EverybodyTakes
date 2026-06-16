@@ -102,6 +102,7 @@ export default {
     photoSettings: 'Ajustes de fotos',
     shotsPerGuest: 'Fotos por invitado',
     shotsPerGuestHint: '¿Cuántas fotos puede tomar cada invitado?',
+    shotsPerGuestShort: 'fotos/invitado',
     settingsLaterHint: 'Puedes cambiar el modo desechable, las subidas desde la galería y el recordatorio en los ajustes después de crear el evento.',
     eventSettings: 'Ajustes del evento',
     hostOnlyGallery: 'Solo yo puedo ver las fotos',
@@ -192,6 +193,7 @@ export default {
 
     eventCover: 'Evento',
     shotsRemaining: '{{count}} fotos restantes',
+    shotsShort: '{{count}} fotos',
     noShotsLeft: 'No quedan fotos',
     limitReachedTitle: 'Se acabaron tus fotos 🎉',
     limitReachedBody: '¡Gracias por capturar este evento!',

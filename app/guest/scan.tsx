@@ -100,11 +100,22 @@ export default function ScanScreen() {
             label={canAsk ? t('errors.cameraGrant') : t('errors.openSettings')}
             onPress={canAsk ? requestPermission : () => Linking.openSettings()}
           />
-          {/* The camera isn't a hard gate — let guests type the code instead. */}
-          <TouchableOpacity onPress={() => setMode('code')} style={styles.permCodeBtn}>
-            <Icon name="keyboard" size={18} color={colors.brand.DEFAULT} />
-            <Text style={styles.permCodeText}>{t('guest.enterCode')}</Text>
-          </TouchableOpacity>
+          {/* The camera isn't a hard gate — guests can still type the code,
+              scan a saved QR from their album, or open their joined events. */}
+          <View style={styles.permAlt}>
+            <TouchableOpacity onPress={() => setMode('code')} style={styles.permCodeBtn}>
+              <Icon name="keyboard" size={18} color={colors.brand.DEFAULT} />
+              <Text style={styles.permCodeText}>{t('guest.enterCode')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleAlbum} style={styles.permCodeBtn}>
+              <Icon name="image" size={18} color={colors.brand.DEFAULT} />
+              <Text style={styles.permCodeText}>{t('guest.fromAlbum')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/guest/joined')} style={styles.permCodeBtn}>
+              <Icon name="gallery" size={18} color={colors.brand.DEFAULT} />
+              <Text style={styles.permCodeText}>{t('guest.myEvents')}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </LinearGradient>
     );
@@ -202,6 +213,7 @@ const styles = StyleSheet.create({
   permContent: { flex: 1, paddingHorizontal: spacing.lg, alignItems: 'center', justifyContent: 'center', gap: spacing.lg },
   permTitle: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: colors.text.primary, textAlign: 'center' },
   permDesc: { fontSize: typography.sizes.sm, color: colors.text.muted, textAlign: 'center' },
+  permAlt: { marginTop: spacing.sm, gap: spacing.xs, alignItems: 'center' },
   permCodeBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: spacing.sm },
   permCodeText: { fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold, color: colors.brand.DEFAULT },
   topBar: {

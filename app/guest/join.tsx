@@ -19,6 +19,7 @@ import { useAuthStore } from '@store/authStore';
 import { useEventStore, EventType } from '@store/eventStore';
 import { addJoinedEvent, removeJoinedEvent, getJoinedEvents, getSavedNickname, saveNickname } from '@store/guestEvents';
 import { scheduleLocalAt } from '@shared/notifications';
+import { logError } from '@shared/errorLog';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
 import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
@@ -86,6 +87,14 @@ export default function EventHubScreen() {
     let unsub: (() => void) | undefined;
     (async () => {
       try {
+        // Sign in FIRST: every Firestore read requires auth, and guests reach
+        // this screen without an account (the welcome "Guest" tap doesn't sign
+        // in). Reading the event before this threw permission-denied for fresh
+        // installs — the "unexpected error" guests hit when joining.
+        let u = user;
+        if (!u) { u = await AuthService.signInAnonymous(); setUser(u); }
+        setUid(u.uid);
+
         const ev = await EventService.getByShortCode(code);
         if (!ev) {
           // Event was deleted — drop it from "My events" so it stops listing.
@@ -99,10 +108,6 @@ export default function EventHubScreen() {
 
         const saved = await getSavedNickname();
         setNicknameState(saved);
-
-        let u = user;
-        if (!u) { u = await AuthService.signInAnonymous(); setUser(u); }
-        setUid(u.uid);
 
         if (ev.isActive) {
           try {
@@ -118,11 +123,13 @@ export default function EventHubScreen() {
             }
           } catch (e) {
             if (e instanceof LimitError && e.code === 'event_full') setError(t('errors.maxGuestsReached'));
+            else { setError(t('errors.unknownError')); logError('guest_join', e, { code, step: 'joinEvent' }); }
           }
         }
         unsub = EventService.subscribeToPhotos(ev.id, (ps) => { setPhotos(ps); setPhotosLoaded(true); });
-      } catch {
+      } catch (e) {
         setError(t('errors.unknownError'));
+        logError('guest_join', e, { code, step: 'load' });
       } finally {
         setLoading(false);
       }
@@ -300,7 +307,7 @@ export default function EventHubScreen() {
           {event.date ? <Text style={styles.eventDate}>{format(new Date(event.date), 'd MMMM yyyy')}</Text> : null}
 
           <View style={styles.stats}>
-            <View style={styles.statChip}><Icon name="camera" size={14} color={colors.text.secondary} /><Text style={styles.statText}>{event.shotsPerGuest} çekim</Text></View>
+            <View style={styles.statChip}><Icon name="camera" size={14} color={colors.text.secondary} /><Text style={styles.statText}>{t('guest.shotsShort', { count: event.shotsPerGuest })}</Text></View>
             {event.disposableMode && <View style={styles.statChip}><Icon name="film" size={14} color={colors.text.secondary} /><Text style={styles.statText}>Disposable</Text></View>}
           </View>
 

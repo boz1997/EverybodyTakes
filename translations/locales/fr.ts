@@ -102,6 +102,7 @@ export default {
     photoSettings: 'Réglages photo',
     shotsPerGuest: 'Photos par invité',
     shotsPerGuestHint: 'Combien de photos chaque invité peut-il prendre ?',
+    shotsPerGuestShort: 'photos/invité',
     settingsLaterHint: 'Vous pouvez modifier le mode jetable, les imports depuis la galerie et le rappel dans les réglages après la création de l\'événement.',
     eventSettings: 'Réglages de l\'événement',
     hostOnlyGallery: 'Moi seul peux voir les photos',
@@ -192,6 +193,7 @@ export default {
 
     eventCover: 'Événement',
     shotsRemaining: '{{count}} photos restantes',
+    shotsShort: '{{count}} photos',
     noShotsLeft: 'Plus de photos disponibles',
     limitReachedTitle: 'Tes photos sont épuisées 🎉',
     limitReachedBody: 'Merci d\'avoir immortalisé cet événement !',

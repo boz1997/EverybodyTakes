@@ -1,5 +1,4 @@
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
-const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
@@ -155,20 +154,8 @@ exports.notifyHostOnReport = onDocumentCreated('reports/{reportId}', async (even
   await sendPush(ctx, strings(ctx.lang).reported);
 });
 
-// ---- Auto-end: events don't stay open forever ----
-// Daily sweep: any event still active 48h past its date stops accepting
-// joins/uploads (isActive=false). Galleries stay viewable.
-const AUTO_END_AFTER_MS = 48 * 60 * 60 * 1000;
-
-exports.autoEndEvents = onSchedule('every 24 hours', async () => {
-  const cutoff = new Date(Date.now() - AUTO_END_AFTER_MS).toISOString();
-  const snap = await db.collection('events')
-    .where('isActive', '==', true)
-    .where('date', '<', cutoff)
-    .get();
-  await Promise.all(snap.docs.map((d) => d.ref.update({ isActive: false }).catch(() => {})));
-  console.log(`autoEndEvents: ended ${snap.size} events`);
-});
+// (Auto-end removed: events stay open until the host ends them manually, so
+// guests can keep adding photos days after the event.)
 
 // ---- ZIP export: host downloads the whole gallery as one archive ----
 // Streams every photo/video into a store-only zip (media is already

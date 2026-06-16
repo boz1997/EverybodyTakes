@@ -23,6 +23,14 @@ service cloud.firestore {
       allow read, update, delete: if false;
     }
 
+    // Client error logs are write-only (read them in the console/admin). Open to
+    // create even unauthenticated so we still capture pre-auth failures; never
+    // readable or mutable from the client.
+    match /errorLogs/{logId} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+
     match /events/{eventId} {
       function isHost() {
         return signedIn() && resource.data.hostId == request.auth.uid;

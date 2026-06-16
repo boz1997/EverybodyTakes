@@ -22,6 +22,7 @@ import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
 import { Icon, BrandIcon } from '@shared/components/Icon';
 import { Wordmark } from '@shared/components/Wordmark';
+import { logError } from '@shared/errorLog';
 import { LINKS } from '@constants/links';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
@@ -62,7 +63,7 @@ export default function AuthScreen() {
       const code = (e as { code?: string })?.code;
       const msg = ((e as { message?: string })?.message ?? '').toLowerCase();
       if (code === 'ERR_REQUEST_CANCELED' || code === 'ERR_CANCELED' || msg.includes('cancel')) return; // user dismissed
-      if (__DEV__) console.warn('apple sign-in failed:', e);
+      logError('apple_signin', e);
       Alert.alert(t('common.error'), t('auth.appleSignInFailed'));
     } finally {
       setLoading(false);
@@ -79,7 +80,8 @@ export default function AuthScreen() {
       const code = (e as { code?: string })?.code;
       const msg = (e as { message?: string })?.message;
       if (msg === 'cancelled' || code === 'SIGN_IN_CANCELLED' || code === '-5' || code === '12501') return;
-      Alert.alert(t('common.error'), String(msg ?? e));
+      logError('google_signin', e);
+      Alert.alert(t('common.error'), t('errors.unknownError'));
     } finally {
       setLoading(false);
     }

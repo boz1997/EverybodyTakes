@@ -10,6 +10,7 @@ import { useAuthStore } from '@store/authStore';
 import { EventService } from '@features/events/services/eventService';
 import { PLANS, PAID_PLAN_ORDER, PAID_PLANS_ENABLED, PlanId, Plan, formatPrice } from '@constants/plans';
 import { buyProduct, getPriceStrings, restorePurchases, purchasesReady, PurchaseCancelled } from '@features/purchases/purchaseService';
+import { logError } from '@shared/errorLog';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
@@ -74,6 +75,7 @@ export default function PaywallScreen() {
             // "could not be completed" leaves failures (and review screenshots)
             // undiagnosable.
             const detail = (e as { message?: string })?.message;
+            logError('purchase', e, { productId: plan.productId });
             Alert.alert(t('common.error'), detail ? `${t('paywall.purchaseFailed')}\n\n(${detail})` : t('paywall.purchaseFailed'));
             return;
           }
@@ -127,8 +129,8 @@ export default function PaywallScreen() {
         {!isUpgrade && (
           <View style={styles.eventPill}>
             <Icon name={EVENT_TYPE_ICON[draft.type]} size={18} color={colors.brand.DEFAULT} />
-            <Text style={styles.eventPillName} numberOfLines={1}>{draft.name || 'Etkinlik'}</Text>
-            <Text style={styles.eventPillDetail}>{draft.shotsPerGuest} çekim/kişi</Text>
+            <Text style={styles.eventPillName} numberOfLines={1}>{draft.name || t('guest.eventCover')}</Text>
+            <Text style={styles.eventPillDetail}>{draft.shotsPerGuest} {t('host.shotsPerGuestShort')}</Text>
           </View>
         )}
 

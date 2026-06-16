@@ -102,6 +102,7 @@ export default {
     photoSettings: 'Foto-Einstellungen',
     shotsPerGuest: 'Fotos pro Gast',
     shotsPerGuestHint: 'Wie viele Fotos kann jeder Gast machen?',
+    shotsPerGuestShort: 'Aufnahmen/Gast',
     settingsLaterHint: 'Du kannst den Einwegmodus, Galerie-Uploads und die Erinnerung nach dem Erstellen des Events in den Einstellungen ändern.',
     eventSettings: 'Event-Einstellungen',
     hostOnlyGallery: 'Nur ich kann die Fotos sehen',
@@ -192,6 +193,7 @@ export default {
 
     eventCover: 'Event',
     shotsRemaining: 'Noch {{count}} Fotos',
+    shotsShort: '{{count}} Aufnahmen',
     noShotsLeft: 'Keine Fotos mehr übrig',
     limitReachedTitle: 'Deine Aufnahmen sind aufgebraucht 🎉',
     limitReachedBody: 'Danke, dass du dieses Event festgehalten hast!',

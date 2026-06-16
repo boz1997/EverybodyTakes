@@ -102,6 +102,7 @@ export default {
     photoSettings: 'Photo Settings',
     shotsPerGuest: 'Shots per guest',
     shotsPerGuestHint: 'How many photos can each guest take?',
+    shotsPerGuestShort: 'shots/guest',
     settingsLaterHint: 'You can change disposable mode, gallery uploads and the reminder from settings after the event is created.',
     eventSettings: 'Event Settings',
     hostOnlyGallery: 'Only I can see the photos',
@@ -192,6 +193,7 @@ export default {
 
     eventCover: 'Event',
     shotsRemaining: '{{count}} shots left',
+    shotsShort: '{{count}} shots',
     noShotsLeft: 'No shots remaining',
     limitReachedTitle: 'Your shots are used up 🎉',
     limitReachedBody: 'Thank you for capturing this event!',
