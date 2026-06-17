@@ -11,8 +11,16 @@ import { initI18n } from '@translations/index';
 import { AuthService } from '@features/auth/services/authService';
 import { configurePurchases } from '@features/purchases/purchaseService';
 import { useAuthStore } from '@store/authStore';
+import * as Sentry from '@sentry/react-native';
 import { colors } from '@constants/theme';
 import '../global.css';
+
+// Crash + error reporting. Enabled in release builds only so local dev noise
+// doesn't fill the dashboard. The DSN is a public client key (safe to ship).
+Sentry.init({
+  dsn: 'https://fcfb4224cdbb1fe7052aa9bf4c3ead1a@o4511583063703552.ingest.de.sentry.io/4511583068749904',
+  enabled: !__DEV__,
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,7 +28,7 @@ const queryClient = new QueryClient({
   },
 });
 
-export default function RootLayout() {
+function RootLayout() {
   const [i18nReady, setI18nReady] = useState(false);
   const { setUser, setInitialized } = useAuthStore();
 
@@ -90,3 +98,5 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+export default Sentry.wrap(RootLayout);

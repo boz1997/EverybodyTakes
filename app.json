@@ -67,7 +67,15 @@
         }
       ],
       "./plugins/withGoogleModularHeaders.js",
-      "expo-image"
+      "expo-image",
+      [
+        "@sentry/react-native",
+        {
+          "organization": "guestcam",
+          "project": "guestcam-mobile",
+          "url": "https://de.sentry.io/"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
