@@ -191,6 +191,8 @@ export default {
     enterCodeOrLink: 'Enter the 6-digit code or paste the event link',
     pasteCode: 'Paste from clipboard',
     fromAlbum: 'From album',
+    addFromAlbum: 'Add from album',
+    eventGallery: 'Event gallery',
     joiningEvent: 'Joining event...',
     joinEvent: 'Join Event',
 

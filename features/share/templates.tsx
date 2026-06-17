@@ -96,12 +96,32 @@ function CameraLine({ color }: { color: string }) {
   );
 }
 
+function Hearts({ color }: { color: string }) {
+  return (
+    <Svg width={52} height={36} viewBox="0 0 52 36">
+      <Path d="M26 31 C17 23 11 18 11 12 a6.5 6.5 0 0 1 15 -1 a6.5 6.5 0 0 1 15 1 c0 6 -6 11 -15 19 Z" fill={color} />
+    </Svg>
+  );
+}
+function Sparkle({ color }: { color: string }) {
+  return (
+    <Svg width={64} height={40} viewBox="0 0 64 40">
+      <Path d="M32 6 l3.4 9 9 3.4 -9 3.4 -3.4 9 -3.4 -9 -9 -3.4 9 -3.4 Z" fill={color} />
+      <Circle cx={13} cy={13} r={2} fill={color} />
+      <Circle cx={51} cy={28} r={2.4} fill={color} />
+    </Svg>
+  );
+}
+
 /* ---------- themes ---------- */
 const T_EDITORIAL: Theme = { bg: '#EFE7D6', ink: '#221D16', sub: '#5B5247', faint: '#9C9182', accent: '#BE6A2E', qrBg: '#FFFFFF', qrColor: '#221D16' };
 const T_WEDDING: Theme = { bg: '#3A0E16', ink: '#F6ECE0', sub: '#D9B8A8', faint: '#B98E7C', accent: '#E0B074', qrBg: '#F6ECE0', qrColor: '#3A0E16' };
 const T_CONFETTI: Theme = { bg: '#FFFFFF', ink: '#161616', sub: '#5B5247', faint: '#A8A29A', accent: '#BE6A2E', qrBg: '#161616', qrColor: '#FFFFFF' };
 const T_MINIMAL: Theme = { bg: '#F7F4EE', ink: '#1F1B16', sub: '#6B6357', faint: '#A8A096', accent: '#BE6A2E', qrBg: '#FFFFFF', qrColor: '#1F1B16' };
 const T_NIGHT: Theme = { bg: '#14110C', ink: '#F4EEE1', sub: '#C2A05A', faint: '#7C746A', accent: '#E0B074', qrBg: '#F4EEE1', qrColor: '#14110C' };
+const T_SAGE: Theme = { bg: '#E4EADD', ink: '#2C3A28', sub: '#5C6B54', faint: '#9AA790', accent: '#6E8B5B', qrBg: '#FFFFFF', qrColor: '#2C3A28' };
+const T_BLUSH: Theme = { bg: '#F7E8E6', ink: '#4A2B2B', sub: '#8A5C5A', faint: '#C2999A', accent: '#C77B7B', qrBg: '#FFFFFF', qrColor: '#4A2B2B' };
+const T_GOLD: Theme = { bg: '#0E0E10', ink: '#F0E2BE', sub: '#C9A86A', faint: '#7A6E50', accent: '#E5C77E', qrBg: '#F0E2BE', qrColor: '#0E0E10' };
 
 /* ---------- templates ---------- */
 const Editorial: Template = ({ data }) => <Poster data={data} theme={T_EDITORIAL} />;
@@ -109,6 +129,9 @@ const Wedding: Template = ({ data }) => <Poster data={data} theme={T_WEDDING} de
 const Confetti_: Template = ({ data }) => <Poster data={data} theme={T_CONFETTI} decoration={<Confetti a="#BE6A2E" b="#4E7C59" c="#9A7634" />} />;
 const Minimal: Template = ({ data }) => <Poster data={data} theme={T_MINIMAL} decoration={<CameraLine color={T_MINIMAL.accent} />} />;
 const Night: Template = ({ data }) => <Poster data={data} theme={T_NIGHT} decoration={<CameraLine color={T_NIGHT.accent} />} />;
+const Sage: Template = ({ data }) => <Poster data={data} theme={T_SAGE} decoration={<CameraLine color={T_SAGE.accent} />} />;
+const Blush: Template = ({ data }) => <Poster data={data} theme={T_BLUSH} decoration={<Hearts color={T_BLUSH.accent} />} />;
+const Gold: Template = ({ data }) => <Poster data={data} theme={T_GOLD} decoration={<Sparkle color={T_GOLD.accent} />} gradient={['#1A1814', '#0B0B0D']} />;
 
 const Cover: Template = ({ data }) => (
   <View style={[styles.card, styles.coverCard]}>
@@ -136,19 +159,22 @@ export const TEMPLATES: TemplateMeta[] = [
   { key: 'wedding', label: 'Elegant', comp: Wedding },
   { key: 'confetti', label: 'Confetti', comp: Confetti_ },
   { key: 'minimal', label: 'Minimal', comp: Minimal },
+  { key: 'blush', label: 'Blush', comp: Blush },
+  { key: 'sage', label: 'Sage', comp: Sage },
+  { key: 'gold', label: 'Gold', comp: Gold },
   { key: 'night', label: 'Night', comp: Night },
   { key: 'cover', label: 'Cover', comp: Cover, needsCover: true },
 ];
 
 const BY_TYPE: Partial<Record<EventType, string[]>> = {
-  wedding: ['wedding', 'editorial', 'minimal'],
-  birthday: ['confetti', 'editorial', 'minimal'],
-  party: ['confetti', 'night', 'editorial'],
-  club: ['night', 'confetti', 'editorial'],
-  festival: ['night', 'confetti', 'editorial'],
-  yacht: ['night', 'editorial', 'minimal'],
-  corporate: ['minimal', 'editorial'],
-  other: ['editorial', 'minimal', 'confetti'],
+  wedding: ['wedding', 'blush', 'sage', 'editorial', 'minimal'],
+  birthday: ['confetti', 'blush', 'editorial', 'minimal'],
+  party: ['gold', 'confetti', 'night', 'editorial'],
+  club: ['gold', 'night', 'confetti', 'editorial'],
+  festival: ['night', 'gold', 'confetti', 'editorial'],
+  yacht: ['gold', 'night', 'sage', 'editorial'],
+  corporate: ['minimal', 'sage', 'editorial'],
+  other: ['editorial', 'minimal', 'blush', 'confetti'],
 };
 
 /** Suggested templates for a type first, then the rest. Cover only with an image. */

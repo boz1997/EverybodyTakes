@@ -269,6 +269,10 @@ export default function CameraScreen() {
       {/* Flash overlay */}
       <Animated.View style={[StyleSheet.absoluteFill, styles.flashOverlay, flashStyle]} pointerEvents="none" />
 
+      {/* Legibility scrims so the white controls stay readable over any scene */}
+      <LinearGradient colors={['rgba(0,0,0,0.45)', 'transparent']} style={styles.topScrim} pointerEvents="none" />
+      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)']} style={styles.bottomScrim} pointerEvents="none" />
+
       {/* Top Bar */}
       <View style={[styles.topBar, { paddingTop: insets.top + spacing.sm }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn} hitSlop={10}>
@@ -331,7 +335,7 @@ export default function CameraScreen() {
             )}
           </TouchableOpacity>
           <Text style={styles.sideLabel}>
-            {galleryUpload && !disposable ? t('guest.fromAlbum') : t('guest.viewGallery')}
+            {galleryUpload && !disposable ? t('guest.addFromAlbum') : t('guest.eventGallery')}
           </Text>
         </View>
 
@@ -406,6 +410,8 @@ const styles = StyleSheet.create({
   permBtn: { backgroundColor: colors.brand.DEFAULT, borderRadius: radius.xl, paddingHorizontal: spacing.xl, paddingVertical: 14 },
   permBtnText: { color: '#fff', fontWeight: typography.weights.semibold },
   flashOverlay: { backgroundColor: '#fff', zIndex: 5 },
+  topScrim: { position: 'absolute', top: 0, left: 0, right: 0, height: 160 },
+  bottomScrim: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 220 },
   topBar: {
     position: 'absolute', top: 0, left: 0, right: 0,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

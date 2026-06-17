@@ -191,6 +191,8 @@ export default {
     enterCodeOrLink: 'Saisissez le code à 6 chiffres ou collez le lien de l\'événement',
     pasteCode: 'Coller depuis le presse-papiers',
     fromAlbum: 'Depuis l\'album',
+    addFromAlbum: 'Ajouter depuis l\'album',
+    eventGallery: 'Galerie de l\'événement',
     joiningEvent: 'Connexion à l\'événement...',
     joinEvent: 'Rejoindre l\'événement',
 

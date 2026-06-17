@@ -191,6 +191,8 @@ export default {
     enterCodeOrLink: '6 haneli kodu gir veya etkinlik linkini yapıştır',
     pasteCode: 'Panodan yapıştır',
     fromAlbum: 'Albümden oku',
+    addFromAlbum: 'Albümden ekle',
+    eventGallery: 'Etkinlik galerisi',
     joiningEvent: 'Etkinliğe katılıyorsun...',
     joinEvent: 'Etkinliğe Katıl',
 

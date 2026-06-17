@@ -191,6 +191,8 @@ export default {
     enterCodeOrLink: 'Introduce el código de 6 dígitos o pega el enlace del evento',
     pasteCode: 'Pegar del portapapeles',
     fromAlbum: 'Desde el álbum',
+    addFromAlbum: 'Añadir del álbum',
+    eventGallery: 'Galería del evento',
     joiningEvent: 'Uniéndote al evento...',
     joinEvent: 'Unirse al evento',
 
