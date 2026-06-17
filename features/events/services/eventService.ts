@@ -48,7 +48,6 @@ export interface Event {
   uploadNotify: boolean;      // host gets notified on each new photo (push)
   maxGuests: number | null;   // resolved from plan
   photoCap: number | null;    // resolved from plan
-  watermark: boolean;         // resolved from plan
   video: boolean;             // resolved from plan
   endsAt: string | null;      // for reveal timing
   shortCode: string;
@@ -135,7 +134,6 @@ export const EventService = {
       uploadNotify: true,
       maxGuests: limits.maxGuests,
       photoCap: limits.photoCap,
-      watermark: limits.watermark,
       video: limits.video,
       endsAt,
       shortCode,
@@ -362,7 +360,7 @@ export const EventService = {
   async updatePlan(eventId: string, planId: string): Promise<void> {
     const p = getPlan(planId);
     await updateDoc(doc(db, 'events', eventId), {
-      plan: p.id, maxGuests: p.maxGuests, photoCap: p.photoCap, watermark: p.watermark, video: p.video,
+      plan: p.id, maxGuests: p.maxGuests, photoCap: p.photoCap, video: p.video,
     });
   },
 

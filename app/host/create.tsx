@@ -223,6 +223,39 @@ export default function CreateEvent() {
                       </TouchableOpacity>
                     ))}
                   </View>
+                </View>
+
+                {/* Capture mode — disposable (no preview) vs open gallery.
+                    Chosen here at creation, also editable later in event settings. */}
+                <View style={styles.questionBlock}>
+                  <Text style={styles.questionTitle}>{t('host.captureMode')}</Text>
+                  {([
+                    { disposable: true, icon: 'film' as const, title: t('host.disposableMode'), desc: t('host.disposableModeDesc') },
+                    { disposable: false, icon: 'image' as const, title: t('host.modeOpenTitle'), desc: t('host.modeOpenDesc') },
+                  ]).map((m) => {
+                    const active = draft.disposableMode === m.disposable;
+                    return (
+                      <TouchableOpacity
+                        key={String(m.disposable)}
+                        style={[styles.modeCard, active && styles.modeCardActive]}
+                        onPress={() => updateDraft(m.disposable
+                          ? { disposableMode: true, allowGalleryUpload: false }
+                          : { disposableMode: false, allowGalleryUpload: true })}
+                        activeOpacity={0.85}
+                      >
+                        <View style={styles.modeIconWrap}>
+                          <Icon name={m.icon} size={20} color={active ? colors.brand.DEFAULT : colors.text.muted} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.modeTitle, active && styles.modeTitleActive]}>{m.title}</Text>
+                          <Text style={styles.modeDesc}>{m.desc}</Text>
+                        </View>
+                        <View style={[styles.modeRadio, active && styles.modeRadioActive]}>
+                          {active && <View style={styles.modeRadioDot} />}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
                   <Text style={styles.questionHint}>{t('host.settingsLaterHint')}</Text>
                 </View>
               </>
@@ -282,6 +315,15 @@ const styles = StyleSheet.create({
   shotNumberActive: { color: colors.brand.DEFAULT },
   shotLabel: { fontSize: typography.sizes.xs, color: colors.text.muted },
   shotLabelActive: { color: colors.brand.DEFAULT },
+  modeCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.xl, borderWidth: 1.5, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card, marginTop: spacing.xs },
+  modeCardActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
+  modeIconWrap: { width: 38, height: 38, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg.elevated },
+  modeTitle: { fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold, color: colors.text.secondary },
+  modeTitleActive: { color: colors.brand.DEFAULT },
+  modeDesc: { fontSize: typography.sizes.xs, color: colors.text.muted, marginTop: 2 },
+  modeRadio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.border.DEFAULT, alignItems: 'center', justifyContent: 'center' },
+  modeRadioActive: { borderColor: colors.brand.DEFAULT },
+  modeRadioDot: { width: 11, height: 11, borderRadius: 6, backgroundColor: colors.brand.DEFAULT },
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card },
   toggleRowActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
   toggleInfo: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1 },

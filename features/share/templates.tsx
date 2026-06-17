@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import QRCode from 'react-native-qrcode-svg';
-import Svg, { Circle, Rect, Path, Line, G } from 'react-native-svg';
+import Svg, { Circle, Rect, Path, Line, G, Ellipse } from 'react-native-svg';
 import { EventType } from '@store/eventStore';
 import { fonts } from '@constants/theme';
 
@@ -113,6 +113,35 @@ function Sparkle({ color }: { color: string }) {
   );
 }
 
+function Balloons({ a, b, c }: { a: string; b: string; c: string }) {
+  return (
+    <Svg width={70} height={48} viewBox="0 0 70 48">
+      <Path d="M18 27 q3 7 0 13 M35 24 q-3 8 0 15 M52 27 q3 7 0 13" stroke="rgba(0,0,0,0.18)" strokeWidth={1} fill="none" />
+      <Ellipse cx={18} cy={16} rx={9} ry={11} fill={a} />
+      <Ellipse cx={35} cy={13} rx={9} ry={11} fill={b} />
+      <Ellipse cx={52} cy={16} rx={9} ry={11} fill={c} />
+    </Svg>
+  );
+}
+function Cake({ color }: { color: string }) {
+  return (
+    <Svg width={52} height={48} viewBox="0 0 52 48">
+      <Path d="M11 30 h30 v9 a4 4 0 0 1 -4 4 H15 a4 4 0 0 1 -4 -4 Z" fill="none" stroke={color} strokeWidth={2} />
+      <Path d="M11 31 q7.5 -6 15 0 t15 0" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Line x1={26} y1={14} x2={26} y2={24} stroke={color} strokeWidth={2} />
+      <Path d="M26 8 q3.2 3.5 0 6 q-3.2 -2.5 0 -6 Z" fill={color} />
+    </Svg>
+  );
+}
+function Floral({ color }: { color: string }) {
+  return (
+    <Svg width={66} height={40} viewBox="0 0 66 40">
+      <Path d="M33 38 C33 26 25 20 16 18 C27 16 33 22 33 30 C33 22 39 16 50 18 C41 20 33 26 33 38 Z" fill={color} opacity={0.9} />
+      <Circle cx={33} cy={12} r={4} fill={color} />
+    </Svg>
+  );
+}
+
 /* ---------- themes ---------- */
 const T_EDITORIAL: Theme = { bg: '#EFE7D6', ink: '#221D16', sub: '#5B5247', faint: '#9C9182', accent: '#BE6A2E', qrBg: '#FFFFFF', qrColor: '#221D16' };
 const T_WEDDING: Theme = { bg: '#3A0E16', ink: '#F6ECE0', sub: '#D9B8A8', faint: '#B98E7C', accent: '#E0B074', qrBg: '#F6ECE0', qrColor: '#3A0E16' };
@@ -122,6 +151,8 @@ const T_NIGHT: Theme = { bg: '#14110C', ink: '#F4EEE1', sub: '#C2A05A', faint: '
 const T_SAGE: Theme = { bg: '#E4EADD', ink: '#2C3A28', sub: '#5C6B54', faint: '#9AA790', accent: '#6E8B5B', qrBg: '#FFFFFF', qrColor: '#2C3A28' };
 const T_BLUSH: Theme = { bg: '#F7E8E6', ink: '#4A2B2B', sub: '#8A5C5A', faint: '#C2999A', accent: '#C77B7B', qrBg: '#FFFFFF', qrColor: '#4A2B2B' };
 const T_GOLD: Theme = { bg: '#0E0E10', ink: '#F0E2BE', sub: '#C9A86A', faint: '#7A6E50', accent: '#E5C77E', qrBg: '#F0E2BE', qrColor: '#0E0E10' };
+const T_FIESTA: Theme = { bg: '#FFF4E6', ink: '#3A2A1A', sub: '#7A6552', faint: '#B7A593', accent: '#E0662E', qrBg: '#FFFFFF', qrColor: '#3A2A1A' };
+const T_FLORAL: Theme = { bg: '#F2EFE8', ink: '#33402E', sub: '#5E6B53', faint: '#9AA790', accent: '#7E9B6A', qrBg: '#FFFFFF', qrColor: '#33402E' };
 
 /* ---------- templates ---------- */
 const Editorial: Template = ({ data }) => <Poster data={data} theme={T_EDITORIAL} />;
@@ -132,6 +163,9 @@ const Night: Template = ({ data }) => <Poster data={data} theme={T_NIGHT} decora
 const Sage: Template = ({ data }) => <Poster data={data} theme={T_SAGE} decoration={<CameraLine color={T_SAGE.accent} />} />;
 const Blush: Template = ({ data }) => <Poster data={data} theme={T_BLUSH} decoration={<Hearts color={T_BLUSH.accent} />} />;
 const Gold: Template = ({ data }) => <Poster data={data} theme={T_GOLD} decoration={<Sparkle color={T_GOLD.accent} />} gradient={['#1A1814', '#0B0B0D']} />;
+const Party: Template = ({ data }) => <Poster data={data} theme={T_FIESTA} decoration={<Balloons a="#E0662E" b="#5B8DEF" c="#E0479E" />} />;
+const Birthday: Template = ({ data }) => <Poster data={data} theme={T_FIESTA} decoration={<Cake color={T_FIESTA.accent} />} />;
+const Floral_: Template = ({ data }) => <Poster data={data} theme={T_FLORAL} decoration={<Floral color={T_FLORAL.accent} />} />;
 
 const Cover: Template = ({ data }) => (
   <View style={[styles.card, styles.coverCard]}>
@@ -160,18 +194,21 @@ export const TEMPLATES: TemplateMeta[] = [
   { key: 'confetti', label: 'Confetti', comp: Confetti_ },
   { key: 'minimal', label: 'Minimal', comp: Minimal },
   { key: 'blush', label: 'Blush', comp: Blush },
+  { key: 'floral', label: 'Floral', comp: Floral_ },
   { key: 'sage', label: 'Sage', comp: Sage },
+  { key: 'birthday', label: 'Birthday', comp: Birthday },
+  { key: 'party', label: 'Balloons', comp: Party },
   { key: 'gold', label: 'Gold', comp: Gold },
   { key: 'night', label: 'Night', comp: Night },
   { key: 'cover', label: 'Cover', comp: Cover, needsCover: true },
 ];
 
 const BY_TYPE: Partial<Record<EventType, string[]>> = {
-  wedding: ['wedding', 'blush', 'sage', 'editorial', 'minimal'],
-  birthday: ['confetti', 'blush', 'editorial', 'minimal'],
-  party: ['gold', 'confetti', 'night', 'editorial'],
-  club: ['gold', 'night', 'confetti', 'editorial'],
-  festival: ['night', 'gold', 'confetti', 'editorial'],
+  wedding: ['wedding', 'floral', 'blush', 'sage', 'editorial', 'minimal'],
+  birthday: ['birthday', 'party', 'confetti', 'blush', 'editorial'],
+  party: ['party', 'gold', 'confetti', 'night', 'editorial'],
+  club: ['gold', 'night', 'party', 'confetti', 'editorial'],
+  festival: ['party', 'night', 'gold', 'confetti', 'editorial'],
   yacht: ['gold', 'night', 'sage', 'editorial'],
   corporate: ['minimal', 'sage', 'editorial'],
   other: ['editorial', 'minimal', 'blush', 'confetti'],
