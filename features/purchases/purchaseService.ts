@@ -14,12 +14,23 @@ function getPurchases(): typeof import('react-native-purchases').default | null 
   }
 }
 
+// NOTE: The RevenueCat App Store key IS configured — it lives in
+// app.json → expo.extra.revenueCatIosKey (appl_…). It is NOT empty.
+// (An old handoff note wrongly said it was missing; ignore that.)
 const apiKey = (): string | undefined =>
   Constants.expoConfig?.extra?.revenueCatIosKey || undefined;
 
+// Expo Go has no native StoreKit module, so react-native-purchases falls back to
+// a web shim that throws "Invalid API key" for an appl_ key. Skip RevenueCat
+// entirely there — purchases work in dev-client / TestFlight / App Store builds.
+// Check both signals: executionEnvironment is the modern one, appOwnership the
+// legacy fallback (still set to 'expo' inside Expo Go).
+const isExpoGo = (): boolean =>
+  Constants.executionEnvironment === 'storeClient' || Constants.appOwnership === 'expo';
+
 /** True only when RevenueCat is configured (key present + native module). */
 export function purchasesReady(): boolean {
-  return Platform.OS === 'ios' && !!apiKey() && !!getPurchases();
+  return Platform.OS === 'ios' && !isExpoGo() && !!apiKey() && !!getPurchases();
 }
 
 /** Call once after auth so purchases are tied to the user's id. */
@@ -27,7 +38,7 @@ export function configurePurchases(appUserId?: string): void {
   if (configured) return;
   const Purchases = getPurchases();
   const key = apiKey();
-  if (!Purchases || !key || Platform.OS !== 'ios') return;
+  if (!Purchases || !key || Platform.OS !== 'ios' || isExpoGo()) return;
   try {
     Purchases.configure({ apiKey: key, appUserID: appUserId });
     configured = true;

@@ -1,25 +1,41 @@
-import { TouchableOpacity, Text, StyleSheet, ViewStyle, ActivityIndicator } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, View, ViewStyle, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { colors, radius, typography, fonts, gradients } from '@constants/theme';
+import { Icon } from '@shared/components/Icon';
+
+type IconName = React.ComponentProps<typeof Icon>['name'];
 
 interface Props {
   label: string;
   onPress: () => void;
   variant?: 'brand' | 'ghost' | 'danger' | 'gold';
+  icon?: IconName;
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
   fullWidth?: boolean;
 }
 
-export function PrimaryButton({ label, onPress, variant = 'brand', loading, disabled, style, fullWidth = true }: Props) {
+export function PrimaryButton({ label, onPress, variant = 'brand', icon, loading, disabled, style, fullWidth = true }: Props) {
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   };
 
-  if (variant === 'brand') {
+  // Single content renderer so the optional leading icon stays consistent
+  // across every variant (and aligned with the label).
+  const content = (spinnerColor: string, iconColor: string, textStyle: object) =>
+    loading ? (
+      <ActivityIndicator color={spinnerColor} size="small" />
+    ) : (
+      <View style={styles.content}>
+        {icon && <Icon name={icon} size={19} color={iconColor} strokeWidth={2.3} />}
+        <Text style={textStyle}>{label}</Text>
+      </View>
+    );
+
+  if (variant === 'brand' || variant === 'gold') {
     return (
       <TouchableOpacity
         onPress={handlePress}
@@ -28,48 +44,19 @@ export function PrimaryButton({ label, onPress, variant = 'brand', loading, disa
         activeOpacity={0.85}
       >
         <LinearGradient
-          colors={gradients.amber}
+          colors={variant === 'gold' ? gradients.bronze : gradients.amber}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradient}
         >
-          {loading ? (
-            <ActivityIndicator color={colors.text.inverse} size="small" />
-          ) : (
-            <Text style={styles.brandLabel}>{label}</Text>
-          )}
+          {content(colors.text.inverse, colors.text.inverse, styles.brandLabel)}
         </LinearGradient>
       </TouchableOpacity>
     );
   }
 
-  if (variant === 'gold') {
-    return (
-      <TouchableOpacity
-        onPress={handlePress}
-        disabled={disabled || loading}
-        style={[styles.container, fullWidth && styles.fullWidth, style]}
-        activeOpacity={0.85}
-      >
-        <LinearGradient
-          colors={gradients.bronze}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradient}
-        >
-          {loading ? (
-            <ActivityIndicator color={colors.text.inverse} size="small" />
-          ) : (
-            <Text style={styles.brandLabel}>{label}</Text>
-          )}
-        </LinearGradient>
-      </TouchableOpacity>
-    );
-  }
-
-  const ghostStyles = variant === 'danger'
-    ? [styles.ghost, styles.danger]
-    : styles.ghost;
+  const isDanger = variant === 'danger';
+  const ghostStyles = isDanger ? [styles.ghost, styles.danger] : styles.ghost;
 
   return (
     <TouchableOpacity
@@ -78,10 +65,10 @@ export function PrimaryButton({ label, onPress, variant = 'brand', loading, disa
       style={[styles.container, fullWidth && styles.fullWidth, ghostStyles, style]}
       activeOpacity={0.7}
     >
-      {loading ? (
-        <ActivityIndicator color={variant === 'danger' ? colors.error : colors.brand.DEFAULT} size="small" />
-      ) : (
-        <Text style={[styles.ghostLabel, variant === 'danger' && styles.dangerLabel]}>{label}</Text>
+      {content(
+        isDanger ? colors.error : colors.brand.DEFAULT,
+        isDanger ? colors.error : colors.text.primary,
+        [styles.ghostLabel, isDanger && styles.dangerLabel],
       )}
     </TouchableOpacity>
   );
@@ -100,6 +87,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   brandLabel: {
     color: colors.text.inverse,

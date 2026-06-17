@@ -19,7 +19,7 @@ import { InputField } from '@shared/components/InputField';
 import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 4;
 
 const EVENT_TYPES: { key: EventType; labelKey: string }[] = [
   { key: 'wedding', labelKey: 'host.eventTypes.wedding' },
@@ -47,6 +47,7 @@ export default function CreateEvent() {
     t('host.createStep1'),   // Cover + name
     t('host.eventType'),     // Type + date
     t('host.shotsPerGuest'), // Shots (alone)
+    t('host.captureMode'),   // Capture mode (alone)
   ];
 
   const pickCover = async () => {
@@ -202,63 +203,63 @@ export default function CreateEvent() {
               </>
             )}
 
-            {/* STEP 2: Shots per guest + Disposable */}
+            {/* STEP 2: Shots per guest */}
             {step === 2 && (
-              <>
-                <View style={styles.questionBlock}>
-                  <Text style={styles.questionTitle}>{t('host.shotsPerGuest')}</Text>
-                  <Text style={styles.questionHint}>{t('host.shotsPerGuestHint')}</Text>
-                  <View style={styles.shotGrid}>
-                    {SHOT_OPTIONS.map((n) => (
-                      <TouchableOpacity
-                        key={n}
-                        style={[styles.shotChip, draft.shotsPerGuest === n && styles.shotChipActive]}
-                        onPress={() => updateDraft({ shotsPerGuest: n })}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.shotNumber, draft.shotsPerGuest === n && styles.shotNumberActive]}>{n}</Text>
-                        <Text style={[styles.shotLabel, draft.shotsPerGuest === n && styles.shotLabelActive]}>
-                          {t('guest.shot')}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+              <View style={styles.questionBlock}>
+                <Text style={styles.questionTitle}>{t('host.shotsPerGuest')}</Text>
+                <Text style={styles.questionHint}>{t('host.shotsPerGuestHint')}</Text>
+                <View style={styles.shotGrid}>
+                  {SHOT_OPTIONS.map((n) => (
+                    <TouchableOpacity
+                      key={n}
+                      style={[styles.shotChip, draft.shotsPerGuest === n && styles.shotChipActive]}
+                      onPress={() => updateDraft({ shotsPerGuest: n })}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.shotNumber, draft.shotsPerGuest === n && styles.shotNumberActive]}>{n}</Text>
+                      <Text style={[styles.shotLabel, draft.shotsPerGuest === n && styles.shotLabelActive]}>
+                        {t('guest.shot')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
+              </View>
+            )}
 
-                {/* Capture mode — disposable (no preview) vs open gallery.
-                    Chosen here at creation, also editable later in event settings. */}
-                <View style={styles.questionBlock}>
-                  <Text style={styles.questionTitle}>{t('host.captureMode')}</Text>
-                  {([
-                    { disposable: true, icon: 'film' as const, title: t('host.disposableMode'), desc: t('host.disposableModeDesc') },
-                    { disposable: false, icon: 'image' as const, title: t('host.modeOpenTitle'), desc: t('host.modeOpenDesc') },
-                  ]).map((m) => {
-                    const active = draft.disposableMode === m.disposable;
-                    return (
-                      <TouchableOpacity
-                        key={String(m.disposable)}
-                        style={[styles.modeCard, active && styles.modeCardActive]}
-                        onPress={() => updateDraft(m.disposable
-                          ? { disposableMode: true, allowGalleryUpload: false }
-                          : { disposableMode: false, allowGalleryUpload: true })}
-                        activeOpacity={0.85}
-                      >
-                        <View style={styles.modeIconWrap}>
-                          <Icon name={m.icon} size={20} color={active ? colors.brand.DEFAULT : colors.text.muted} />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={[styles.modeTitle, active && styles.modeTitleActive]}>{m.title}</Text>
-                          <Text style={styles.modeDesc}>{m.desc}</Text>
-                        </View>
-                        <View style={[styles.modeRadio, active && styles.modeRadioActive]}>
-                          {active && <View style={styles.modeRadioDot} />}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                  <Text style={styles.questionHint}>{t('host.settingsLaterHint')}</Text>
-                </View>
-              </>
+            {/* STEP 3: Capture mode — disposable (no preview) vs open gallery.
+                Chosen here at creation, also editable later in event settings. */}
+            {step === 3 && (
+              <View style={styles.questionBlock}>
+                <Text style={styles.questionTitle}>{t('host.captureMode')}</Text>
+                {([
+                  { disposable: true, icon: 'film' as const, title: t('host.disposableMode'), desc: t('host.disposableModeDesc') },
+                  { disposable: false, icon: 'image' as const, title: t('host.modeOpenTitle'), desc: t('host.modeOpenDesc') },
+                ]).map((m) => {
+                  const active = draft.disposableMode === m.disposable;
+                  return (
+                    <TouchableOpacity
+                      key={String(m.disposable)}
+                      style={[styles.modeCard, active && styles.modeCardActive]}
+                      onPress={() => updateDraft(m.disposable
+                        ? { disposableMode: true, allowGalleryUpload: false }
+                        : { disposableMode: false, allowGalleryUpload: true })}
+                      activeOpacity={0.85}
+                    >
+                      <View style={styles.modeIconWrap}>
+                        <Icon name={m.icon} size={20} color={active ? colors.brand.DEFAULT : colors.text.muted} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.modeTitle, active && styles.modeTitleActive]}>{m.title}</Text>
+                        <Text style={styles.modeDesc}>{m.desc}</Text>
+                      </View>
+                      <View style={[styles.modeRadio, active && styles.modeRadioActive]}>
+                        {active && <View style={styles.modeRadioDot} />}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+                <Text style={styles.questionHint}>{t('host.settingsLaterHint')}</Text>
+              </View>
             )}
 
           </Animated.View>

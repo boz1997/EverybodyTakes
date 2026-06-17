@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, FlatList, Image,
-  Alert, Dimensions, Modal, StatusBar,
+  View, Text, StyleSheet, TouchableOpacity, FlatList,
+  Alert, Dimensions, Modal, StatusBar, ActivityIndicator, Switch,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import * as MediaLibrary from 'expo-media-library/legacy';
-import * as FileSystem from 'expo-file-system/legacy';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Linking } from 'react-native';
 import { EventService, Event, Photo } from '@features/events/services/eventService';
+import { useEventPhotos } from '@features/gallery/hooks/useEventPhotos';
+import { savePhotosToLibrary, savePhotoToLibrary } from '@features/gallery/downloadPhotos';
 import { createEventZip } from '@features/events/services/exportService';
 import { getPlan, PAID_PLANS_ENABLED } from '@constants/plans';
 import { Icon } from '@shared/components/Icon';
@@ -24,20 +26,15 @@ const CELL_RATIO = 13 / 9;   // height / width (tweak for taller/shorter cells)
 const PHOTO_W = (width - spacing.lg * 2 - spacing.xs * 2) / 2;
 const PHOTO_H = Math.round(PHOTO_W * CELL_RATIO);
 
-const REMINDERS: { key: '1d' | null; labelKey: string }[] = [
-  { key: null, labelKey: 'host.noReminder' },
-  { key: '1d', labelKey: 'host.reminderDayBefore' },
-];
-
-
 export default function EventManage() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [event, setEvent] = useState<Event | null>(null);
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [photosLoaded, setPhotosLoaded] = useState(false);
+  const { photos: allPhotos, loaded: photosLoaded, hasMore, loadMore } = useEventPhotos(id);
+  // The host sees flagged photos (to review) but never hard-hidden ones.
+  const photos = allPhotos.filter((p) => p.isVisible !== false);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -47,8 +44,6 @@ export default function EventManage() {
   useEffect(() => {
     if (!id) return;
     EventService.getById(id).then(setEvent);
-    const unsub = EventService.subscribeToPhotos(id, (ps) => { setPhotos(ps); setPhotosLoaded(true); });
-    return unsub;
   }, [id]);
 
   // Host-editable settings — optimistic local update + persist.
@@ -93,21 +88,15 @@ export default function EventManage() {
           );
         })}
 
-        <Text style={styles.settingSub}>{t('host.reminderBefore')}</Text>
-        <View style={styles.reminderRow}>
-          {REMINDERS.map((r) => {
-            const active = event.reminderBefore === r.key;
-            return (
-              <TouchableOpacity
-                key={String(r.key)}
-                style={[styles.reminderChip, active && styles.reminderChipActive]}
-                onPress={() => patchSettings({ reminderBefore: r.key })}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.reminderText, active && styles.reminderTextActive]}>{t(r.labelKey)}</Text>
-              </TouchableOpacity>
-            );
-          })}
+        <View style={styles.switchRow}>
+          <Text style={styles.settingLabel}>{t('host.reminderBefore')}</Text>
+          <Switch
+            value={event.reminderBefore === '1d'}
+            onValueChange={(on) => patchSettings({ reminderBefore: on ? '1d' : null })}
+            trackColor={{ false: colors.bg.elevated, true: colors.brand.DEFAULT }}
+            thumbColor="#fff"
+            ios_backgroundColor={colors.bg.elevated}
+          />
         </View>
 
         {/* Plan + upgrade (sales surface) — hidden on the top plan */}
@@ -183,19 +172,12 @@ export default function EventManage() {
     if (next) setSelectedPhoto(next);
   };
 
-  const saveOne = async (photo: Photo) => {
-    const ext = photo.mediaType === 'video' ? 'mp4' : 'jpg';
-    const target = FileSystem.cacheDirectory + `${photo.id}.${ext}`;
-    const { uri } = await FileSystem.downloadAsync(photo.imageUrl, target);
-    await MediaLibrary.saveToLibraryAsync(uri);
-  };
-
   const handleSavePhoto = async (photo: Photo) => {
     try {
       setSaving(true);
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
-      await saveOne(photo);
+      await savePhotoToLibrary(photo);
       Alert.alert(t('host.photoSaved'));
     } catch (e: any) {
       Alert.alert(t('common.error'), String(e?.message ?? e));
@@ -210,15 +192,10 @@ export default function EventManage() {
       setSaving(true);
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
-      let done = 0;
-      let lastErr: unknown = null;
       setDlProgress({ done: 0, total: list.length });
-      for (const p of list) {
-        try { await saveOne(p); done += 1; } catch (e) { lastErr = e; }
-        setDlProgress({ done, total: list.length });
-      }
-      if (done === 0 && lastErr) Alert.alert(t('common.error'), String((lastErr as any)?.message ?? lastErr));
-      else Alert.alert(t('host.downloadAllDone', { count: done }));
+      const { saved, lastError } = await savePhotosToLibrary(list, (done, total) => setDlProgress({ done, total }));
+      if (saved === 0 && lastError) Alert.alert(t('common.error'), String((lastError as any)?.message ?? lastError));
+      else Alert.alert(t('host.downloadAllDone', { count: saved }));
       exitSelect();
     } finally {
       setSaving(false);
@@ -259,7 +236,7 @@ export default function EventManage() {
         style={styles.photoCell}
         activeOpacity={0.85}
       >
-        <Image source={{ uri: item.thumbnailUrl || item.imageUrl }} style={styles.photo} />
+        <Image source={item.thumbnailUrl || item.imageUrl} style={styles.photo} contentFit="cover" transition={120} recyclingKey={item.id} />
         {item.mediaType === 'video' && (
           <View style={styles.playBadge}><Icon name="play" size={14} color="#fff" /></View>
         )}
@@ -324,6 +301,9 @@ export default function EventManage() {
         renderItem={renderPhoto}
         numColumns={2}
         contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + spacing.xl }]}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.6}
+        ListFooterComponent={hasMore ? <ActivityIndicator color={colors.brand.DEFAULT} style={{ paddingVertical: spacing.lg }} /> : null}
         ListHeaderComponent={
           <>
             {renderSettings()}
@@ -404,7 +384,7 @@ export default function EventManage() {
           <StatusBar barStyle="light-content" />
           {selectedPhoto && (selectedIsVideo
             ? <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
-            : <Image source={{ uri: selectedPhoto.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />)}
+            : <Image source={selectedPhoto.imageUrl} placeholder={selectedPhoto.thumbnailUrl ? { uri: selectedPhoto.thumbnailUrl } : undefined} style={StyleSheet.absoluteFill} contentFit="contain" transition={150} />)}
           <View style={[styles.lightboxTop, { paddingTop: insets.top + spacing.sm }]}>
             <TouchableOpacity onPress={() => setSelectedPhoto(null)} style={styles.lbBtn}>
               <Icon name="close" size={22} color="#fff" />
@@ -493,11 +473,7 @@ const styles = StyleSheet.create({
   modeRadio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.border.DEFAULT, alignItems: 'center', justifyContent: 'center' },
   modeRadioActive: { borderColor: colors.brand.DEFAULT },
   modeRadioDot: { width: 11, height: 11, borderRadius: 6, backgroundColor: colors.brand.DEFAULT },
-  reminderRow: { flexDirection: 'row', gap: spacing.sm },
-  reminderChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border.DEFAULT },
-  reminderChipActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
-  reminderText: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted },
-  reminderTextActive: { color: colors.brand.DEFAULT, fontFamily: fonts.bodySemibold },
+  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.sm, marginTop: spacing.xs },
   toggle: { width: 44, height: 26, borderRadius: 13, backgroundColor: colors.bg.elevated, borderWidth: 1, borderColor: colors.border.DEFAULT, justifyContent: 'center', padding: 2 },
   toggleOn: { backgroundColor: colors.brand.DEFAULT, borderColor: colors.brand.DEFAULT },
   toggleThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.text.muted },

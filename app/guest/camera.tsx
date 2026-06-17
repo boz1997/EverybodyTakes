@@ -304,8 +304,8 @@ export default function CameraScreen() {
         </Animated.View>
       )}
 
-      {/* PHOTO / VIDEO mode toggle — hidden while recording */}
-      {!recording && (
+      {/* PHOTO / VIDEO mode toggle — hidden while recording or out of shots */}
+      {!recording && !isEmpty && (
         <View style={[styles.modeRow, { bottom: insets.bottom + 120 }]}>
           <TouchableOpacity onPress={() => selectMode('photo')} style={[styles.modePill, mode === 'photo' && styles.modePillActive]}>
             <Text style={[styles.modeText, mode === 'photo' && styles.modeTextActive]}>{t('guest.photoMode')}</Text>
@@ -317,7 +317,8 @@ export default function CameraScreen() {
         </View>
       )}
 
-      {/* Bottom Controls */}
+      {/* Bottom Controls — hidden when out of shots (the empty state takes over) */}
+      {!isEmpty && (
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.lg }]}>
 
         {/* Left: pick from gallery (non-disposable) or jump to the event gallery */}
@@ -372,13 +373,22 @@ export default function CameraScreen() {
           <Text style={styles.sideLabel}> </Text>
         </View>
       </View>
+      )}
 
-      {/* Empty state overlay — per-guest limit reached, thank-you */}
+      {/* Empty state — per-guest limit reached. Full, centered, with a way out. */}
       {isEmpty && (
-        <View style={styles.emptyOverlay} pointerEvents="none">
-          <Icon name="film" size={44} color="rgba(255,255,255,0.7)" strokeWidth={1.6} />
-          <Text style={styles.emptyTitle}>{t('guest.limitReachedTitle')}</Text>
-          <Text style={styles.emptySubtitle}>{t('guest.limitReachedBody')}</Text>
+        <View style={[styles.emptyOverlay, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyIconWrap}>
+              <Icon name="sparkles" size={40} color={colors.brand.light} strokeWidth={1.6} />
+            </View>
+            <Text style={styles.emptyTitle}>{t('guest.limitReachedTitle')}</Text>
+            <Text style={styles.emptySubtitle}>{t('guest.limitReachedBody')}</Text>
+            <TouchableOpacity onPress={() => router.back()} style={styles.emptyBtn} activeOpacity={0.85}>
+              <Icon name="image" size={18} color="#000" />
+              <Text style={styles.emptyBtnText}>{t('guest.eventGallery')}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -459,11 +469,23 @@ const styles = StyleSheet.create({
   recDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#FF3B30' },
   recText: { color: '#fff', fontSize: typography.sizes.sm, fontWeight: typography.weights.bold, letterSpacing: 1 },
   emptyOverlay: {
-    position: 'absolute', bottom: 160, left: 0, right: 0,
-    alignItems: 'center', gap: spacing.sm, zIndex: 5,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl,
   },
-  emptyTitle: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: '#fff', marginTop: spacing.sm },
-  emptySubtitle: { fontSize: typography.sizes.sm, color: 'rgba(255,255,255,0.6)' },
+  emptyCard: { alignItems: 'center', gap: spacing.sm, maxWidth: 320 },
+  emptyIconWrap: {
+    width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    marginBottom: spacing.sm,
+  },
+  emptyTitle: { fontSize: typography.sizes['2xl'], fontWeight: typography.weights.bold, color: '#fff', textAlign: 'center' },
+  emptySubtitle: { fontSize: typography.sizes.sm, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 20 },
+  emptyBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fff',
+    borderRadius: radius.full, paddingHorizontal: spacing.xl, paddingVertical: 14, marginTop: spacing.lg,
+  },
+  emptyBtnText: { color: '#000', fontSize: typography.sizes.base, fontWeight: typography.weights.semibold },
   previewOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 30, justifyContent: 'flex-end' },
   previewBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

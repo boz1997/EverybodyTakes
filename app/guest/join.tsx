@@ -1,25 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Image, Alert, ActivityIndicator,
-  ScrollView, Modal, StatusBar, Dimensions, FlatList, Linking,
+  View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator,
+  Modal, StatusBar, Dimensions, FlatList, Linking,
   NativeScrollEvent, NativeSyntheticEvent,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import * as MediaLibrary from 'expo-media-library/legacy';
-import * as FileSystem from 'expo-file-system/legacy';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { format } from 'date-fns';
 import { EventService, Event, Photo, LimitError } from '@features/events/services/eventService';
+import { useEventPhotos } from '@features/gallery/hooks/useEventPhotos';
+import { savePhotosToLibrary, savePhotoToLibrary } from '@features/gallery/downloadPhotos';
 import { createEventZip } from '@features/events/services/exportService';
 import { AuthService } from '@features/auth/services/authService';
 import { useAuthStore } from '@store/authStore';
 import { useEventStore, EventType } from '@store/eventStore';
 import { addJoinedEvent, removeJoinedEvent, getJoinedEvents, getSavedNickname, saveNickname } from '@store/guestEvents';
-import { scheduleLocalAt } from '@shared/notifications';
+import { scheduleLocalAt, registerPushTokenForUser } from '@shared/notifications';
 import { logError } from '@shared/errorLog';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { InputField } from '@shared/components/InputField';
@@ -53,16 +55,24 @@ function reminderAtMs(e: Event): number {
   return d.getTime();
 }
 
+// Day-of nudge fires at 10:00 on the event date itself.
+function reminderTodayAtMs(e: Event): number {
+  if (!e.date) return 0;
+  const d = new Date(e.date);
+  d.setHours(10, 0, 0, 0);
+  return d.getTime();
+}
+
 export default function EventHubScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { code } = useLocalSearchParams<{ code: string }>();
   const { user, setUser } = useAuthStore();
-  const { setGuestEventId, setShotsRemaining } = useEventStore();
+  const { setGuestEventId, setShotsRemaining, shotsRemaining } = useEventStore();
+  const [joined, setJoined] = useState(false);
 
   const [event, setEvent] = useState<Event | null>(null);
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [photosLoaded, setPhotosLoaded] = useState(false);
+  const { photos: allPhotos, loaded: photosLoaded, hasMore, loadMore } = useEventPhotos(event?.id);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [nickname, setNicknameState] = useState('');
@@ -97,10 +107,9 @@ export default function EventHubScreen() {
   });
   const exitSelect = () => { setSelecting(false); setSelSet(new Set()); };
 
-  // Land → auto-join (anonymous) → load shots + subscribe to photos.
+  // Land → auto-join (anonymous) → load shots. Photos stream via useEventPhotos.
   useEffect(() => {
     if (!code) return;
-    let unsub: (() => void) | undefined;
     (async () => {
       try {
         // Sign in FIRST: every Firestore read requires auth, and guests reach
@@ -130,19 +139,25 @@ export default function EventHubScreen() {
             const shots = await EventService.joinEvent(ev.id, u.uid, saved || null);
             setGuestEventId(ev.id);
             setShotsRemaining(shots);
+            setJoined(true);
             await addJoinedEvent({ id: ev.id, code: ev.shortCode, name: ev.name, coverImageUrl: ev.coverImageUrl, type: ev.type, joinedAt: Date.now() });
+            // Register this guest's push token so server notifications (new
+            // photos, likes, low shots, reminders) can reach them.
+            registerPushTokenForUser(u.uid);
             if (ev.revealTiming === 'next_day') {
               scheduleLocalAt(`reveal_${ev.id}`, revealAtMs(ev), t('guest.revealReadyTitle'), t('guest.revealReadyBody', { name: ev.name }));
             }
             if (ev.reminderBefore === '1d' && reminderAtMs(ev) > Date.now()) {
               scheduleLocalAt(`reminder_${ev.id}`, reminderAtMs(ev), t('guest.reminderTitle', { name: ev.name }), t('guest.reminderBody'));
             }
+            if (reminderTodayAtMs(ev) > Date.now()) {
+              scheduleLocalAt(`reminder_today_${ev.id}`, reminderTodayAtMs(ev), t('guest.reminderTodayTitle', { name: ev.name }), t('guest.reminderTodayBody'));
+            }
           } catch (e) {
             if (e instanceof LimitError && e.code === 'event_full') setError(t('errors.maxGuestsReached'));
             else { setError(t('errors.unknownError')); logError('guest_join', e, { code, step: 'joinEvent' }); }
           }
         }
-        unsub = EventService.subscribeToPhotos(ev.id, (ps) => { setPhotos(ps); setPhotosLoaded(true); });
       } catch (e) {
         setError(t('errors.unknownError'));
         logError('guest_join', e, { code, step: 'load' });
@@ -150,7 +165,6 @@ export default function EventHubScreen() {
         setLoading(false);
       }
     })();
-    return () => unsub?.();
   }, [code]);
 
   const onNicknameChange = (v: string) => { setNicknameState(v); saveNickname(v); };
@@ -160,8 +174,8 @@ export default function EventHubScreen() {
   // lives in the event management screen.
   const hostOnly = event?.revealTiming === 'private';
   const revealed = event ? isRevealed(event) : false;
-  const visiblePhotos = photos.filter((p) => {
-    if (p.flagged) return false;                      // hidden pending review
+  const visiblePhotos = allPhotos.filter((p) => {
+    if (p.isVisible === false || p.flagged) return false;   // hidden / pending review
     if (hostOnly || filter === 'mine') return p.uploadedBy === uid;
     return true;
   });
@@ -194,7 +208,7 @@ export default function EventHubScreen() {
         text: t('common.delete'), style: 'destructive',
         onPress: async () => {
           setViewerIndex(null);
-          setPhotos((ps) => ps.filter((p) => p.id !== id));   // optimistic
+          // Firestore latency compensation drops it from the live feed instantly.
           await EventService.deletePhoto(event!.id, id).catch(() => {});
         },
       },
@@ -207,11 +221,7 @@ export default function EventHubScreen() {
     if (!current || !uid) return;
     const id = current.id;
     Haptics.selectionAsync();
-    setPhotos((ps) => ps.map((p) => p.id === id ? {
-      ...p,
-      likedBy: liked ? (p.likedBy ?? []).filter((u) => u !== uid) : [...(p.likedBy ?? []), uid],
-      likesCount: (p.likesCount ?? 0) + (liked ? -1 : 1),
-    } : p));
+    // The like write reflects instantly via the realtime feed (latency comp).
     EventService.toggleLike(event!.id, id, uid, liked).catch(() => {});
   };
 
@@ -234,19 +244,12 @@ export default function EventHubScreen() {
   const currentIsVideo = current?.mediaType === 'video';
   const player = useVideoPlayer(currentIsVideo ? current!.imageUrl : null, (p) => { p.loop = true; p.play(); });
 
-  const saveOne = async (photo: Photo) => {
-    const ext = photo.mediaType === 'video' ? 'mp4' : 'jpg';
-    const target = FileSystem.cacheDirectory + `${photo.id}.${ext}`;
-    const { uri } = await FileSystem.downloadAsync(photo.imageUrl, target);
-    await MediaLibrary.saveToLibraryAsync(uri);
-  };
-
   const saveToLibrary = async (photo: Photo) => {
     try {
       setSaving(true);
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
-      await saveOne(photo);
+      await savePhotoToLibrary(photo);
       Alert.alert(t('host.photoSaved'));
     } catch (e: any) {
       Alert.alert(t('common.error'), String(e?.message ?? e));
@@ -261,14 +264,10 @@ export default function EventHubScreen() {
       setSaving(true);
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
-      let done = 0; let lastErr: unknown = null;
       setDlProgress({ done: 0, total: list.length });
-      for (const p of list) {
-        try { await saveOne(p); done += 1; } catch (e) { lastErr = e; }
-        setDlProgress({ done, total: list.length });
-      }
-      if (done === 0 && lastErr) Alert.alert(t('common.error'), String((lastErr as { message?: string })?.message ?? lastErr));
-      else Alert.alert(t('host.downloadAllDone', { count: done }));
+      const { saved, lastError } = await savePhotosToLibrary(list, (done, total) => setDlProgress({ done, total }));
+      if (saved === 0 && lastError) Alert.alert(t('common.error'), String((lastError as { message?: string })?.message ?? lastError));
+      else Alert.alert(t('host.downloadAllDone', { count: saved }));
       exitSelect();
     } finally {
       setSaving(false);
@@ -301,140 +300,170 @@ export default function EventHubScreen() {
     );
   }
 
-  return (
-    <LinearGradient colors={gradients.page} style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 110 }} showsVerticalScrollIndicator={false}>
-        {/* Cover */}
-        <View style={styles.coverWrap}>
-          {event.coverImageUrl ? (
-            <Image source={{ uri: event.coverImageUrl }} style={styles.coverImage} />
-          ) : (
-            <LinearGradient colors={['rgba(190,106,46,0.14)', 'rgba(190,106,46,0.05)']} style={styles.coverEmpty}>
-              <Icon name={EVENT_TYPE_ICON[event.type as EventType] ?? 'party'} size={56} color={colors.brand.light} strokeWidth={1.4} />
-            </LinearGradient>
-          )}
-          <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { top: insets.top + spacing.sm }]}>
-            <Icon name="arrowLeft" size={22} color="#fff" />
-          </TouchableOpacity>
+  const showGrid = revealed && visiblePhotos.length > 0;
+
+  // The non-grid gallery states (locked reveal / loading skeleton / empty) all
+  // surface through ListEmptyComponent so the list owns the whole scroll.
+  const galleryEmpty = !revealed ? (
+    <View style={styles.locked}>
+      <Icon name="film" size={32} color={colors.brand.DEFAULT} strokeWidth={1.6} />
+      <Text style={styles.lockedText}>{t('guest.developing')}</Text>
+      <Text style={styles.opensText}>{t('guest.opensAt', { time: format(new Date(revealAtMs(event)), 'd MMM HH:mm') })}</Text>
+    </View>
+  ) : !photosLoaded && (event.photoCount ?? 0) > 0 ? (
+    <View style={[styles.grid, styles.gridPad]}>
+      {Array.from({ length: Math.min(event.photoCount, 8) }).map((_, i) => (
+        <Skeleton key={i} style={styles.cell} />
+      ))}
+    </View>
+  ) : (
+    <View style={styles.emptyGal}>
+      <Icon name="camera" size={28} color={colors.brand.light} strokeWidth={1.6} />
+      <Text style={styles.emptyGalText}>{t('gallery.empty')}</Text>
+    </View>
+  );
+
+  const listHeader = (
+    <>
+      {/* Cover */}
+      <View style={styles.coverWrap}>
+        {event.coverImageUrl ? (
+          <Image source={event.coverImageUrl} style={styles.coverImage} contentFit="cover" transition={150} />
+        ) : (
+          <LinearGradient colors={['rgba(190,106,46,0.14)', 'rgba(190,106,46,0.05)']} style={styles.coverEmpty}>
+            <Icon name={EVENT_TYPE_ICON[event.type as EventType] ?? 'party'} size={56} color={colors.brand.light} strokeWidth={1.4} />
+          </LinearGradient>
+        )}
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { top: insets.top + spacing.sm }]}>
+          <Icon name="arrowLeft" size={22} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.body}>
+        <Text style={styles.eventName}>{event.name}</Text>
+        {event.date ? <Text style={styles.eventDate}>{format(new Date(event.date), 'd MMMM yyyy')}</Text> : null}
+
+        <View style={styles.stats}>
+          <View style={styles.statChip}>
+            <Icon name="camera" size={14} color={colors.text.secondary} />
+            <Text style={styles.statText}>
+              {joined && event.isActive
+                ? t('guest.shotsLeftOf', { left: shotsRemaining, total: event.shotsPerGuest })
+                : t('guest.shotsShort', { count: event.shotsPerGuest })}
+            </Text>
+          </View>
+          {event.disposableMode && <View style={styles.statChip}><Icon name="film" size={14} color={colors.text.secondary} /><Text style={styles.statText}>Disposable</Text></View>}
         </View>
 
-        <View style={styles.body}>
-          <Text style={styles.eventName}>{event.name}</Text>
-          {event.date ? <Text style={styles.eventDate}>{format(new Date(event.date), 'd MMMM yyyy')}</Text> : null}
+        {/* Nickname (remembered) */}
+        <View style={styles.nick}>
+          <InputField label={t('guest.nickname')} placeholder={t('guest.nicknamePlaceholder')} value={nickname} onChangeText={onNicknameChange} maxLength={30} />
+        </View>
 
-          <View style={styles.stats}>
-            <View style={styles.statChip}><Icon name="camera" size={14} color={colors.text.secondary} /><Text style={styles.statText}>{t('guest.shotsShort', { count: event.shotsPerGuest })}</Text></View>
-            {event.disposableMode && <View style={styles.statChip}><Icon name="film" size={14} color={colors.text.secondary} /><Text style={styles.statText}>Disposable</Text></View>}
+        {/* Camera CTA */}
+        {!event.isActive ? (
+          <View style={styles.endedPill}><Icon name="lock" size={16} color={colors.text.muted} /><Text style={styles.endedText}>{t('host.eventEnded')}</Text></View>
+        ) : joined && shotsRemaining === 0 ? (
+          <View style={styles.usedPill}>
+            <Icon name="check" size={16} color={colors.brand.dark} />
+            <Text style={styles.usedText}>{t('guest.allShotsUsed')}</Text>
           </View>
+        ) : (
+          <PrimaryButton label={t('guest.enterCamera')} icon="camera" onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push({ pathname: '/guest/camera', params: { id: event.id } }); }} />
+        )}
 
-          {/* Nickname (remembered) */}
-          <View style={styles.nick}>
-            <InputField label={t('guest.nickname')} placeholder={t('guest.nicknamePlaceholder')} value={nickname} onChangeText={onNicknameChange} maxLength={30} />
-          </View>
-
-          {/* Camera CTA */}
-          {event.isActive ? (
-            <PrimaryButton label={t('guest.enterCamera')} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push({ pathname: '/guest/camera', params: { id: event.id } }); }} />
-          ) : (
-            <View style={styles.endedPill}><Icon name="lock" size={16} color={colors.text.muted} /><Text style={styles.endedText}>{t('host.eventEnded')}</Text></View>
-          )}
-
-          {/* Gallery */}
-          <View style={styles.galleryHead}>
-            <Text style={styles.galleryTitle}>
-              {selecting ? t('gallery.selected', { count: selSet.size }) : t('gallery.title')}
-            </Text>
-            {!hostOnly && revealed && !selecting && (
-              <View style={styles.tabs}>
-                {(['all', 'mine'] as const).map((f) => (
-                  <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.tab, filter === f && styles.tabActive]}>
-                    <Text style={[styles.tabText, filter === f && styles.tabTextActive]}>{f === 'all' ? t('gallery.allPhotos') : t('gallery.myPhotos')}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* Gallery actions */}
-          {revealed && visiblePhotos.length > 0 && (
-            <View style={styles.galActions}>
-              {selecting ? (
-                <TouchableOpacity onPress={exitSelect} style={styles.galActionBtn}><Text style={styles.galActionText}>{t('common.cancel')}</Text></TouchableOpacity>
-              ) : (
-                <>
-                  <TouchableOpacity onPress={() => setSelecting(true)} style={styles.galActionBtn} activeOpacity={0.7}>
-                    <Icon name="check" size={15} color={colors.brand.DEFAULT} /><Text style={styles.galActionText}>{t('gallery.select')}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => downloadList(visiblePhotos)} style={styles.galActionBtn} disabled={saving} activeOpacity={0.7}>
-                    <Icon name="download" size={15} color={colors.brand.DEFAULT} />
-                    <Text style={styles.galActionText}>{dlProgress ? t('host.downloadAllProgress', { done: dlProgress.done, total: dlProgress.total }) : t('host.downloadAll')}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={handleZip} style={styles.galActionBtn} disabled={zipping} activeOpacity={0.7}>
-                    <Icon name="film" size={15} color={colors.brand.DEFAULT} />
-                    <Text style={styles.galActionText}>{zipping ? t('host.zipPreparing') : 'ZIP'}</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          )}
-
-          {!revealed ? (
-            <View style={styles.locked}>
-              <Icon name="film" size={32} color={colors.brand.DEFAULT} strokeWidth={1.6} />
-              <Text style={styles.lockedText}>{t('guest.developing')}</Text>
-              <Text style={styles.opensText}>{t('guest.opensAt', { time: format(new Date(revealAtMs(event)), 'd MMM HH:mm') })}</Text>
-            </View>
-          ) : !photosLoaded && (event.photoCount ?? 0) > 0 ? (
-            <View style={styles.grid}>
-              {Array.from({ length: Math.min(event.photoCount, 8) }).map((_, i) => (
-                <Skeleton key={i} style={styles.cell} />
+        {/* Gallery */}
+        <View style={styles.galleryHead}>
+          <Text style={styles.galleryTitle}>
+            {selecting ? t('gallery.selected', { count: selSet.size }) : t('gallery.title')}
+          </Text>
+          {!hostOnly && revealed && !selecting && (
+            <View style={styles.tabs}>
+              {(['all', 'mine'] as const).map((f) => (
+                <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.tab, filter === f && styles.tabActive]}>
+                  <Text style={[styles.tabText, filter === f && styles.tabTextActive]}>{f === 'all' ? t('gallery.allPhotos') : t('gallery.myPhotos')}</Text>
+                </TouchableOpacity>
               ))}
             </View>
-          ) : visiblePhotos.length === 0 ? (
-            <View style={styles.emptyGal}>
-              <Icon name="camera" size={28} color={colors.brand.light} strokeWidth={1.6} />
-              <Text style={styles.emptyGalText}>{t('gallery.empty')}</Text>
-            </View>
-          ) : (
-            <View style={styles.grid}>
-              {visiblePhotos.map((p, idx) => {
-                const isSel = selSet.has(p.id);
-                const likes = p.likedBy?.length ?? 0;
-                return (
-                  <TouchableOpacity
-                    key={p.id}
-                    style={styles.cell}
-                    onPress={() => { if (selecting) { toggleSel(p.id); } else { setViewerIndex(idx); } Haptics.selectionAsync(); }}
-                    onLongPress={() => { if (!selecting) { setSelecting(true); toggleSel(p.id); } }}
-                    activeOpacity={0.85}
-                  >
-                    <Image source={{ uri: p.thumbnailUrl || p.imageUrl }} style={styles.cellImg} />
-                    {p.mediaType === 'video' && (
-                      <View style={styles.playBadge}><Icon name="play" size={14} color="#fff" /></View>
-                    )}
-                    {/* "Yours" marker — a small dot, deliberately NOT a checkmark
-                        so it isn't mistaken for a selection state. */}
-                    {!selecting && p.uploadedBy === uid && <View style={styles.mine} />}
-                    {!selecting && likes > 0 && (
-                      <View style={styles.likeBadge}>
-                        <Icon name="heart" size={11} color="#fff" fill="#fff" />
-                        <Text style={styles.likeBadgeText}>{likes}</Text>
-                      </View>
-                    )}
-                    {selecting && (
-                      <View style={[styles.selOverlay, isSel && styles.selOverlayOn]}>
-                        <View style={[styles.selCheck, isSel && styles.selCheckOn]}>
-                          {isSel && <Icon name="check" size={14} color="#fff" strokeWidth={3} />}
-                        </View>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
           )}
         </View>
-      </ScrollView>
+
+        {/* Gallery actions */}
+        {showGrid && (
+          <View style={styles.galActions}>
+            {selecting ? (
+              <TouchableOpacity onPress={exitSelect} style={styles.galActionBtn}><Text style={styles.galActionText}>{t('common.cancel')}</Text></TouchableOpacity>
+            ) : (
+              <>
+                <TouchableOpacity onPress={() => setSelecting(true)} style={styles.galActionBtn} activeOpacity={0.7}>
+                  <Icon name="check" size={15} color={colors.brand.DEFAULT} /><Text style={styles.galActionText}>{t('gallery.select')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => downloadList(visiblePhotos)} style={styles.galActionBtn} disabled={saving} activeOpacity={0.7}>
+                  <Icon name="download" size={15} color={colors.brand.DEFAULT} />
+                  <Text style={styles.galActionText}>{dlProgress ? t('host.downloadAllProgress', { done: dlProgress.done, total: dlProgress.total }) : t('host.downloadAll')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleZip} style={styles.galActionBtn} disabled={zipping} activeOpacity={0.7}>
+                  <Icon name="film" size={15} color={colors.brand.DEFAULT} />
+                  <Text style={styles.galActionText}>{zipping ? t('host.zipPreparing') : 'ZIP'}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        )}
+      </View>
+    </>
+  );
+
+  const renderCell = ({ item: p, index: idx }: { item: Photo; index: number }) => {
+    const isSel = selSet.has(p.id);
+    const likes = p.likedBy?.length ?? 0;
+    return (
+      <TouchableOpacity
+        style={styles.cell}
+        onPress={() => { if (selecting) { toggleSel(p.id); } else { setViewerIndex(idx); } Haptics.selectionAsync(); }}
+        onLongPress={() => { if (!selecting) { setSelecting(true); toggleSel(p.id); } }}
+        activeOpacity={0.85}
+      >
+        <Image source={p.thumbnailUrl || p.imageUrl} style={styles.cellImg} contentFit="cover" transition={120} recyclingKey={p.id} />
+        {p.mediaType === 'video' && (
+          <View style={styles.playBadge}><Icon name="play" size={14} color="#fff" /></View>
+        )}
+        {/* "Yours" marker — a small dot, deliberately NOT a checkmark
+            so it isn't mistaken for a selection state. */}
+        {!selecting && p.uploadedBy === uid && <View style={styles.mine} />}
+        {!selecting && likes > 0 && (
+          <View style={styles.likeBadge}>
+            <Icon name="heart" size={11} color="#fff" fill="#fff" />
+            <Text style={styles.likeBadgeText}>{likes}</Text>
+          </View>
+        )}
+        {selecting && (
+          <View style={[styles.selOverlay, isSel && styles.selOverlayOn]}>
+            <View style={[styles.selCheck, isSel && styles.selCheckOn]}>
+              {isSel && <Icon name="check" size={14} color="#fff" strokeWidth={3} />}
+            </View>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <LinearGradient colors={gradients.page} style={styles.container}>
+      <FlatList
+        data={showGrid ? visiblePhotos : []}
+        keyExtractor={(p) => p.id}
+        renderItem={renderCell}
+        numColumns={2}
+        columnWrapperStyle={styles.gridRow}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={galleryEmpty}
+        ListFooterComponent={hasMore && showGrid ? <ActivityIndicator color={colors.brand.DEFAULT} style={{ paddingVertical: spacing.lg }} /> : null}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.6}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}
+        showsVerticalScrollIndicator={false}
+      />
 
       {/* Selection action bar */}
       {selecting && selSet.size > 0 && (
@@ -476,8 +505,8 @@ export default function EventHubScreen() {
                   {item.mediaType === 'video'
                     ? (index === viewerIndex
                         ? <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
-                        : <Image source={{ uri: item.thumbnailUrl || item.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />)
-                    : <Image source={{ uri: item.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />}
+                        : <Image source={item.thumbnailUrl || item.imageUrl} style={StyleSheet.absoluteFill} contentFit="contain" />)
+                    : <Image source={item.imageUrl} placeholder={item.thumbnailUrl ? { uri: item.thumbnailUrl } : undefined} style={StyleSheet.absoluteFill} contentFit="contain" transition={150} />}
                 </View>
               )}
             />
@@ -553,6 +582,8 @@ const styles = StyleSheet.create({
   nick: {},
   endedPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, backgroundColor: colors.bg.card },
   endedText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium, color: colors.text.muted },
+  usedPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 56, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
+  usedText: { fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold, color: colors.brand.dark },
   galleryHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm },
   galleryTitle: { fontSize: typography.sizes.lg, fontFamily: fonts.displayBold, color: colors.text.primary },
   tabs: { flexDirection: 'row', gap: spacing.xs, backgroundColor: colors.bg.card, borderRadius: radius.full, padding: 3, borderWidth: 1, borderColor: colors.border.DEFAULT },
@@ -566,6 +597,8 @@ const styles = StyleSheet.create({
   emptyGal: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing['2xl'] },
   emptyGalText: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP },
+  gridPad: { paddingHorizontal: spacing.lg },
+  gridRow: { gap: GAP, paddingHorizontal: spacing.lg, marginBottom: GAP },
   cell: { width: PHOTO_W, height: PHOTO_H, borderRadius: radius.md, overflow: 'hidden' },
   cellImg: { width: '100%', height: '100%', backgroundColor: colors.border.subtle },
   mine: { position: 'absolute', top: 6, right: 6, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.brand.DEFAULT, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.9)' },

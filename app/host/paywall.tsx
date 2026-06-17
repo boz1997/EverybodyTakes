@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, InteractionManager } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, InteractionManager, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,6 +37,9 @@ export default function PaywallScreen() {
   );
   const [loading, setLoading] = useState(false);
   const [priceMap, setPriceMap] = useState<Record<string, string>>({});
+  const [promoVisible, setPromoVisible] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
 
   // Pull live localized store prices for the paid products.
   useEffect(() => {
@@ -49,12 +52,36 @@ export default function PaywallScreen() {
     (plan.productId && priceMap[plan.productId]) || formatPrice(plan.priceUSD);
 
   // Only advertise features that are actually implemented: guests, photos, video.
-  const featureLines = (plan: Plan): string[] => {
-    const lines: string[] = [];
-    lines.push(plan.maxGuests == null ? t('paywall.unlimitedGuests') : t('paywall.upToGuests', { n: plan.maxGuests }));
-    lines.push(plan.photoCap == null ? t('paywall.unlimitedPhotos') : t('paywall.photoCap', { n: plan.photoCap }));
-    lines.push(plan.video ? t('paywall.videoOn') : t('paywall.videoOff'));
-    return lines;
+  // `ok` drives the icon — a missing feature (no video) shows a cross, not a tick.
+  const featureLines = (plan: Plan): { label: string; ok: boolean }[] => [
+    { label: plan.maxGuests == null ? t('paywall.unlimitedGuests') : t('paywall.upToGuests', { n: plan.maxGuests }), ok: true },
+    { label: plan.photoCap == null ? t('paywall.unlimitedPhotos') : t('paywall.photoCap', { n: plan.photoCap }), ok: true },
+    { label: plan.video ? t('paywall.videoOn') : t('paywall.videoOff'), ok: plan.video },
+  ];
+
+  // Unlocks the selected plan: upgrades the event or creates it, then routes on.
+  // Shared by the paid (App Store) and promo-code paths — neither pays twice.
+  const finalize = async () => {
+    if (!user) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    if (isUpgrade) {
+      await EventService.updatePlan(upgradeId!, selected);
+      router.back();
+      return;
+    }
+
+    const event = await EventService.create(user.uid, draft, selected);
+    setActiveEventId(event.id);
+    resetDraft();
+    // Close the create + paywall modals, THEN open QR over the dashboard. The
+    // push is deferred until the dismissal animation finishes — on iPad two
+    // stacked modals could otherwise be left presented, hiding the QR behind
+    // them (the host would see the reveal step and think nothing happened).
+    router.dismissAll();
+    InteractionManager.runAfterInteractions(() => {
+      router.push({ pathname: '/host/qr', params: { id: event.id, code: event.shortCode } });
+    });
   };
 
   const handleContinue = async () => {
@@ -81,29 +108,33 @@ export default function PaywallScreen() {
           }
         }
       }
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      if (isUpgrade) {
-        await EventService.updatePlan(upgradeId!, selected);
-        router.back();
-        return;
-      }
-
-      const event = await EventService.create(user.uid, draft, selected);
-      setActiveEventId(event.id);
-      resetDraft();
-      // Close the create + paywall modals, THEN open QR over the dashboard. The
-      // push is deferred until the dismissal animation finishes — on iPad two
-      // stacked modals could otherwise be left presented, hiding the QR behind
-      // them (the host would see the reveal step and think nothing happened).
-      router.dismissAll();
-      InteractionManager.runAfterInteractions(() => {
-        router.push({ pathname: '/host/qr', params: { id: event.id, code: event.shortCode } });
-      });
+      await finalize();
     } catch {
       Alert.alert(t('common.error'), t('errors.unknownError'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Redeems a promo code and unlocks the selected plan for free (no purchase).
+  const applyPromo = async () => {
+    if (!user) return;
+    const code = promoCode.trim().toUpperCase();
+    if (code.length < 6) return;
+    try {
+      setPromoLoading(true);
+      const result = await EventService.redeemPromoCode(code, user.uid);
+      if (result !== 'ok') {
+        Alert.alert(t('paywall.promoTitle'), t(result === 'used' ? 'paywall.promoUsed' : 'paywall.promoInvalid'));
+        return;
+      }
+      setPromoVisible(false);
+      setPromoCode('');
+      await finalize();
+    } catch {
+      Alert.alert(t('common.error'), t('errors.unknownError'));
+    } finally {
+      setPromoLoading(false);
     }
   };
 
@@ -169,8 +200,8 @@ export default function PaywallScreen() {
                   <View style={styles.featureList}>
                     {featureLines(plan).map((line, i) => (
                       <View key={i} style={styles.featureRow}>
-                        <Icon name="check" size={14} color={colors.brand.DEFAULT} strokeWidth={2.6} />
-                        <Text style={styles.featureText}>{line}</Text>
+                        <Icon name={line.ok ? 'check' : 'close'} size={14} color={line.ok ? colors.brand.DEFAULT : colors.text.muted} strokeWidth={2.6} />
+                        <Text style={[styles.featureText, !line.ok && styles.featureTextOff]}>{line.label}</Text>
                       </View>
                     ))}
                   </View>
@@ -185,6 +216,12 @@ export default function PaywallScreen() {
         {PAID_PLANS_ENABLED && (
           <TouchableOpacity onPress={() => restorePurchases().catch(() => {})} style={styles.restoreBtn}>
             <Text style={styles.restoreText}>{t('paywall.restorePurchase')}</Text>
+          </TouchableOpacity>
+        )}
+
+        {PAID_PLANS_ENABLED && selected !== 'free' && (
+          <TouchableOpacity onPress={() => setPromoVisible(true)} style={styles.restoreBtn}>
+            <Text style={styles.restoreText}>{t('paywall.havePromo')}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -202,6 +239,36 @@ export default function PaywallScreen() {
           loading={loading}
         />
       </View>
+
+      {/* Promo code entry */}
+      <Modal visible={promoVisible} transparent animationType="fade" onRequestClose={() => setPromoVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setPromoVisible(false)} />
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{t('paywall.promoTitle')}</Text>
+            <Text style={styles.modalSub}>{t('paywall.promoSubtitle')}</Text>
+            <TextInput
+              value={promoCode}
+              onChangeText={(v) => setPromoCode(v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8))}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              autoFocus
+              placeholder="XXXXXXXX"
+              placeholderTextColor={colors.text.muted}
+              style={styles.promoInput}
+            />
+            <PrimaryButton
+              label={t('paywall.promoApply')}
+              onPress={applyPromo}
+              loading={promoLoading}
+              disabled={promoCode.trim().length < 6}
+            />
+            <TouchableOpacity onPress={() => setPromoVisible(false)} style={styles.restoreBtn}>
+              <Text style={styles.restoreText}>{t('common.cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -242,8 +309,19 @@ const styles = StyleSheet.create({
   featureList: { gap: 8, paddingTop: spacing.xs, borderTopWidth: 1, borderTopColor: colors.border.subtle },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   featureText: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.secondary },
+  featureTextOff: { color: colors.text.muted },
   terms: { textAlign: 'center', color: colors.text.muted, fontSize: typography.sizes.xs, fontFamily: fonts.body },
   restoreBtn: { alignSelf: 'center', paddingVertical: spacing.sm },
   restoreText: { color: colors.brand.DEFAULT, fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold },
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing.lg, backgroundColor: colors.bg.primary, borderTopWidth: 1, borderTopColor: colors.border.subtle },
+  modalOverlay: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.lg, backgroundColor: 'rgba(0,0,0,0.45)' },
+  modalCard: { backgroundColor: colors.bg.primary, borderRadius: radius['2xl'], padding: spacing.lg, gap: spacing.md },
+  modalTitle: { fontSize: typography.sizes.xl, fontFamily: fonts.displayBold, color: colors.text.primary },
+  modalSub: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted, lineHeight: 20 },
+  promoInput: {
+    borderWidth: 1.5, borderColor: colors.border.DEFAULT, borderRadius: radius.lg,
+    backgroundColor: colors.bg.card, paddingHorizontal: spacing.lg, paddingVertical: 14,
+    fontSize: typography.sizes.xl, fontFamily: fonts.displayBold, color: colors.text.primary,
+    textAlign: 'center', letterSpacing: 4,
+  },
 });

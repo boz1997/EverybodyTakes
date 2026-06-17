@@ -8,6 +8,8 @@ import {
   deleteDoc,
   query,
   where,
+  orderBy,
+  limit as fbLimit,
   serverTimestamp,
   onSnapshot,
   runTransaction,
@@ -17,9 +19,11 @@ import {
   Unsubscribe,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { db, storage } from '@lib/firebase';
 import { EventDraft } from '@store/eventStore';
 import { getPlan } from '@constants/plans';
+import { logError } from '@shared/errorLog';
 import { nanoid, customAlphabet } from 'nanoid/non-secure';
 
 // 6-char join code: uppercase letters + digits, ambiguous chars (0/O/1/I/L)
@@ -93,6 +97,15 @@ function newestFirst<T extends { createdAt: unknown }>(rows: T[]): T[] {
 // React Native's fetch(uri).blob() doesn't produce a blob the Firebase SDK can
 // upload reliably; XMLHttpRequest with responseType 'blob' is the documented
 // workaround for local file:// URIs.
+// Photos/thumbs are immutable once uploaded (a new capture gets a new id), so
+// let the CDN and on-device cache hold them forever — galleries stop re-fetching
+// bytes they already have.
+const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable';
+
+// Grid thumbnail width. Cells render ~180pt wide, so 400px covers 2x screens
+// while staying a fraction of the full image's bytes.
+const THUMB_WIDTH = 400;
+
 function uriToBlob(uri: string): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -242,8 +255,26 @@ export const EventService = {
       const storageRef = ref(storage, path);
 
       const blob = await uriToBlob(uri);
-      await uploadBytes(storageRef, blob, { contentType });
+      await uploadBytes(storageRef, blob, { contentType, cacheControl: IMMUTABLE_CACHE });
       const imageUrl = await getDownloadURL(storageRef);
+
+      // Generate a small thumbnail for the grid so cells don't pull the full
+      // image. Photos only — a video keeps the full URL (shown with a play badge).
+      // If thumbnailing fails we fall back to the full image rather than block.
+      let thumbnailUrl = imageUrl;
+      if (!isVideo) {
+        try {
+          const thumb = await ImageManipulator.manipulateAsync(
+            uri, [{ resize: { width: THUMB_WIDTH } }],
+            { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG },
+          );
+          const thumbRef = ref(storage, `events/${eventId}/thumbs/${photoId}.jpg`);
+          await uploadBytes(thumbRef, await uriToBlob(thumb.uri), { contentType: 'image/jpeg', cacheControl: IMMUTABLE_CACHE });
+          thumbnailUrl = await getDownloadURL(thumbRef);
+        } catch (e) {
+          logError('thumbnail', e, { photoId });
+        }
+      }
 
       const photo: Photo = {
         id: photoId,
@@ -251,7 +282,7 @@ export const EventService = {
         uploadedBy: userId,
         uploaderName,
         imageUrl,
-        thumbnailUrl: imageUrl,
+        thumbnailUrl,
         mediaType,
         takenAt: new Date().toISOString(),
         isVisible: true,
@@ -280,13 +311,24 @@ export const EventService = {
     return newestFirst(snap.docs.map((d) => d.data() as Photo));
   },
 
-  subscribeToPhotos(eventId: string, callback: (photos: Photo[]) => void): Unsubscribe {
+  // Newest `max` photos, live. Ordered server-side (single-field index, no
+  // composite needed) so we fetch one window instead of the whole gallery; the
+  // screen filters isVisible/flagged in memory. `hasMore` lets the UI page in
+  // older photos by raising `max`.
+  subscribeToPhotos(
+    eventId: string,
+    max: number,
+    callback: (photos: Photo[], hasMore: boolean) => void,
+  ): Unsubscribe {
     const q = query(
       collection(db, 'events', eventId, 'photos'),
-      where('isVisible', '==', true),
+      orderBy('createdAt', 'desc'),
+      fbLimit(max + 1),
     );
     return onSnapshot(q, (snap) => {
-      callback(newestFirst(snap.docs.map((d) => d.data() as Photo)));
+      const rows = snap.docs.map((d) => d.data() as Photo);
+      const hasMore = rows.length > max;
+      callback(hasMore ? rows.slice(0, max) : rows, hasMore);
     });
   },
 
@@ -372,5 +414,23 @@ export const EventService = {
 
   async deleteEvent(eventId: string): Promise<void> {
     await deleteDoc(doc(db, 'events', eventId));
+  },
+
+  // Redeems a single-use promo code: atomically flips an unused code to used so
+  // the same code can never unlock two events. Returns 'ok' on success, or a
+  // reason the caller maps to copy ('invalid' = unknown, 'used' = already spent).
+  async redeemPromoCode(code: string, uid: string): Promise<'ok' | 'invalid' | 'used'> {
+    const ref = doc(db, 'promoCodes', code.trim().toUpperCase());
+    try {
+      return await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists()) return 'invalid';
+        if (snap.data().used) return 'used';
+        tx.update(ref, { used: true, usedBy: uid, usedAt: serverTimestamp() });
+        return 'ok';
+      });
+    } catch {
+      return 'invalid';
+    }
   },
 };
