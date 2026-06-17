@@ -138,15 +138,16 @@ export default function ShareCardScreen() {
             const Card = item.comp;
             return (
               <View style={styles.page}>
+                {/* Shadow (outer) → rounded clip (preview only) → ViewShot.
+                    The captured card is a full rectangle, so the exported PNG
+                    has no transparent corners; the rounding is just the
+                    on-screen clip and isn't part of the capture. */}
                 <View style={styles.cardShadow}>
-                  {/* Capture on a solid paper frame so the rounded card has no
-                      transparent corners (which showed as white/black blocks
-                      when the saved PNG was viewed in Photos). */}
-                  <ViewShot ref={(el) => { shotRefs.current[index] = el; }} options={{ format: 'png', quality: 1 }}>
-                    <View style={styles.captureFrame}>
+                  <View style={styles.cardClip}>
+                    <ViewShot ref={(el) => { shotRefs.current[index] = el; }} options={{ format: 'png', quality: 1 }}>
                       <Card data={data} />
-                    </View>
-                  </ViewShot>
+                    </ViewShot>
+                  </View>
                 </View>
               </View>
             );
@@ -192,7 +193,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: 12 },
     elevation: 8,
   },
-  captureFrame: { backgroundColor: colors.bg.primary, padding: 18, borderRadius: 24 },
+  cardClip: { borderRadius: 24, overflow: 'hidden' },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 7, paddingVertical: spacing.md },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.border.DEFAULT },
   dotActive: { backgroundColor: colors.brand.DEFAULT, width: 22 },

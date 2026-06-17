@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   topBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
   closeBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
   sideCol: { alignItems: 'center', gap: 6, width: 72 },
-  sideLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '600' },
+  sideLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '600', textAlign: 'center', width: 72 },
   topBtnActive: { backgroundColor: colors.gold.DEFAULT },
   shotCounter: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,

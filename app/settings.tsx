@@ -13,6 +13,10 @@ import { useAuthStore } from '@store/authStore';
 import { getJoinedEvents, clearAllLocal } from '@store/guestEvents';
 import { LanguageToggle } from '@shared/components/LanguageToggle';
 import { logError } from '@shared/errorLog';
+import { registerPushTokenForUser } from '@shared/notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@lib/firebase';
 import { Icon, IconName, BrandIcon } from '@shared/components/Icon';
 import { InputField } from '@shared/components/InputField';
 import { LINKS } from '@constants/links';
@@ -27,6 +31,19 @@ export default function SettingsScreen() {
   const [emailVal, setEmailVal] = useState('');
   const [pwVal, setPwVal] = useState('');
   const [emailBusy, setEmailBusy] = useState(false);
+  const [notifOn, setNotifOn] = useState(true);
+
+  // Device-wide notification switch. "off" clears the push token so the Cloud
+  // Functions have nowhere to send; "on" re-registers it.
+  useEffect(() => { AsyncStorage.getItem('@guestcam_notif').then((v) => setNotifOn(v !== 'off')); }, []);
+  const toggleNotif = async () => {
+    const next = !notifOn;
+    setNotifOn(next);
+    await AsyncStorage.setItem('@guestcam_notif', next ? 'on' : 'off');
+    if (!user) return;
+    if (next) await registerPushTokenForUser(user.uid);
+    else await setDoc(doc(db, 'users', user.uid), { pushToken: null }, { merge: true }).catch(() => {});
+  };
 
   const signedIn = !!user && !user.isAnonymous;
   const openLink = (url: string) => Linking.openURL(url).catch(() => Alert.alert(t('common.error')));
@@ -131,6 +148,21 @@ export default function SettingsScreen() {
           <LanguageToggle />
         </View>
 
+        {/* Notifications — device-wide on/off (default on) */}
+        <Text style={styles.sectionTitle}>{t('settings.notifications')}</Text>
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.row} onPress={toggleNotif} activeOpacity={0.8}>
+            <Icon name="bell" size={20} color={notifOn ? colors.brand.DEFAULT : colors.text.muted} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowLabel}>{t('settings.eventNotifications')}</Text>
+              <Text style={styles.deleteHint}>{t('settings.eventNotificationsDesc')}</Text>
+            </View>
+            <View style={[styles.toggle, notifOn && styles.toggleOn]}>
+              <View style={[styles.toggleThumb, notifOn && styles.toggleThumbOn]} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Legal & Support */}
         <Text style={styles.sectionTitle}>{t('settings.legalSection')}</Text>
         <View style={styles.card}>
@@ -211,6 +243,10 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.bg.card, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
   langRow: { alignItems: 'flex-start' },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: 14 },
+  toggle: { width: 44, height: 26, borderRadius: 13, backgroundColor: colors.border.DEFAULT, justifyContent: 'center', padding: 2 },
+  toggleOn: { backgroundColor: colors.brand.DEFAULT },
+  toggleThumb: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
+  toggleThumbOn: { marginLeft: 18 },
   rowLabel: { flex: 1, fontSize: typography.sizes.base, fontFamily: fonts.bodyMedium, color: colors.text.primary },
   divider: { height: 1, backgroundColor: colors.border.subtle },
   deleteHint: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted, paddingBottom: spacing.sm, paddingHorizontal: 2, lineHeight: 16 },

@@ -187,7 +187,7 @@ export function orderedTemplates(type: EventType, hasCover: boolean): TemplateMe
 
 const styles = StyleSheet.create({
   card: {
-    width: CARD_W, height: CARD_H, borderRadius: 24, paddingHorizontal: 26, paddingVertical: 30,
+    width: CARD_W, height: CARD_H, paddingHorizontal: 26, paddingVertical: 30,
     alignItems: 'center', justifyContent: 'center', gap: 26, overflow: 'hidden',
   },
   coverCard: { backgroundColor: '#000', justifyContent: 'space-between', gap: 0, paddingVertical: 34 },

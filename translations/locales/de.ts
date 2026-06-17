@@ -338,6 +338,8 @@ export default {
     help: 'Hilfe',
     logout: 'Abmelden',
     logoutConfirm: 'Möchtest du dich wirklich abmelden?',
+    eventNotifications: 'Event-Benachrichtigungen',
+    eventNotificationsDesc: 'Neue Fotos, Meilensteine und Limit-Hinweise',
     legalSection: 'Rechtliches & Support',
     privacyPolicy: 'Datenschutzrichtlinie',
     termsOfService: 'Nutzungsbedingungen',

@@ -338,6 +338,8 @@ export default {
     help: 'Aide',
     logout: 'Se déconnecter',
     logoutConfirm: 'Voulez-vous vraiment vous déconnecter ?',
+    eventNotifications: 'Notifications d\'événement',
+    eventNotificationsDesc: 'Nouvelles photos, jalons et alertes de limite',
     legalSection: 'Légal et assistance',
     privacyPolicy: 'Politique de confidentialité',
     termsOfService: 'Conditions d\'utilisation',

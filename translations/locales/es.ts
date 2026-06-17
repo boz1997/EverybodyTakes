@@ -338,6 +338,8 @@ export default {
     help: 'Ayuda',
     logout: 'Cerrar sesión',
     logoutConfirm: '¿Seguro que quieres cerrar sesión?',
+    eventNotifications: 'Notificaciones de eventos',
+    eventNotificationsDesc: 'Fotos nuevas, hitos y avisos de límite',
     legalSection: 'Legal y soporte',
     privacyPolicy: 'Política de privacidad',
     termsOfService: 'Términos del servicio',

@@ -338,6 +338,8 @@ export default {
     help: 'Help',
     logout: 'Sign Out',
     logoutConfirm: 'Are you sure you want to sign out?',
+    eventNotifications: 'Event notifications',
+    eventNotificationsDesc: 'New photos, milestones and limit alerts',
     legalSection: 'Legal & Support',
     privacyPolicy: 'Privacy Policy',
     termsOfService: 'Terms of Service',

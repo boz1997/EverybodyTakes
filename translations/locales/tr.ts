@@ -338,6 +338,8 @@ export default {
     help: 'Yardım',
     logout: 'Çıkış Yap',
     logoutConfirm: 'Çıkış yapmak istediğine emin misin?',
+    eventNotifications: 'Etkinlik bildirimleri',
+    eventNotificationsDesc: 'Yeni fotoğraflar, kilometre taşları ve limit uyarıları',
     legalSection: 'Yasal & Destek',
     privacyPolicy: 'Gizlilik Politikası',
     termsOfService: 'Kullanım Şartları',
