@@ -2,8 +2,8 @@
 // App Store Connect). With the custom domain set, GitHub redirects these to
 // go.guestcam.store automatically, so the links keep working either way.
 const SITE_BASE = 'https://boz1997.github.io/EverybodyTakes';
-// QR / app-entry on the branded custom domain (GitHub Pages via the go subdomain).
-const QR_BASE = 'https://go.guestcam.store';
+// QR / app-entry on the branded custom domain (apex, GitHub Pages).
+const QR_BASE = 'https://guestcam.store';
 
 export const LINKS = {
   privacy: `${SITE_BASE}/privacy.html`,
