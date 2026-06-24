@@ -226,6 +226,18 @@ MVP bitmeden Phase 2 kodu yazılmaz.
 
 > Bu bölüm yeni bir Claude Code oturumu için özet/devir notudur. Önce bunu oku.
 
+## ⭐ GÜNCEL DURUM (2026-06-18) — ÖNCE BUNU OKU
+App **App Store'da yayında** (1.0.0). Şu an **1.0.1** ASC'de "Prepare for Submission" (TestFlight test edildi, temiz). **Her yeni sürümde** sadece `app.json` `version`'ı artır (build number EAS `autoIncrement` ile otomatik). Build+submit tek komut:
+`eas build --profile production --platform ios --auto-submit`
+
+### Bu turda eklenen ana sistemler (hepsi main'de; functions + rules deploy'lu)
+- **Galeri (hızlandırıldı):** `uploadPhoto` gerçek **~400px thumbnail** üretir (foto'da `thumbnailUrl` + immutable Cache-Control); **`expo-image`** her yerde (cache/downsample/recyclingKey/transition); misafir grid artık **FlatList** (virtualize). Ortak mantık: **`features/gallery/hooks/useEventPhotos.ts`** (realtime + sayfalama) ve **`features/gallery/downloadPhotos.ts`** (paralel indirme). `EventService.subscribeToPhotos(eventId, max, cb)` — `orderBy(createdAt desc)+limit`, `(photos, hasMore)` döner.
+- **Bildirimler (`functions/index.js`):** Host → yeni foto, ilk misafir, milestone, kota, **sessizlik nudge (1sa/0 misafir)**, **1-gün-önce**, **etkinlikten 1-gün-sonra özet + otomatik kapatma**. Misafir → **foto-milestone digest** (her foto DEĞİL), **kalan-hak (2)**, **beğeni**, etkinlik-günü/1-gün-önce (local, join'de). Scheduled: `eventSilenceNudge` (30dk), `eventDailyTick` (öğlen, Europe/Istanbul). Misafir push token'ı **join'de** kaydedilir. Verimlilik: digest + `uploadNotify` mute + dedup flag'leri + batch + dile duyarlı.
+- **Promo kod:** `promoCodes` koleksiyonu; paywall'da "Promosyon kodun var mı?" → tek-kullanımlık kodla **herhangi paket bedava**. `EventService.redeemPromoCode`; rules get-only / list-yok / false→true. Üret: `node scripts/seedPromoCodes.mjs [adet]` (Firebase CLI token'ı ile REST).
+- **Sentry:** crash + JS hata takibi. Org `guestcam` / proje `guestcam-mobile` / **EU (de.sentry.io)**. DSN `_layout.tsx`'te (public), `SENTRY_AUTH_TOKEN` **EAS secret**'ta (source map). `Sentry.wrap(RootLayout)`, **release-only** (`enabled:!__DEV__`). Panel: sentry.io → guestcam-mobile → Issues. Yedek native crash: ASC → TestFlight → Crashes.
+- **Markalı QR domaini:** QR/uygulama girişi artık **`go.guestcam.store`** (GitHub Pages; GoDaddy DNS'te CNAME `go`→`boz1997.github.io`). `constants/links.ts`: `QR_BASE=go.guestcam.store` (eventUrl), legal **hâlâ github.io** (redirect ile çalışır, ASC'de kayıtlı). ⚠️ **Çıplak apex `guestcam.store` GoDaddy Website Builder'da kilitli** — apex DNS panel kayıtları authoritative NS'e gitmiyor; subdomain CNAME bunu bypass eder. İleride: GoDaddy Airo sitesini sil → apex'i çek + Universal Links (Team ID + AASA + `associatedDomains`).
+- **Bağımlılık disiplini:** native modül eklerken `npx expo install <paket>` + **ardından `npx expo install --fix`** (sürüm hizası ŞART — `expo-image` eklenince expo core uyumsuzluğu TestFlight'ta **açılış çökmesine** yol açmıştı; `expo` 56.0.12'ye hizalanınca düzeldi). errorLogs okumak için `node scripts/readErrorLogs.mjs`.
+
 ## Ne bu uygulama
 **GuestCam** — etkinlik (düğün/parti/doğum günü) için **misafir kamerası**. Host bir etkinlik oluşturur, **QR/6 haneli kod** paylaşır; misafirler hesapsız katılıp ortak galeriye **foto/video** ekler. BeReal/disposable hissi.
 - Repo: `boz1997/EverybodyTakes` · local: `/Users/berk/Desktop/GitBerk/EverybodyTakes`
@@ -238,23 +250,24 @@ Expo SDK 56 (RN 0.85) · expo-router (typed routes) · Firebase v12 web SDK (Aut
 ## Mimari / önemli dosyalar
 - `app/index.tsx` welcome (rol seçimi; host = anonim otomatik giriş, login zorunlu DEĞİL); `app/auth.tsx` (Apple/Google/E-posta/anonim); `app/settings.tsx` (dil, yasal, **Hesap: Apple/Google/E-posta giriş + çıkış + hesap silme**).
 - `app/host/`: dashboard, create, paywall, qr, event, share.
-- `app/guest/`: scan (QR + kod + albümden oku), join (event hub: katıl + galeri + report/block + indir/select), camera (foto/video, disposable, kalan-sayaç, Live Activity), joined (My events).
-- `features/events/services/eventService.ts` — tüm Firestore işlemleri (Event/Photo tipleri, joinEvent, decrementShots, uploadPhoto, report, purgeUserData, deleteEventDeep, transactional).
+- `app/guest/`: scan (QR + kod + albümden oku), join (event hub: katıl + galeri + kalan-hak + report/kendi-fotosunu-sil + indir/select/ZIP), camera (foto/video, disposable, kalan-sayaç + bitince "shots used up" ekranı, Live Activity), joined (My events).
+- `features/events/services/eventService.ts` — tüm Firestore işlemleri (Event/Photo tipleri, joinEvent, decrementShots, uploadPhoto [+thumbnail], subscribeToPhotos [sayfalama], toggleLike, report, redeemPromoCode, deleteEventDeep, transactional).
+- `features/gallery/` — `hooks/useEventPhotos.ts` (realtime + sayfalama), `downloadPhotos.ts` (paralel kaydetme). Galeri ekranları (`join.tsx`, `host/event.tsx`) bunları kullanır, `expo-image` ile render eder.
 - `features/auth/services/authService.ts` — anonim, Apple, Google, e-posta+şifre; **linkOrSignIn** (anonim→kalıcı hesap link → veri korunur).
-- `features/purchases/purchaseService.ts` — RevenueCat (lazy, crash-safe).
+- `features/purchases/purchaseService.ts` — RevenueCat (lazy, crash-safe, `isExpoGo` guard).
 - `features/share/templates.tsx` — davet kartı şablonları.
 - `constants/plans.ts` — planlar + `PAID_PLANS_ENABLED` + ürün ID'leri + USD fiyatlar.
-- `constants/links.ts` — Privacy/Terms/Support URL + eventUrl köprüsü.
-- `shared/notifications.ts` — push token kaydı + lokal bildirim (lazy).
-- `shared/liveActivity.ts`, `shared/components/*` (Icon, Wordmark, Skeleton, RoleArt).
-- `functions/index.js` — Cloud Functions (push). `firebase.json` functions+firestore+storage.
-- `docs/` — GitHub Pages sitesi (privacy/terms/support/e.html). Canlı: `https://boz1997.github.io/EverybodyTakes/`.
+- `constants/links.ts` — `SITE_BASE` (legal=github.io) + `QR_BASE` (go.guestcam.store) + eventUrl köprüsü.
+- `shared/notifications.ts` — push token kaydı + lokal bildirim (lazy). `app/_layout.tsx` — Sentry init + wrap.
+- `shared/liveActivity.ts`, `shared/components/*` (Icon, Wordmark, Skeleton, RoleArt, PrimaryButton [opsiyonel `icon` prop]).
+- `functions/index.js` — Cloud Functions: push (host+misafir), beğeni, kalan-hak, ZIP + scheduled (sessizlik nudge, günlük tick). `firebase.json` functions+firestore+storage.
+- `docs/` — GitHub Pages sitesi (privacy/terms/support/e.html + `app/`=web misafir uygulaması). Canlı: **`https://go.guestcam.store/`** (eski `boz1997.github.io/EverybodyTakes/` buna redirect).
 
 ## Tamamlananlar ✅
 - Host/guest akışları, etkinlik oluşturma, QR (native kameradan da okunur: `docs/e.html` köprüsü), kod ile katılım, albümden QR okuma.
 - Kamera: foto + **video kaydı** (15sn), disposable mod, eğlenceli kalan-sayaç, non-disposable'da preview + galeriden seçim, sessiz arka-plan upload (sıraya alınmış — çakışma yok).
 - Galeriler: 2 sütun **album grid** (oran `CELL_RATIO=13/9`), skeleton yükleme, video oynatma (expo-video) + play badge, lightbox sol/sağ ok + "by isim" + sayaç, **çoklu seçim indirme** (Select), Download All (ilerlemeli).
-- **UGC moderasyonu** (App Store 1.2): report + block, flagged gizleme, host'ta "Flagged" rozeti, `reports` koleksiyonu + EULA (terms).
+- **UGC moderasyonu** (App Store 1.2): report + flagged gizleme + kendi fotosunu silme, host'ta "Flagged" rozeti, `reports` koleksiyonu + EULA (terms). (Kullanıcı "block" özelliği kaldırıldı.)
 - **Hesap silme** (5.1.1), **gizlilik/şartlar/destek** sayfaları + uygulama içi linkler, izin açıklamaları net.
 - **Auth:** Anonim + **Apple** (Face ID) + **Google** + **E-posta+şifre**; hepsi anonim hesabı linkliyor (veri korunur). Login zorunlu değil; Ayarlar'dan opsiyonel.
 - **Bildirimler (push, Cloud Functions, dile duyarlı):** yeni foto, ilk misafir, kilometre taşları (10/25/50/100/250/500/1000), foto/kişi kotası yaklaşıyor + doldu (upgrade nudge), bildirilen içerik. Hepsi event'in `uploadNotify` toggle'ına bağlı. Bildirime dokununca event/paywall açılıyor.
@@ -262,29 +275,30 @@ Expo SDK 56 (RN 0.85) · expo-router (typed routes) · Firebase v12 web SDK (Aut
 - **Marka:** yeni ikon (kamera) + "GuestCam" wordmark (Cam = amber), splash/adaptive krem.
 - **Monetizasyon kodu:** RevenueCat entegre (paywall'da satın alma + canlı fiyat + Restore), `PAID_PLANS_ENABLED=true`, ürünler `event_small/medium/unlimited`.
 
-## Fiyatlandırma (POV'un altında)
-- Free: 15 kişi, 100 foto, video yok, filigranlı(görsel uygulanmıyor).
-- Small `event_small` **$3.99**: 30 kişi.
-- Medium `event_medium` **$14.99**: 100 kişi + video.
-- Unlimited `event_unlimited` **$29.99**: sınırsız kişi + video.
-- Gerçekten **enforce edilen** farklar: kişi sayısı, foto limiti, video. (watermark/HD/liveWall sadece flag — kodlanmadı, paywall'da reklam edilmiyor.)
-- Upgrade = hedef paketin **tam fiyatı** (fark/proration yok; basit tutuldu).
+## Planlar / Fiyatlandırma (`constants/plans.ts`)
+- **Free:** 10 kişi, 100 foto, video yok.
+- **Small** `event_small` **$3.99:** 20 kişi.
+- **Medium** `event_medium` **$14.99:** 50 kişi.
+- **Unlimited** `event_unlimited` **$29.99:** sınırsız kişi + **video** (video YALNIZCA unlimited; medium dahil diğerlerinde yok).
+- Enforce edilen farklar: kişi sayısı, foto limiti, video. `watermark` flag **tamamen silindi**. `hdExport/liveWall` kullanılmayan flag (paywall'da reklam edilmiyor). Upgrade = hedef paketin **tam fiyatı** (proration yok).
+- **RevenueCat KURULU:** `appl_wexvGCqkWXzUjDvyCfNQlhPxWtn` → `app.json extra.revenueCatIosKey` (DOLU, boş DEĞİL). Expo Go'da configure atlanır (`purchaseService.ts` `isExpoGo` guard). Ücretli paketler dev/preview/TestFlight/App Store build'inde çalışır; Expo Go'da çalışmaz (normal).
 
-## EKSİKLER / YAPILACAKLAR ⚠️
-1. **RevenueCat bitir:** App Store Connect'te 3 IAP ürünü "Ready to Submit" (fiyat+localization+review screenshot). RevenueCat'e App Store app + In-App Purchase key (.p8/KeyID/Issuer) + shared secret + ürünler. Sonra **iOS public key `appl_...`** → `app.json` `extra.revenueCatIosKey`'e koy (şu an boş → ücretli paket "satın alma kullanılamıyor" der, free çalışır).
-2. **Firebase güvenlik kurallarını DEPLOY et** (kritik — hâlâ test modunda olabilir): `firebase deploy --only firestore:rules,storage`. (`functions` zaten deploy'lu; değişince tekrar deploy.)
-3. **Cloud Functions push'u** gerçek cihazda doğrula (host izin verince token `users/{uid}.pushToken`).
-4. **Google sign-in:** app.json'da iOS client id + iosUrlScheme ekli; Firebase'de Google sağlayıcı açık. Gerçek cihaz/sim build'de test.
-5. **App Store Connect listing:** screenshots (1290×2796 veya 1284×2778), description/keywords (CLAUDE'a metinler verildi), App Privacy nutrition labels, age rating (UGC→17+), build yükle, IAP'leri submit'e ekle.
-6. **Apple Small Business Program** kaydı (komisyon %15).
-7. **Ertelenenler:** filigran/HD-export/live-wall gerçek kodu, e-posta magic-link (deep link), Android sürümü, zamanlı host hatırlatmaları (Cloud Scheduler), telefon doğrulama (gereksiz/masraflı — yapılmayacak).
+## AÇIK İŞLER / YAPILACAKLAR ⚠️
+(RevenueCat, rules deploy, push, Apple/Google giriş, ilk listing → **tamamlandı.** Aşağıdakiler kaldı.)
+1. **1.0.1 submit:** ASC'de "What's New" dolduruldu; **Build** bölümünden TestFlight build'i versiyona ekle → Add for Review.
+2. **`docs/e.html` `APP_STORE_ID`:** app yayında artık — ASC → App Information'daki numerik Apple ID'yi koy ki iPhone'da app kuruluysa "Open in app" App Store'a düşsün.
+3. **Universal Links** (ertelendi): apex'i çek + Apple Team ID + `/.well-known/apple-app-site-association` + `app.json associatedDomains` → QR Safari'ye uğramadan direkt app açar. Şu an `e.html` köprüsü `guestcam://` ile zaten açıyor.
+4. **App Check** (en büyük sertleştirme, ertelendi): App Attest entegre + yeni build → SONRA Firestore/Storage'da enforce (yoksa eski build'ler kırılır). Sıra: önce token gönderen build canlıya çıksın.
+5. **Apple Small Business Program** (komisyon %15) kaydı — yapılmadıysa.
+6. **Ertelenenler:** Android sürümü, e-posta magic-link, telefon doğrulama (yapılmayacak), `hdExport/liveWall` gerçek kod (reklam edilmiyor).
 
 ## Build / komutlar
 - Simülatör (auth/UI testi yeterli): `npx expo run:ios --simulator "iPhone 16 Pro"` (cihaz takılıysa imza ister).
 - Bağımsız/cihaz (standalone, Metro'suz): `eas build --profile preview --platform ios` → QR ile kur.
-- Production: `eas build --profile production --platform ios` → `eas submit`.
+- Production + TestFlight tek komut: `eas build --profile production --platform ios --auto-submit`. **Her sürümde önce `app.json` `version`'ı artır** (1.0.0 store'da → Apple "already submitted" verir; build number EAS `autoIncrement` ile otomatik).
 - Native modül/izin/plugin değişince **yeni build şart** (`npx expo prebuild --clean` + build). JS değişiklikleri hot-reload.
-- Fonksiyon deploy: `firebase deploy --only functions` (Blaze planı aktif).
+- Fonksiyon deploy: `firebase deploy --only functions`. Rules: `firebase deploy --only firestore:rules,storage` (Blaze aktif).
+- Stale/yarım bundle çökmesi olursa Metro'yu temiz başlat: `npx expo start -c`.
 
 ## Gotcha'lar
 - Native modüller (apple-auth, crypto, google-signin, purchases, live-activity, video, view-shot) **lazy/try-catch** ile yükleniyor → eski build'de çökmesin diye. Yeni özelliği KULLANMAK için yeni build gerekir.
@@ -294,4 +308,4 @@ Expo SDK 56 (RN 0.85) · expo-router (typed routes) · Firebase v12 web SDK (Aut
 - Firebase web API anahtarları public (gizli değil); `.env` + `eas.json env`'de. GitHub bir kez uyardı, sorun değil.
 
 ## Çalışma kuralı
-Her commit: `npx tsc --noEmit` temiz + `npx expo export --platform ios` derleniyor → sonra commit/push (main). Commit mesajı sonunda `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
+Her commit: `npx tsc --noEmit` temiz + `npx expo export --platform ios` derleniyor → sonra commit/push (main). (`npx tsc` bazen yanlış global'e gidiyor; o durumda `node_modules/.bin/tsc --noEmit`.) Native modül eklediysen `npx expo install --fix` çalıştır. Commit mesajı sonunda `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`. Push'tan önce onay iste.
