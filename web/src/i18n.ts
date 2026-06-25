@@ -1,8 +1,9 @@
 // Tiny i18n — guests arrive in many languages; start with EN + TR and grow.
 const dict: Record<string, Record<string, string>> = {
   en: {
-    joining: 'Joining event…', notFound: 'Event not found', enterCode: 'Enter event code',
-    codePlaceholder: '6-digit code', go: 'Go', yourName: 'Your name', anonymous: 'Anonymous',
+    joining: 'Joining event…', notFound: "We couldn't find that event. Check the code and try again.", enterCode: 'Enter event code',
+    codeHint: 'Find it on the QR card or invite.', tryAgain: 'Try another code', live: 'Live',
+    codePlaceholder: 'ABC123', go: 'Join event', yourName: 'Your name', anonymous: 'Anonymous',
     namePlaceholder: 'You can stay anonymous', photo: 'Photo', video: 'Video', fromAlbum: 'From album',
     shotsLeft: '{n} left', noShots: 'No shots left', uploading: 'Uploading…',
     ended: 'This event has ended', gallery: 'Gallery', empty: 'No photos yet — be the first!',
@@ -14,8 +15,9 @@ const dict: Record<string, Record<string, string>> = {
     deleteBtn: 'Delete', deleteConfirm: 'Delete this photo?',
   },
   tr: {
-    joining: 'Etkinliğe katılıyor…', notFound: 'Etkinlik bulunamadı', enterCode: 'Etkinlik kodunu gir',
-    codePlaceholder: '6 haneli kod', go: 'Git', yourName: 'Adın', anonymous: 'Anonim',
+    joining: 'Etkinliğe katılıyor…', notFound: 'Bu etkinliği bulamadık. Kodu kontrol edip tekrar dene.', enterCode: 'Etkinlik kodunu gir',
+    codeHint: 'QR kartında ya da davetiyede yazıyor.', tryAgain: 'Başka kod dene', live: 'Canlı',
+    codePlaceholder: 'ABC123', go: 'Etkinliğe katıl', yourName: 'Adın', anonymous: 'Anonim',
     namePlaceholder: 'Anonim kalabilirsin', photo: 'Fotoğraf', video: 'Video', fromAlbum: 'Albümden',
     shotsLeft: '{n} kaldı', noShots: 'Çekim kalmadı', uploading: 'Yükleniyor…',
     ended: 'Bu etkinlik sona erdi', gallery: 'Galeri', empty: 'Henüz fotoğraf yok — ilk sen ol!',

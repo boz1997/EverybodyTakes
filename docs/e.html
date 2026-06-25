@@ -42,8 +42,7 @@
       // Smart single-QR entry:
       //  • iPhone  → let the guest choose: open the native app (App Store) or stay on web.
       //  • Android / desktop → straight to the web guest app (no iOS app there).
-      // TODO: paste the App Store numeric id (App Store Connect → App Information → Apple ID).
-      var APP_STORE_ID = '';
+      var APP_STORE_ID = '6777402204';
 
       var params = new URLSearchParams(window.location.search);
       var code = (params.get('code') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
