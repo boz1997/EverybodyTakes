@@ -226,6 +226,37 @@ MVP bitmeden Phase 2 kodu yazılmaz.
 
 > Bu bölüm yeni bir Claude Code oturumu için özet/devir notudur. Önce bunu oku.
 
+## ⭐ GÜNCEL DURUM (2026-06-28) — WEB SİTESİ + DOMAIN ACİL DÜZELTME — ÖNCE BUNU OKU
+
+Bu tur tamamen **web tarafı** (`docs/` landing + `web/` misafir app) ve **domain/QR** ile ilgiliydi. App (Expo) koduna dokunulmadı. Hepsi `main`'e push'landı.
+
+### 🔴 EN KRİTİK — `go.guestcam.store` köprüsü (SİLME!)
+- **Sorun:** App Store'daki **yüklü** sürüm QR'ı eski `go.guestcam.store/e.html?code=...` üretiyor (o build'de `QR_BASE=go.guestcam.store`'du). Domain apex `guestcam.store`'a taşınınca `go.` **404** vermeye başladı → misafir QR'ı kırık. Müşteri (Janis Kukojs) şikayet etti.
+- **Çözüm (app update'siz):** Ayrı bir yönlendirme repo'su açıldı: **`boz1997/go-guestcam-redirect`** (public). İçinde `CNAME`=`go.guestcam.store` + `index.html`/`e.html`/`404.html` → gelen isteği **yol + `?code=` korunarak** `https://guestcam.store`'a JS ile yönlendirir. GitHub Pages açık (main / root), domain `go.guestcam.store`, HTTPS aktif. Doğrulandı: `go.guestcam.store/e.html?code=...` → 200 → apex'e düşüyor, çalışıyor.
+- **DOKUNMA:** (1) Bu redirect repo'su **kalıcı** — silersen eski kurulumların QR'ı yine 404 olur (eski install'lar sonsuza dek `go.` kullanır). (2) GoDaddy'de **`go` CNAME → `boz1997.github.io`** kaydı silinmemeli (yönlendirmenin DNS ayağı). (3) Ana repo'nun custom domain'i `guestcam.store` kalmalı.
+- Kaynak kodda `constants/links.ts` zaten `QR_BASE='https://guestcam.store'`; yeni app build'leri doğrudan apex'e gider, ama `go.` köprüsü yine de kalmalı.
+
+### Domain / GitHub Pages durumu
+- `guestcam.store` (apex) → GitHub Pages, **`boz1997/EverybodyTakes`** repo, **main / `docs`** klasörü. `docs/CNAME`=`guestcam.store`. GoDaddy: apex 4× A (185.199.108–111.153), `www` CNAME→`guestcam.store`, `go` CNAME→`boz1997.github.io`.
+- `docs/e.html` = tek-QR köprü sayfası (iPhone'da "uygulamada aç / tarayıcıda devam", Android/masaüstü → web app). `APP_STORE_ID='6777402204'` artık dolu.
+
+### Web sitesi yeniden tasarımı (`docs/` landing — guestcam.store)
+- Eskiden landing HTML zengindi ama `docs/style.css` eski/minimaldi → stilsiz görünüyordu. **`docs/style.css` sıfırdan yazıldı** (~720+ satır): sıcak film/kağıt estetiği, mobil app renkleri (paper #EFE7D6, brand #BE6A2E, ink #221D16), Fraunces (serif başlık) + Inter, kağıt grain, telefon mockup, animasyonlar. Legal sayfalar (privacy/terms/support) aynı stylesheet'i paylaşıyor, korundu.
+- **Gerçek fotoğraflar** `docs/img/`'e indirildi (Unsplash, self-hosted): hero telefon mockup galerisi, polaroidler, "no preview" kartı. Gradient sahte tile'lar kaldırıldı. **`docs/img/qr.png`** = gerçek taranabilir QR (guestcam.store). Emoji ikonlar → SVG.
+- **Logo düzeltmesi:** landing eskiden yanlış mavi `favicon.png`'yi kullanıyordu. Gerçek logolar: **`docs/guestmark.png`** (lens ikonu) ve **`docs/app-icon.png`** (yüksek çöz.), **`docs/guestlogo.png`** (wordmark). Header/footer/CTA/favicon hepsi `guestmark.png`/`app-icon.png`'ye çevrildi.
+
+### 5 dilli landing i18n
+- **`docs/i18n.js`** — app ile aynı 5 dil (en/tr/es/fr/de). `data-i18n` anahtarları + sözlük. Otomatik tarayıcı dili + `localStorage('gc_lang')` + `?lang=xx` query (paylaşılabilir/test). Header'da küre ikonlu dil seçici. Tüm landing metni (nav, hero, mockup, marquee, adımlar, özellikler, pricing, FAQ, footer, title/meta) çeviriliyor; fiyatlar sabit.
+
+### Reveal kaldırıldı → "herkesin gözünden"
+- **Teyit:** `app/host/create.tsx` 4 adım: kapak+isim, tür+tarih, çekim sayısı, capture mode (disposable / açık galeri). **Reveal-timing (anında/ertesi gün/özel) adımı YOK** — üründen kalkmış (`revealTiming` veride duruyor ama create seçtirmiyor; pratikte hep "instant"). Web app (`web/`) ve `app/guest/join.tsx`'te reveal kodu dormant duruyor (zararsız, dokunulmadı).
+- Landing reveal pazarlamasından arındırıldı: disposable bölümü + FAQ "herkesin gözünden / anı yaşamak" temasına çekildi; "Developing… ertesi gün açılır" kartı → "Önizleme yok" kartı; özellik kartı "Açılma zamanı sende" → "Herkesin gözünden". 5 dilde güncellendi.
+
+### Misafir web app (`web/` → build → `docs/app/`)
+- Vite + React + Tailwind. `web/tailwind.config.js`'e Fraunces/Inter eklendi, `web/index.html`'e font linki. Giriş (kod) ekranı markalı kart oldu; katılım ekranına **sticky üst bar + LIVE rozeti + avatar'lı isim kartı** eklendi. i18n (tr/en) genişletildi.
+- **DEPLOY ŞART:** `web/` kaynağı değişince **`cd web && npm run build`** (vite `outDir=../docs/app`, `base=/app/`) → `docs/app/` yeniden üretilir → commit → push. Yoksa canlı `guestcam.store/app/` eski bundle'da kalır. Bu tur build edilip push'landı.
+- Doğrulama yöntemi (bu makinede): preview MCP aracı 5173'e kilitlendiği için kullanılmadı; bunun yerine **headless Chrome screenshot** (`/Applications/Google Chrome.app/.../Google Chrome --headless=new --screenshot=...`) + statik `python3 -m http.server` ile kontrol edildi.
+
 ## ⭐ GÜNCEL DURUM (2026-06-18) — ÖNCE BUNU OKU
 App **App Store'da yayında** (1.0.0). Şu an **1.0.1** ASC'de "Prepare for Submission" (TestFlight test edildi, temiz). **Her yeni sürümde** sadece `app.json` `version`'ı artır (build number EAS `autoIncrement` ile otomatik). Build+submit tek komut:
 `eas build --profile production --platform ios --auto-submit`
