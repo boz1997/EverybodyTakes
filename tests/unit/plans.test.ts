@@ -40,6 +40,13 @@ describe('plans', () => {
     expect(withVideo).toEqual(['unlimited']);
   });
 
+  it('notes (memory book) are on medium and unlimited only', () => {
+    const withNotes = Object.values(PLANS).filter((p) => p.notes).map((p) => p.id);
+    expect(withNotes).toEqual(['medium', 'unlimited']);
+    expect(PLANS.free.notes).toBe(false);
+    expect(PLANS.small.notes).toBe(false);
+  });
+
   it('getPlan falls back to free for unknown / empty ids', () => {
     expect(getPlan('free')).toBe(PLANS.free);
     expect(getPlan('unlimited')).toBe(PLANS.unlimited);

@@ -110,6 +110,35 @@ service cloud.firestore {
         allow update: if isOwnerOrHost() || ((reportOnly() || likeOnly()) && isParticipant());
         allow delete: if isOwnerOrHost();
       }
+
+      // "Memory book" notes. Same participant gate as photos. A note can only be
+      // created when the event's plan allows notes AND the host hasn't switched
+      // them off; text is required and capped (the client caps it too).
+      match /notes/{noteId} {
+        function isEventHost() {
+          return get(/databases/$(database)/documents/events/$(eventId)).data.hostId == request.auth.uid;
+        }
+        function isParticipant() {
+          return exists(/databases/$(database)/documents/events/$(eventId)/guests/$(request.auth.uid));
+        }
+        function notesOpen() {
+          let e = get(/databases/$(database)/documents/events/$(eventId)).data;
+          return e.notes == true && e.notesEnabled != false;
+        }
+        allow read: if signedIn() && (isParticipant() || isEventHost());
+        // One note per guest: the doc id IS the author's uid, so writing again
+        // edits their own note rather than adding a second.
+        allow create, update: if signedIn()
+          && noteId == request.auth.uid
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 240
+          && (isParticipant() || isEventHost())
+          && notesOpen();
+        allow delete: if signedIn()
+          && (resource.data.authorId == request.auth.uid || isEventHost());
+      }
     }
   }
 }

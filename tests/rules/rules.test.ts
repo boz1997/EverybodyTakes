@@ -42,6 +42,7 @@ beforeEach(async () => {
     await setDoc(doc(db, 'events/e1'), {
       hostId: HOST, name: 'Wedding', shortCode: 'ABC234', isActive: true,
       guestCount: 1, photoCount: 5, photoCap: 100, maxGuests: 10, plan: 'free',
+      notes: true, notesEnabled: true,
     });
     await setDoc(doc(db, 'events/e1/guests', GUEST), { userId: GUEST, shotsRemaining: 3 });
     await setDoc(doc(db, 'events/e1/photos/p1'), { uploadedBy: GUEST, isVisible: true, likedBy: [] });
@@ -141,6 +142,74 @@ describe('firestore rules — promo codes', () => {
     await assertFails(updateDoc(doc(asGuest(), 'promoCodes/PROMO1'), {
       used: true, usedBy: GUEST, usedAt: new Date(),
     }));
+  });
+});
+
+describe('firestore rules — notes (memory book)', () => {
+  const note = { authorId: GUEST, authorName: 'Mia', text: 'What a night!' };
+
+  // Extra events for the plan/host gates.
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'events/noNotesPlan'), { hostId: HOST, notes: false, notesEnabled: true });
+      await setDoc(doc(db, 'events/noNotesPlan/guests', GUEST), { userId: GUEST });
+      await setDoc(doc(db, 'events/notesOff'), { hostId: HOST, notes: true, notesEnabled: false });
+      await setDoc(doc(db, 'events/notesOff/guests', GUEST), { userId: GUEST });
+    });
+  });
+
+  it('a participant can leave a valid note (doc id = their uid)', async () => {
+    await assertSucceeds(setDoc(doc(asGuest(), `events/e1/notes/${GUEST}`), note));
+  });
+
+  it('a guest can edit their own note by writing it again', async () => {
+    await assertSucceeds(setDoc(doc(asGuest(), `events/e1/notes/${GUEST}`), note));
+    await assertSucceeds(setDoc(doc(asGuest(), `events/e1/notes/${GUEST}`), { ...note, text: 'edited' }));
+  });
+
+  it('a guest cannot write to a note id that is not their uid (one per guest)', async () => {
+    await assertFails(setDoc(doc(asGuest(), `events/e1/notes/${STRANGER}`), note));
+  });
+
+  it('a signed-in non-participant cannot leave a note', async () => {
+    await assertFails(setDoc(doc(asStranger(), `events/e1/notes/${STRANGER}`), { ...note, authorId: STRANGER }));
+  });
+
+  it('the note author must be the writer', async () => {
+    await assertFails(setDoc(doc(asGuest(), `events/e1/notes/${GUEST}`), { ...note, authorId: STRANGER }));
+  });
+
+  it('rejects an empty note', async () => {
+    await assertFails(setDoc(doc(asGuest(), `events/e1/notes/${GUEST}`), { ...note, text: '' }));
+  });
+
+  it('rejects a note over 240 chars', async () => {
+    await assertFails(setDoc(doc(asGuest(), `events/e1/notes/${GUEST}`), { ...note, text: 'x'.repeat(241) }));
+  });
+
+  it('rejects notes when the plan does not include them', async () => {
+    await assertFails(setDoc(doc(asGuest(), `events/noNotesPlan/notes/${GUEST}`), note));
+  });
+
+  it('rejects notes when the host has switched them off', async () => {
+    await assertFails(setDoc(doc(asGuest(), `events/notesOff/notes/${GUEST}`), note));
+  });
+
+  it('a participant and the host can read notes; a stranger cannot', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `events/e1/notes/${GUEST}`), note);
+    });
+    await assertSucceeds(getDoc(doc(asGuest(), `events/e1/notes/${GUEST}`)));
+    await assertSucceeds(getDoc(doc(asHost(), `events/e1/notes/${GUEST}`)));
+    await assertFails(getDoc(doc(asStranger(), `events/e1/notes/${GUEST}`)));
+  });
+
+  it('the author or host can delete a note', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `events/e1/notes/${GUEST}`), note);
+    });
+    await assertSucceeds(deleteDoc(doc(asHost(), `events/e1/notes/${GUEST}`)));
   });
 });
 

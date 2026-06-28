@@ -57,6 +57,7 @@ export default function PaywallScreen() {
     { label: plan.maxGuests == null ? t('paywall.unlimitedGuests') : t('paywall.upToGuests', { n: plan.maxGuests }), ok: true },
     { label: plan.photoCap == null ? t('paywall.unlimitedPhotos') : t('paywall.photoCap', { n: plan.photoCap }), ok: true },
     { label: plan.video ? t('paywall.videoOn') : t('paywall.videoOff'), ok: plan.video },
+    { label: plan.notes ? t('notes.bookTitle') : t('notes.featureOff'), ok: plan.notes },
   ];
 
   // Unlocks the selected plan: upgrades the event or creates it, then routes on.

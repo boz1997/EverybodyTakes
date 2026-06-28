@@ -13,6 +13,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { Linking } from 'react-native';
 import { EventService, Event, Photo } from '@features/events/services/eventService';
 import { useEventPhotos } from '@features/gallery/hooks/useEventPhotos';
+import { NotesModal } from '@features/notes/NotesModal';
 import { savePhotosToLibrary, savePhotoToLibrary } from '@features/gallery/downloadPhotos';
 import { createEventZip } from '@features/events/services/exportService';
 import { getPlan, PAID_PLANS_ENABLED } from '@constants/plans';
@@ -36,6 +37,7 @@ export default function EventManage() {
   // The host sees flagged photos (to review) but never hard-hidden ones.
   const photos = allPhotos.filter((p) => p.isVisible !== false);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [notesOpen, setNotesOpen] = useState(false);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
@@ -98,6 +100,23 @@ export default function EventManage() {
             ios_backgroundColor={colors.bg.elevated}
           />
         </View>
+
+        {/* Memory book toggle — only when the plan includes notes */}
+        {event.notes && (
+          <View style={styles.switchRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>{t('notes.toggle')}</Text>
+              <Text style={styles.settingDesc}>{t('notes.toggleDesc')}</Text>
+            </View>
+            <Switch
+              value={event.notesEnabled !== false}
+              onValueChange={(on) => patchSettings({ notesEnabled: on })}
+              trackColor={{ false: colors.bg.elevated, true: colors.brand.DEFAULT }}
+              thumbColor="#fff"
+              ios_backgroundColor={colors.bg.elevated}
+            />
+          </View>
+        )}
 
         {/* Plan + upgrade (sales surface) — hidden on the top plan */}
         {PAID_PLANS_ENABLED && getPlan(event.plan).id !== 'unlimited' && (
@@ -307,6 +326,13 @@ export default function EventManage() {
         ListHeaderComponent={
           <>
             {renderSettings()}
+            {/* Memory book — host taps to read guests' notes */}
+            {event?.notes && (
+              <TouchableOpacity onPress={() => setNotesOpen(true)} style={styles.notesRow} activeOpacity={0.85}>
+                <Icon name="heart" size={18} color={colors.brand.DEFAULT} />
+                <Text style={styles.notesRowText}>{t('notes.heading')}</Text>
+              </TouchableOpacity>
+            )}
             <View style={styles.sectionHead}>
               <Text style={styles.sectionTitle}>
                 {selecting ? t('gallery.selected', { count: selected.size }) : `${t('host.livePhotos')} (${photos.length})`}
@@ -430,6 +456,8 @@ export default function EventManage() {
           </View>
         </View>
       </Modal>
+
+      {id && <NotesModal visible={notesOpen} onClose={() => setNotesOpen(false)} eventId={id} eventName={event?.name ?? ''} />}
     </LinearGradient>
   );
 }
@@ -466,6 +494,8 @@ const styles = StyleSheet.create({
   grid: { padding: spacing.lg, gap: spacing.sm },
   settingsCard: { backgroundColor: colors.bg.card, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, padding: spacing.md, gap: spacing.sm, marginBottom: spacing.lg },
   settingsTitle: { fontSize: typography.sizes.base, fontFamily: fonts.displayBold, color: colors.text.primary, marginBottom: spacing.xs },
+  notesRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.bg.card, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, paddingHorizontal: spacing.md, paddingVertical: 14, marginBottom: spacing.md },
+  notesRowText: { fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold, color: colors.text.primary },
   settingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   settingLabel: { flex: 1, fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium, color: colors.text.primary },
   settingDesc: { fontSize: typography.sizes.xs, fontFamily: fonts.body, color: colors.text.muted, marginTop: 1 },

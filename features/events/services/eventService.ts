@@ -5,6 +5,7 @@ import {
   getDoc,
   getDocs,
   updateDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -54,6 +55,8 @@ export interface Event {
   maxGuests: number | null;   // resolved from plan
   photoCap: number | null;    // resolved from plan
   video: boolean;             // resolved from plan
+  notes: boolean;             // resolved from plan — "Memory book" capability
+  notesEnabled: boolean;      // host toggle (default true) — guests can leave notes
   endsAt: string | null;      // for reveal timing
   shortCode: string;
   isActive: boolean;
@@ -77,6 +80,17 @@ export interface Photo {
   reportCount?: number;
   likesCount: number;
   likedBy?: string[];              // uids who liked — source of truth for the count
+  createdAt: string;
+}
+
+// A guest-left written memory ("Memory book"). Available on medium/unlimited.
+export const NOTE_MAX = 240;
+
+export interface Note {
+  id: string;
+  authorId: string;
+  authorName: string | null;
+  text: string;
   createdAt: string;
 }
 
@@ -168,6 +182,8 @@ export const EventService = {
       maxGuests: limits.maxGuests,
       photoCap: limits.photoCap,
       video: limits.video,
+      notes: limits.notes,
+      notesEnabled: true,
       endsAt,
       shortCode,
       isActive: true,
@@ -343,6 +359,41 @@ export const EventService = {
     });
   },
 
+  // "Memory book": each guest gets ONE note (the doc id is their uid), so calling
+  // this again edits theirs rather than adding a second. Text is trimmed and hard
+  // capped at NOTE_MAX (the rules enforce the same cap); empty notes are ignored.
+  async saveNote(eventId: string, authorId: string, authorName: string | null, text: string): Promise<void> {
+    const trimmed = text.trim().slice(0, NOTE_MAX);
+    if (!trimmed) return;
+    await setDoc(doc(db, 'events', eventId, 'notes', authorId), {
+      authorId,
+      authorName: authorName?.trim() || null,
+      text: trimmed,
+      createdAt: serverTimestamp(),
+    });
+  },
+
+  // The current guest's own note, if they've left one (for the edit flow).
+  async getMyNote(eventId: string, uid: string): Promise<Note | null> {
+    const snap = await getDoc(doc(db, 'events', eventId, 'notes', uid));
+    return snap.exists() ? ({ id: snap.id, ...snap.data() } as Note) : null;
+  },
+
+  // The host (or the note's author) removes a note — e.g. to tidy the book before
+  // exporting. Rules allow the host to delete any note in their event.
+  async deleteNote(eventId: string, noteId: string): Promise<void> {
+    await deleteDoc(doc(db, 'events', eventId, 'notes', noteId));
+  },
+
+  // Live notes feed, newest-first. Estimate + in-memory sort so a just-left note
+  // surfaces immediately (same reasoning as subscribeToPhotos).
+  subscribeToNotes(eventId: string, callback: (notes: Note[]) => void): Unsubscribe {
+    const q = query(collection(db, 'events', eventId, 'notes'), orderBy('createdAt', 'desc'), fbLimit(200));
+    return onSnapshot(q, (snap) => {
+      callback(sortPhotosNewestFirst(snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }) as Note)));
+    });
+  },
+
   async uploadCoverImage(eventId: string, uri: string): Promise<string> {
     const path = `events/${eventId}/cover.jpg`;
     const storageRef = ref(storage, path);
@@ -378,7 +429,7 @@ export const EventService = {
   // Host-editable settings (the bits we moved out of the create flow).
   async updateSettings(
     eventId: string,
-    settings: Partial<Pick<Event, 'disposableMode' | 'allowGalleryUpload' | 'reminderBefore' | 'revealTiming' | 'uploadNotify'>>,
+    settings: Partial<Pick<Event, 'disposableMode' | 'allowGalleryUpload' | 'reminderBefore' | 'revealTiming' | 'uploadNotify' | 'notesEnabled'>>,
   ): Promise<void> {
     await updateDoc(doc(db, 'events', eventId), settings);
   },
@@ -387,7 +438,7 @@ export const EventService = {
   async updatePlan(eventId: string, planId: string): Promise<void> {
     const p = getPlan(planId);
     await updateDoc(doc(db, 'events', eventId), {
-      plan: p.id, maxGuests: p.maxGuests, photoCap: p.photoCap, video: p.video,
+      plan: p.id, maxGuests: p.maxGuests, photoCap: p.photoCap, video: p.video, notes: p.notes,
     });
   },
 
