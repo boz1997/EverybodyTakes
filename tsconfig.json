@@ -37,6 +37,8 @@
     "node_modules",
     "web",
     "functions",
-    "dist"
+    "dist",
+    "tests",
+    "vitest.config.ts"
   ]
 }

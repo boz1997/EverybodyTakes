@@ -17,9 +17,12 @@ import '../global.css';
 
 // Crash + error reporting. Enabled in release builds only so local dev noise
 // doesn't fill the dashboard. The DSN is a public client key (safe to ship).
+// Source maps upload via the @sentry/react-native Expo plugin (app.json) during
+// EAS builds, so release stack traces are symbolicated.
 Sentry.init({
   dsn: 'https://fcfb4224cdbb1fe7052aa9bf4c3ead1a@o4511583063703552.ingest.de.sentry.io/4511583068749904',
   enabled: !__DEV__,
+  environment: 'production',
 });
 
 const queryClient = new QueryClient({

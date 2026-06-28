@@ -6,9 +6,15 @@ const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { getStorage } = require('firebase-admin/storage');
 const { randomUUID } = require('crypto');
 const archiver = require('archiver');
+const { deleteEventGuarded, deleteAccountGuarded, PurgeError } = require('./lib/purge');
+const { dailyTickPlan } = require('./lib/schedule');
 
 initializeApp();
 const db = getFirestore();
+
+// Media lives in the .firebasestorage.app bucket; the admin SDK default can
+// resolve to the legacy <project>.appspot.com bucket, so name it explicitly.
+const STORAGE_BUCKET = 'everybodytakes.firebasestorage.app';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
@@ -33,8 +39,8 @@ const STR = {
     liked: 'Someone liked your photo ❤️',
     shotsLow: (r) => `Only ${r} ${r === 1 ? 'shot' : 'shots'} left — make them count 📸`,
     hostTomorrow: 'Your event is tomorrow — share your QR so guests are ready 🎉',
-    summary: (p, g) => `That's a wrap! ${p} ${p === 1 ? 'photo' : 'photos'} from ${g} ${g === 1 ? 'guest' : 'guests'} 🎉`,
     nudge: 'No guests yet — share your QR or code to get the photos rolling 📷',
+    wrapPrompt: 'Has your event wrapped up? Keep the gallery open, or close it whenever you like 🎉',
   },
   tr: {
     newPhoto: (w, v) => `${w} bir ${v ? 'video' : 'fotoğraf'} ekledi 📸`,
@@ -49,8 +55,8 @@ const STR = {
     liked: 'Fotoğrafını biri beğendi ❤️',
     shotsLow: (r) => `Sadece ${r} hakkın kaldı — iyi değerlendir 📸`,
     hostTomorrow: 'Etkinliğin yarın — QR kodunu paylaş, misafirler hazır olsun 🎉',
-    summary: (p, g) => `Etkinlik bitti! ${g} misafirden ${p} fotoğraf 🎉`,
     nudge: 'Henüz misafir yok — QR veya kodu paylaş, fotoğraflar gelmeye başlasın 📷',
+    wrapPrompt: 'Etkinliğin bitti mi? Galerini açık tutabilir ya da istediğin zaman kapatabilirsin 🎉',
   },
   es: {
     newPhoto: (w, v) => `${w} añadió ${v ? 'un vídeo' : 'una foto'} 📸`,
@@ -65,8 +71,8 @@ const STR = {
     liked: 'A alguien le gustó tu foto ❤️',
     shotsLow: (r) => `Solo te ${r === 1 ? 'queda' : 'quedan'} ${r} ${r === 1 ? 'foto' : 'fotos'} — aprovéchalas 📸`,
     hostTomorrow: 'Tu evento es mañana — comparte tu QR para que los invitados estén listos 🎉',
-    summary: (p, g) => `¡Listo! ${p} ${p === 1 ? 'foto' : 'fotos'} de ${g} ${g === 1 ? 'invitado' : 'invitados'} 🎉`,
     nudge: 'Aún no hay invitados — comparte tu QR o código para empezar 📷',
+    wrapPrompt: '¿Tu evento ha terminado? Mantén la galería abierta o ciérrala cuando quieras 🎉',
   },
   fr: {
     newPhoto: (w, v) => `${w} a ajouté ${v ? 'une vidéo' : 'une photo'} 📸`,
@@ -81,8 +87,8 @@ const STR = {
     liked: 'Quelqu\'un a aimé votre photo ❤️',
     shotsLow: (r) => `Plus que ${r} ${r === 1 ? 'photo' : 'photos'} — profitez-en 📸`,
     hostTomorrow: 'Votre événement est demain — partagez votre QR pour que les invités soient prêts 🎉',
-    summary: (p, g) => `C'est terminé ! ${p} ${p === 1 ? 'photo' : 'photos'} de ${g} ${g === 1 ? 'invité' : 'invités'} 🎉`,
     nudge: 'Aucun invité pour l\'instant — partagez votre QR ou code 📷',
+    wrapPrompt: 'Ton événement est terminé ? Garde la galerie ouverte ou ferme-la quand tu veux 🎉',
   },
   de: {
     newPhoto: (w, v) => `${w} hat ${v ? 'ein Video' : 'ein Foto'} hinzugefügt 📸`,
@@ -97,8 +103,8 @@ const STR = {
     liked: 'Jemand mag dein Foto ❤️',
     shotsLow: (r) => `Nur noch ${r} ${r === 1 ? 'Aufnahme' : 'Aufnahmen'} — nutze sie gut 📸`,
     hostTomorrow: 'Dein Event ist morgen — teile deinen QR-Code, damit die Gäste bereit sind 🎉',
-    summary: (p, g) => `Geschafft! ${p} Fotos von ${g} ${g === 1 ? 'Gast' : 'Gästen'} 🎉`,
     nudge: 'Noch keine Gäste — teile deinen QR-Code oder Code 📷',
+    wrapPrompt: 'Ist dein Event vorbei? Lass die Galerie offen oder schließe sie, wann du willst 🎉',
   },
 };
 const strings = (lang) => STR[(lang || 'en').slice(0, 2)] || STR.en;
@@ -214,6 +220,12 @@ exports.notifyHostOnPhoto = onDocumentCreated('events/{eventId}/photos/{photoId}
   if (!ctx) return;
   const count = ctx.ev.photoCount || 0;
 
+  // Stamp when the first photo lands — the "wrap up your event?" prompt is timed
+  // off this for events with no set date.
+  if (!ctx.ev.firstPhotoAt) {
+    await db.doc(`events/${event.params.eventId}`).update({ firstPhotoAt: FieldValue.serverTimestamp() }).catch(() => {});
+  }
+
   // Host notices — each new photo, milestones, cap nudges. Respects the host's
   // per-event mute and only runs if the host has a registered device.
   if (ctx.token && ctx.ev.uploadNotify !== false) {
@@ -317,36 +329,35 @@ exports.eventSilenceNudge = onSchedule('every 30 minutes', async () => {
   }
 });
 
-// ---- Daily lifecycle: day-before reminder, then wrap-up + auto-close ----
-// Runs once a day at noon (Istanbul time). For each active event:
-//   • date is tomorrow  → remind the host to get ready (once)
-//   • date was yesterday → send the host a wrap-up summary and close the event
-function ymd(d) { return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; }
+// ---- Daily lifecycle: day-before reminder + "wrap up?" nudge (NO auto-close) ----
+// Runs once a day at noon (Istanbul). Events are NEVER closed automatically — the
+// host owns that. We only nudge (see lib/schedule.js dailyTickPlan):
+//   • remind: the day before a dated event (get ready / share the QR)
+//   • wrap:   48h after a dated event, or 1 week after the first photo for an
+//             undated event → "your event has wrapped, keep or close the gallery?"
+const TICK_TZ = 'Europe/Istanbul';
 
-exports.eventDailyTick = onSchedule({ schedule: '0 12 * * *', timeZone: 'Europe/Istanbul' }, async () => {
+exports.eventDailyTick = onSchedule({ schedule: '0 12 * * *', timeZone: TICK_TZ }, async () => {
   const now = new Date();
-  const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
-  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
-  const tomorrowKey = ymd(tomorrow);
-  const yesterdayKey = ymd(yesterday);
-
   const snap = await db.collection('events').where('isActive', '==', true).get();
   for (const doc of snap.docs) {
     const ev = doc.data();
-    if (!ev.date) continue;
-    const key = ymd(new Date(ev.date));
+    const plan = dailyTickPlan({
+      dateIso: ev.date || null,
+      firstPhotoAtMs: ev.firstPhotoAt && ev.firstPhotoAt.toMillis ? ev.firstPhotoAt.toMillis() : null,
+      reminderSent: !!ev.reminderSentAt,
+      wrapSent: !!ev.wrapPromptSentAt,
+    }, now, TICK_TZ);
 
-    if (key === tomorrowKey && !ev.reminderSentAt) {
+    if (plan.remind) {
       const ctx = await loadHost(doc.id);
       if (ctx && ctx.token && ctx.ev.uploadNotify !== false) await sendPush(ctx, strings(ctx.lang).hostTomorrow);
       await doc.ref.update({ reminderSentAt: FieldValue.serverTimestamp() }).catch(() => {});
-    } else if (key === yesterdayKey && !ev.summarySentAt) {
+    }
+    if (plan.wrap) {
       const ctx = await loadHost(doc.id);
-      if (ctx && ctx.token && ctx.ev.uploadNotify !== false) {
-        await sendPush(ctx, strings(ctx.lang).summary(ev.photoCount || 0, ev.guestCount || 0));
-      }
-      // The event has passed — close it so it stops accepting uploads/joins.
-      await doc.ref.update({ isActive: false, summarySentAt: FieldValue.serverTimestamp() }).catch(() => {});
+      if (ctx && ctx.token && ctx.ev.uploadNotify !== false) await sendPush(ctx, strings(ctx.lang).wrapPrompt);
+      await doc.ref.update({ wrapPromptSentAt: FieldValue.serverTimestamp() }).catch(() => {});
     }
   }
 });
@@ -394,3 +405,32 @@ exports.createEventZip = onCall({ memory: '1GiB', timeoutSeconds: 540 }, async (
   const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(zipFile.name)}?alt=media&token=${token}`;
   return { url, count: files.length };
 });
+
+// Runs a guarded deletion and maps its PurgeError code onto an HttpsError.
+async function runGuarded(fn) {
+  try {
+    await fn();
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof PurgeError) throw new HttpsError(e.code, e.code);
+    throw e;
+  }
+}
+
+// ---- Delete event: the host tears an event down completely ----
+// Removes every Storage object (photos, thumbnails, cover, export) AND every
+// Firestore document (photos & guests subcollections + the event doc). Firestore
+// does not cascade on its own, so deleting only the event doc would orphan both.
+exports.deleteEvent = onCall((req) =>
+  runGuarded(() => deleteEventGuarded(
+    db, getStorage().bucket(STORAGE_BUCKET), req.auth && req.auth.uid, req.data && req.data.eventId,
+  )));
+
+// ---- Delete account: remove all of a user's data (App Store 5.1.1) ----
+// Hosted events are fully torn down; in events the user only joined, just their
+// own photos and guest doc are removed. The Firebase Auth user itself is deleted
+// by the client after this resolves.
+exports.deleteAccountData = onCall((req) =>
+  runGuarded(() => deleteAccountGuarded(
+    db, getStorage().bucket(STORAGE_BUCKET), req.auth && req.auth.uid, req.data && req.data.joinedEventIds,
+  )));

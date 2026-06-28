@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { tr as trLocale } from 'date-fns/locale';
 import { useAuthStore } from '@store/authStore';
 import { EventService, Event } from '@features/events/services/eventService';
+import { deleteEventCompletely } from '@features/events/services/eventLifecycle';
 import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { CreateEventArt } from '@shared/components/RoleArt';
 import { registerPushTokenForUser } from '@shared/notifications';
@@ -50,7 +51,7 @@ export default function HostDashboard() {
         style: 'destructive',
         onPress: async () => {
           setEvents((prev) => prev.filter((e) => e.id !== item.id));
-          await EventService.deleteEvent(item.id).catch(() => load());
+          await deleteEventCompletely(item.id).catch(() => load());
         },
       },
     ]);

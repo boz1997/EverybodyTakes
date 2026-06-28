@@ -463,6 +463,9 @@ export default function EventHubScreen() {
         onEndReachedThreshold={0.6}
         contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={5}
       />
 
       {/* Selection action bar */}

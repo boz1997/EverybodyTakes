@@ -24,10 +24,12 @@ service cloud.firestore {
     }
 
     // Client error logs are write-only (read them in the console/admin). Open to
-    // create even unauthenticated so we still capture pre-auth failures; never
-    // readable or mutable from the client.
+    // create even unauthenticated so we still capture pre-auth failures, but
+    // bounded (a present, ≤1000-char message) so it can't be abused as arbitrary
+    // storage. Never readable or mutable from the client.
     match /errorLogs/{logId} {
-      allow create: if true;
+      allow create: if request.resource.data.message is string
+        && request.resource.data.message.size() <= 1000;
       allow read, update, delete: if false;
     }
 
@@ -50,15 +52,18 @@ service cloud.firestore {
       function isHost() {
         return signedIn() && resource.data.hostId == request.auth.uid;
       }
-      // Guests may only nudge the two counters by a single step — never write
-      // an arbitrary value (which could zero out a cap or lock an event).
+      // Guests may only nudge the two counters UP by a single step — never write
+      // an arbitrary value, and never DOWN. Allowing a client decrement let a
+      // guest hold photoCount below the cap and keep uploading past it; counters
+      // only ever grow in normal use (a soft-deleted photo keeps its slot), so a
+      // host is the only party that may lower them (via the isHost branch).
       function onlyCounters() {
         let d = request.resource.data;
         let r = resource.data;
         return signedIn()
           && d.diff(r).affectedKeys().hasOnly(['guestCount', 'photoCount'])
           && (d.guestCount == r.guestCount || d.guestCount == r.guestCount + 1)
-          && (d.photoCount == r.photoCount || d.photoCount == r.photoCount + 1 || d.photoCount == r.photoCount - 1);
+          && (d.photoCount == r.photoCount || d.photoCount == r.photoCount + 1);
       }
 
       allow read: if signedIn();

@@ -5,7 +5,6 @@ import {
   getDoc,
   getDocs,
   updateDoc,
-  deleteDoc,
   query,
   where,
   orderBy,
@@ -24,6 +23,8 @@ import { db, storage } from '@lib/firebase';
 import { EventDraft } from '@store/eventStore';
 import { getPlan } from '@constants/plans';
 import { logError } from '@shared/errorLog';
+import { newestFirst, sortPhotosNewestFirst } from '@shared/utils/photoSort';
+import { withRetry } from '@shared/utils/retry';
 import { nanoid, customAlphabet } from 'nanoid/non-secure';
 
 // 6-char join code: uppercase letters + digits, ambiguous chars (0/O/1/I/L)
@@ -42,7 +43,7 @@ export interface Event {
   hostId: string;
   name: string;
   type: string;
-  date: string;
+  date: string | null;        // null when the host didn't set one (undated event)
   coverImageUrl: string | null;
   shotsPerGuest: number;
   disposableMode: boolean;
@@ -79,21 +80,6 @@ export interface Photo {
   createdAt: string;
 }
 
-// createdAt is a serverTimestamp (Firestore Timestamp on read) or an ISO
-// string locally. Sort newest-first in memory so we don't depend on a
-// composite index — result sets are per-event/per-host and stay small.
-function toMillis(v: unknown): number {
-  if (v && typeof (v as { toMillis?: () => number }).toMillis === 'function') {
-    return (v as { toMillis: () => number }).toMillis();
-  }
-  if (typeof v === 'string') return Date.parse(v) || 0;
-  return 0;
-}
-
-function newestFirst<T extends { createdAt: unknown }>(rows: T[]): T[] {
-  return [...rows].sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
-}
-
 // React Native's fetch(uri).blob() doesn't produce a blob the Firebase SDK can
 // upload reliably; XMLHttpRequest with responseType 'blob' is the documented
 // workaround for local file:// URIs.
@@ -117,6 +103,38 @@ function uriToBlob(uri: string): Promise<Blob> {
   });
 }
 
+// Builds a small grid thumbnail and returns its URL. For a video, grabs a poster
+// frame first (expo-video-thumbnails — lazily required so a build without the
+// native module doesn't crash at import). Best-effort: returns `fallbackUrl` (the
+// full media URL) if anything fails, so a missing thumbnail never blocks upload.
+async function makeThumbnail(
+  eventId: string,
+  photoId: string,
+  uri: string,
+  isVideo: boolean,
+  fallbackUrl: string,
+): Promise<string> {
+  try {
+    let source = uri;
+    if (isVideo) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const VideoThumbnails = require('expo-video-thumbnails');
+      const poster = await VideoThumbnails.getThumbnailAsync(uri, { time: 500, quality: 0.7 });
+      source = poster.uri;
+    }
+    const thumb = await ImageManipulator.manipulateAsync(
+      source, [{ resize: { width: THUMB_WIDTH } }],
+      { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG },
+    );
+    const thumbRef = ref(storage, `events/${eventId}/thumbs/${photoId}.jpg`);
+    await uploadBytes(thumbRef, await uriToBlob(thumb.uri), { contentType: 'image/jpeg', cacheControl: IMMUTABLE_CACHE });
+    return await getDownloadURL(thumbRef);
+  } catch (e) {
+    logError('thumbnail', e, { photoId, isVideo });
+    return fallbackUrl;
+  }
+}
+
 export const EventService = {
   async create(hostId: string, draft: EventDraft, plan: string): Promise<Event> {
     const id = nanoid();
@@ -137,7 +155,9 @@ export const EventService = {
       hostId,
       name: draft.name,
       type: draft.type,
-      date: startDate.toISOString(),
+      // Stored only when the host actually picked a date — undated events drive
+      // the "wrap up?" nudge off the first photo instead (see eventDailyTick).
+      date: draft.date ? draft.date.toISOString() : null,
       coverImageUrl,
       shotsPerGuest: draft.shotsPerGuest,
       disposableMode: draft.disposableMode,
@@ -245,36 +265,23 @@ export const EventService = {
       tx.update(eventRef, { photoCount: increment(1) });
     });
 
-    // If the upload or doc-write fails after reserving, release the slot so
-    // the counter never drifts ahead of the real photo count.
-    try {
-      const isVideo = mediaType === 'video';
-      const ext = isVideo ? 'mp4' : 'jpg';
-      const contentType = isVideo ? 'video/mp4' : 'image/jpeg';
-      const path = `events/${eventId}/photos/${photoId}.${ext}`;
-      const storageRef = ref(storage, path);
+    // The reserved slot is intentionally NOT rolled back on failure: security
+    // rules only let a guest move photoCount upward (a downward write was a
+    // cap-bypass vector). A failed upload therefore leaves the count one high —
+    // conservative and rare; the host owns the counter and can correct drift.
+    const isVideo = mediaType === 'video';
+    const ext = isVideo ? 'mp4' : 'jpg';
+    const contentType = isVideo ? 'video/mp4' : 'image/jpeg';
+    const storageRef = ref(storage, `events/${eventId}/photos/${photoId}.${ext}`);
 
-      const blob = await uriToBlob(uri);
-      await uploadBytes(storageRef, blob, { contentType, cacheControl: IMMUTABLE_CACHE });
+    // Upload the media + its thumbnail + the photo doc as one unit, retried on
+    // transient network failures (flaky event wifi). The slot is already reserved
+    // and photoId is fixed, so retrying re-writes the same paths idempotently and
+    // never double-counts. Videos get a real poster frame for the grid.
+    return withRetry(async () => {
+      await uploadBytes(storageRef, await uriToBlob(uri), { contentType, cacheControl: IMMUTABLE_CACHE });
       const imageUrl = await getDownloadURL(storageRef);
-
-      // Generate a small thumbnail for the grid so cells don't pull the full
-      // image. Photos only — a video keeps the full URL (shown with a play badge).
-      // If thumbnailing fails we fall back to the full image rather than block.
-      let thumbnailUrl = imageUrl;
-      if (!isVideo) {
-        try {
-          const thumb = await ImageManipulator.manipulateAsync(
-            uri, [{ resize: { width: THUMB_WIDTH } }],
-            { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG },
-          );
-          const thumbRef = ref(storage, `events/${eventId}/thumbs/${photoId}.jpg`);
-          await uploadBytes(thumbRef, await uriToBlob(thumb.uri), { contentType: 'image/jpeg', cacheControl: IMMUTABLE_CACHE });
-          thumbnailUrl = await getDownloadURL(thumbRef);
-        } catch (e) {
-          logError('thumbnail', e, { photoId });
-        }
-      }
+      const thumbnailUrl = await makeThumbnail(eventId, photoId, uri, isVideo, imageUrl);
 
       const photo: Photo = {
         id: photoId,
@@ -296,10 +303,7 @@ export const EventService = {
       });
 
       return photo;
-    } catch (e) {
-      await updateDoc(eventRef, { photoCount: increment(-1) }).catch(() => {});
-      throw e;
-    }
+    });
   },
 
   async getPhotos(eventId: string): Promise<Photo[]> {
@@ -315,6 +319,11 @@ export const EventService = {
   // composite needed) so we fetch one window instead of the whole gallery; the
   // screen filters isVisible/flagged in memory. `hasMore` lets the UI page in
   // older photos by raising `max`.
+  //
+  // serverTimestamps:'estimate' makes a just-uploaded photo's pending createdAt
+  // read as a local time (not null), so it sorts to the top right away instead of
+  // sinking below the limit and "not showing up". We re-sort in memory (createdAt
+  // with a takenAt fallback) as a belt-and-suspenders guard against that ordering.
   subscribeToPhotos(
     eventId: string,
     max: number,
@@ -326,7 +335,9 @@ export const EventService = {
       fbLimit(max + 1),
     );
     return onSnapshot(q, (snap) => {
-      const rows = snap.docs.map((d) => d.data() as Photo);
+      const rows = sortPhotosNewestFirst(
+        snap.docs.map((d) => d.data({ serverTimestamps: 'estimate' }) as Photo),
+      );
       const hasMore = rows.length > max;
       callback(hasMore ? rows.slice(0, max) : rows, hasMore);
     });
@@ -364,32 +375,6 @@ export const EventService = {
     }).catch(() => {});
   },
 
-  // Account deletion (App Store Guideline 5.1.1): remove everything tied to a
-  // user — events they host (with photos & guests) and content they uploaded
-  // to events they joined — plus their user doc.
-  async purgeUserData(uid: string, joinedEventIds: string[]): Promise<void> {
-    const hosted = await EventService.getHostEvents(uid).catch(() => []);
-    for (const e of hosted) {
-      await EventService.deleteEventDeep(e.id).catch(() => {});
-    }
-    for (const eid of joinedEventIds) {
-      try {
-        const snap = await getDocs(query(collection(db, 'events', eid, 'photos'), where('uploadedBy', '==', uid)));
-        await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
-      } catch { /* event may be gone already */ }
-    }
-    await deleteDoc(doc(db, 'users', uid)).catch(() => {});
-  },
-
-  // Deletes an event and its sub-collections (photos, guests).
-  async deleteEventDeep(eventId: string): Promise<void> {
-    const photos = await getDocs(collection(db, 'events', eventId, 'photos'));
-    await Promise.all(photos.docs.map((d) => deleteDoc(d.ref)));
-    const guests = await getDocs(collection(db, 'events', eventId, 'guests'));
-    await Promise.all(guests.docs.map((d) => deleteDoc(d.ref)));
-    await deleteDoc(doc(db, 'events', eventId));
-  },
-
   // Host-editable settings (the bits we moved out of the create flow).
   async updateSettings(
     eventId: string,
@@ -410,10 +395,6 @@ export const EventService = {
   // (uploadPhoto throws event_ended). Irreversible from the UI.
   async endEvent(eventId: string): Promise<void> {
     await updateDoc(doc(db, 'events', eventId), { isActive: false });
-  },
-
-  async deleteEvent(eventId: string): Promise<void> {
-    await deleteDoc(doc(db, 'events', eventId));
   },
 
   // Redeems a single-use promo code: atomically flips an unused code to used so

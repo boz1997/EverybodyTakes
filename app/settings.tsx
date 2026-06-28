@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AuthService } from '@features/auth/services/authService';
-import { EventService } from '@features/events/services/eventService';
+import { deleteAccountData } from '@features/events/services/eventLifecycle';
 import { useAuthStore } from '@store/authStore';
 import { getJoinedEvents, clearAllLocal } from '@store/guestEvents';
 import { LanguageToggle } from '@shared/components/LanguageToggle';
@@ -117,7 +117,7 @@ export default function SettingsScreen() {
     try {
       setDeleting(true);
       const joined = await getJoinedEvents();
-      if (user) await EventService.purgeUserData(user.uid, joined.map((e) => e.id));
+      if (user) await deleteAccountData(joined.map((e) => e.id));
       await clearAllLocal();
       // Best-effort: deleting the auth user can require a recent login; either way
       // we clear local state and return the user to the welcome screen.

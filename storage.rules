@@ -1,19 +1,53 @@
 rules_version = '2';
 
-// Storage holds event photos/videos and cover images under events/{eventId}/.
-// Any signed-in user (anonymous guests included) may read and upload to an
-// event they've joined; downloads also work via tokenized getDownloadURL.
-// Size caps are per media type so an "image" can't smuggle in 200 MB.
+// Production Storage rules for GuestCam.
 // Deploy with: firebase deploy --only storage
+//
+// Media lives under events/{eventId}/. Writing a photo/thumbnail requires being
+// a *participant* of that event (the host, or a guest who has actually joined) —
+// knowing an event id is no longer enough. Reads stay open to any signed-in user
+// (downloads also work via tokenized getDownloadURL). Size caps are per media
+// type so an "image" can't smuggle in 200 MB.
 service firebase.storage {
   match /b/{bucket}/o {
-    match /events/{eventId}/{allPaths=**} {
+
+    // The host of the event, or a guest who has joined (has a guest doc).
+    function isParticipant(eventId) {
+      return request.auth != null
+        && (firestore.get(/databases/(default)/documents/events/$(eventId)).data.hostId == request.auth.uid
+            || firestore.exists(/databases/(default)/documents/events/$(eventId)/guests/$(request.auth.uid)));
+    }
+
+    function validMedia() {
+      return (request.resource.contentType.matches('image/.*')
+                && request.resource.size < 15 * 1024 * 1024)      // 15 MB images
+          || (request.resource.contentType.matches('video/.*')
+                && request.resource.size < 200 * 1024 * 1024);    // 200 MB videos
+    }
+
+    // Photos & their grid thumbnails: participants only.
+    match /events/{eventId}/photos/{file=**} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && ((request.resource.contentType.matches('image/.*')
-              && request.resource.size < 15 * 1024 * 1024)     // 15 MB images
-            || (request.resource.contentType.matches('video/.*')
-              && request.resource.size < 200 * 1024 * 1024));  // 200 MB videos
+      allow write: if isParticipant(eventId) && validMedia();
+    }
+    match /events/{eventId}/thumbs/{file=**} {
+      allow read: if request.auth != null;
+      allow write: if isParticipant(eventId) && validMedia();
+    }
+
+    // Cover image is uploaded by the host DURING event creation — before the
+    // event document exists — so participation can't be checked yet. Any signed-in
+    // user may write a single cover; type/size are still bounded.
+    match /events/{eventId}/cover.jpg {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && validMedia();
+    }
+
+    // The ZIP export is written only by the admin Cloud Function (which bypasses
+    // these rules). Clients read their tokenized URL but never write it.
+    match /events/{eventId}/export/{file=**} {
+      allow read: if request.auth != null;
+      allow write: if false;
     }
   }
 }

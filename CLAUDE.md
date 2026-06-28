@@ -323,6 +323,27 @@ Expo SDK 56 (RN 0.85) · expo-router (typed routes) · Firebase v12 web SDK (Aut
 5. **Apple Small Business Program** (komisyon %15) kaydı — yapılmadıysa.
 6. **Ertelenenler:** Android sürümü, e-posta magic-link, telefon doğrulama (yapılmayacak), `hdExport/liveWall` gerçek kod (reklam edilmiyor).
 
+## 🛠️ 2026-06-29 OTURUMU — sertleştirme + bugfix yapıldı (STAGED, commit/push/deploy YOK)
+Bu değişiklikler working tree'de duruyor, **henüz commit/deploy edilmedi**. Lokal test altyapısı kuruldu: `npm test` (vitest unit), `npm run test:rules` ve `npm run test:functions` (Firebase emülatörü; Java gerekir — `brew install openjdk`, PATH'e ekle). **65 test geçiyor** (31 unit + 32 rules + 2 functions).
+- **Storage rules:** foto/thumb yazımı artık katılımcı (host/joined-guest) şartı; cover açık (event doc'u create anında yok); export client-write kapalı.
+- **photoCount:** rules sadece +1 (guest -1 → kota bypass'ı kapandı). NOT: kısmi — katılımcı doğrudan foto dokümanı yaratıp kotayı yine aşabilir; tam çözüm sunucu-otoriter sayaç (Option A, ertelendi).
+- **Silme (yeni Cloud Functions `deleteEvent` + `deleteAccountData`, `functions/lib/purge.js`):** Storage objelerini + alt-koleksiyonları da siler (eskiden Firestore cascade yoktu → orphan kalıyordu). Client `eventService.deleteEvent/deleteEventDeep/purgeUserData` kalktı; `features/events/services/eventLifecycle.ts`'e bağlandı. **Deploy şart:** yeni app build'i bu function'ları çağırır — önce `firebase deploy --only functions` yoksa silme/hesap-silme kırılır. Eski canlı build etkilenmez.
+- **Galeri regresyonu (`subscribeToPhotos`):** `serverTimestamps:'estimate'` + bellekte createdAt→takenAt fallback sıralama → yeni foto anında üstte (pending timestamp artık limit altına düşüp kaybolmuyor). `shared/utils/photoSort.ts`.
+- **Otomatik kapanma TAMAMEN KALDIRILDI (`eventDailyTick`, `functions/lib/schedule.js` `dailyTickPlan`):** Event'ler artık asla otomatik kapanmıyor — host kapatır. Yerine "kapatmak ister misin?" nudge'ı: tarihli event → tarihten **48s sonra**; tarihsiz event → **ilk fotodan 1 hafta sonra** (`firstPhotoAt`, `notifyHostOnPhoto`'da damgalanıyor). Tarih artık **nullable** (`create` seçilmezse `date:null` saklar; tüm tüketiciler zaten null-safe'di). `summary` string'i + close mantığı silindi. **KRİTİK:** `firebase deploy --only functions` tek başına **tüm eski+yeni event'lerin kapanmasını anında durdurur — app update GEREKMEDEN** (close %100 server-side'dı). Yeni dated/dateless ayrımı app build ister ama eski event'ler korunur.
+- **errorLogs:** self-cleaning `expireAt` (TTL alanı; **policy'yi console'dan bir kez aç**) + abuse guard (rules: mesaj ≤1000). Pre-auth create açık kaldı.
+- **Sentry:** `environment:'production'` eklendi (plugin/source-map zaten doğruydu).
+- **Deploy sırası (sen onaylayınca):** `firebase deploy --only functions,firestore:rules,storage` → SONRA yeni app build.
+
+## 🔧 TODO — Büyük dosya refactor'u (ERTELENDİ, DOKUNMA)
+> Neden ertelendi: kullanıcıya değeri YOK (sadece CLAUDE.md 200-satır kuralı), runtime doğrulaması olmadan (UI = test edilemez, snapshot yasak) **canlı app'te regresyon riski yüksek** ve planın **tek test edilemeyen** parçası. Simülatörle sıkı elle test edilebilecek bir oturuma bırakıldı. Yapmamak fonksiyonel hiçbir şeyi bozmaz — bu teknik borç, bug değil.
+
+Hedef: `app/guest/join.tsx` (632), `app/host/event.tsx` (519), `app/guest/camera.tsx` (507) → her biri ≤200 satır. Yaparken: dosya dosya, her adımda `tsc` + mümkünse pure test + **simülatörde elle davranış teyidi**.
+
+- **join.tsx:** (a) pure timing helper'ları → `features/gallery/revealTiming.ts` (revealAtMs/isRevealed/reminderAtMs/reminderTodayAtMs) — UNIT TEST EDİLEBİLİR; (b) memoize'lı `PhotoCell` → `features/gallery/components/PhotoCell.tsx` (React.memo + useCallback handler) — bonus: gerçek perf (her seçimde tüm grid render olmasın); (c) `PhotoLightbox` → ayrı component (~110 satır; DİKKAT `useVideoPlayer` viewerIndex'e bağlı, player lifecycle'ı koru); (d) join effect → `useGuestJoin` hook (auth→join→pushToken→scheduled bildirim ZİNCİRİ — sırayı bozma).
+- **camera.tsx (EN RİSKLİ):** `uploadInBackground` + `uploadChain` ref'i → `features/camera/useCameraUpload.ts`. DİKKAT: upload serialization (`uploadChain.current.then(...)`) transaction çakışmasını önlüyor — birebir koru. Permission gate + kamera kontrolleri ayrı component. Reanimated shared value'lar + Live Activity cleanup effect'i taşırken zamanlamayı koru.
+- **event.tsx:** host galeri grid + lightbox join.tsx ile ORTAK → PhotoCell/PhotoLightbox'ı paylaş (DRY). Settings/plan/end/delete aksiyonları ayrı hook/component.
+- **Refactor sırasında temizlenecek ÖLÜ KOD (ayrı, düşük risk):** `endsAt` (eventService.create yazıyor, HİÇBİR yerde okunmuyor → tamamen ölü); `revealTiming` (üründen kalktı, hep 'instant'; veri modeli + join/web'de dormant — alanı eski event'lerde durduğu için dikkatli); `hdExport`/`liveWall` (plans.ts, enforce edilmiyor).
+
 ## Build / komutlar
 - Simülatör (auth/UI testi yeterli): `npx expo run:ios --simulator "iPhone 16 Pro"` (cihaz takılıysa imza ister).
 - Bağımsız/cihaz (standalone, Metro'suz): `eas build --profile preview --platform ios` → QR ile kur.
