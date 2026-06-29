@@ -384,7 +384,7 @@ export default function EventHubScreen() {
         {/* Memory book — leave a written note (medium/unlimited, host-enabled) */}
         {event.notes && event.notesEnabled !== false && joined && uid && (
           <TouchableOpacity onPress={() => { Haptics.selectionAsync(); setNoteOpen(true); }} style={styles.noteBtn} activeOpacity={0.85}>
-            <Icon name="heart" size={16} color={colors.brand.DEFAULT} />
+            <Text style={styles.noteBtnEmoji}>📖</Text>
             <Text style={styles.noteBtnText}>{hasNote ? t('notes.edit') : t('notes.leave')}</Text>
           </TouchableOpacity>
         )}
@@ -616,6 +616,7 @@ const styles = StyleSheet.create({
   usedPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 56, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
   usedText: { fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold, color: colors.brand.dark },
   noteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
+  noteBtnEmoji: { fontSize: 17 },
   noteBtnText: { fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold, color: colors.brand.DEFAULT },
   galleryHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm },
   galleryTitle: { fontSize: typography.sizes.lg, fontFamily: fonts.displayBold, color: colors.text.primary },

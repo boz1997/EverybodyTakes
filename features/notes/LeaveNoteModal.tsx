@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import { EventService, NOTE_MAX } from '@features/events/services/eventService';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
-import { Icon } from '@shared/components/Icon';
 import { colors, typography, spacing, radius, fonts } from '@constants/theme';
 
 interface Props {
@@ -61,7 +60,7 @@ export function LeaveNoteModal({ visible, onClose, eventId, authorId, authorName
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={close} />
         <View style={styles.card}>
           <View style={styles.head}>
-            <View style={styles.iconWrap}><Icon name="heart" size={20} color={colors.brand.DEFAULT} /></View>
+            <View style={styles.iconWrap}><Text style={styles.headEmoji}>📖</Text></View>
             <View style={{ flex: 1 }}>
               <Text style={styles.title}>{existing ? t('notes.editTitle') : t('notes.leave')}</Text>
               <Text style={styles.subtitle}>{t('notes.subtitle')}</Text>
@@ -96,6 +95,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.bg.primary, borderRadius: radius['2xl'], padding: spacing.lg, gap: spacing.md },
   head: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   iconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand.glow },
+  headEmoji: { fontSize: 20 },
   title: { fontSize: typography.sizes.xl, fontFamily: fonts.displayBold, color: colors.text.primary },
   subtitle: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted },
   input: {
