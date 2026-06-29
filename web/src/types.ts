@@ -4,7 +4,7 @@ export interface Event {
   id: string;
   name: string;
   type: string;
-  date: string;
+  date: string | null;
   coverImageUrl: string | null;
   shotsPerGuest: number;
   disposableMode: boolean;
@@ -13,9 +13,19 @@ export interface Event {
   isActive: boolean;
   maxGuests: number | null;
   photoCap: number | null;
+  notes?: boolean;        // "Memory book" capability (medium/unlimited)
+  notesEnabled?: boolean; // host toggle (default on)
   shortCode: string;
   guestCount: number;
   photoCount: number;
+}
+
+export interface Note {
+  id: string;
+  authorId: string;
+  authorName: string | null;
+  text: string;
+  createdAt: unknown;
 }
 
 export interface Photo {

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { ensureAnon, track } from './firebase';
-import { getByShortCode, joinEvent, subscribeToPhotos, LimitError } from './events';
+import { getByShortCode, joinEvent, subscribeToPhotos, getMyNote, LimitError } from './events';
 import type { Event, Photo } from './types';
 import { t } from './i18n';
 import { Camera } from './components/Camera';
 import { Gallery } from './components/Gallery';
+import { NoteModal } from './components/NoteModal';
 
 type Phase = 'loading' | 'needCode' | 'error' | 'ready';
 const NICK_KEY = 'guestcam_nick';
@@ -22,6 +23,8 @@ export default function App() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [nickname, setNickname] = useState(() => localStorage.getItem(NICK_KEY) ?? '');
   const [codeInput, setCodeInput] = useState('');
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [hasNote, setHasNote] = useState(false);
   const unsubRef = useRef<(() => void) | null>(null);
 
   async function enter(code: string) {
@@ -43,6 +46,7 @@ export default function App() {
         }
       }
       unsubRef.current = subscribeToPhotos(ev.id, setPhotos);
+      if (ev.notes && ev.notesEnabled !== false) getMyNote(ev.id, userId).then((n) => setHasNote(!!n)).catch(() => {});
       setPhase('ready');
     } catch {
       setPhase('error');
@@ -125,7 +129,7 @@ export default function App() {
       </header>
 
       {/* Cover */}
-      <div className="relative h-60 w-full overflow-hidden rounded-b-[28px]">
+      <div className="relative h-60 w-full overflow-hidden">
         {event.coverImageUrl
           ? <img src={event.coverImageUrl} alt="" className="h-full w-full object-cover" />
           : <div className="flex h-full items-center justify-center bg-gradient-to-br from-brand to-brand-dark"><Logo /></div>}
@@ -160,6 +164,16 @@ export default function App() {
           </div>
         </div>
 
+        {/* Memory book — leave a written note (medium/unlimited, host-enabled) */}
+        {event.notes && event.notesEnabled !== false && event.isActive && (
+          <button
+            onClick={() => setNoteOpen(true)}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-brand bg-brand/10 py-3 font-semibold text-brand transition active:scale-[0.98]"
+          >
+            <span className="text-base leading-none">📖</span> {hasNote ? t('editMemory') : t('leaveMemory')}
+          </button>
+        )}
+
         <Gallery event={event} uid={uid} photos={photos} />
       </div>
 
@@ -167,6 +181,10 @@ export default function App() {
       {event.isActive
         ? <Camera event={event} uid={uid} nickname={nickname} shots={shots} onShotsChange={setShots} />
         : <div className="fixed inset-x-0 bottom-0 bg-paper/90 py-4 text-center text-sm text-ink-muted backdrop-blur">{t('ended')}</div>}
+
+      {noteOpen && (
+        <NoteModal eventId={event.id} uid={uid} nickname={nickname} onClose={() => setNoteOpen(false)} onSaved={() => setHasNote(true)} />
+      )}
     </div>
   );
 }

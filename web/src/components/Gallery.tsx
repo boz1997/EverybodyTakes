@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { deletePhoto, reportPhoto, toggleLike } from '../events';
+import { deletePhoto, reportPhoto, toggleLike, createEventZip } from '../events';
 import type { Event, Photo } from '../types';
 import { t } from '../i18n';
 
@@ -17,6 +17,7 @@ export function Gallery({ event, uid, photos }: Props) {
   const [items, setItems] = useState<Photo[]>(photos);
   const [filter, setFilter] = useState<'all' | 'mine'>('all');
   const [viewer, setViewer] = useState<number | null>(null);
+  const [zipping, setZipping] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const pendingScroll = useRef<number | null>(null);
 
@@ -26,7 +27,7 @@ export function Gallery({ event, uid, photos }: Props) {
   const revealed = event.revealTiming !== 'next_day' || Date.now() >= revealAtMs(event);
 
   const visible = items.filter((p) => {
-    if (p.flagged) return false;
+    if (p.isVisible === false || p.flagged) return false;
     if (hostOnly || filter === 'mine') return p.uploadedBy === uid;
     return true;
   });
@@ -72,6 +73,19 @@ export function Gallery({ event, uid, photos }: Props) {
     window.alert(t('reported'));
   };
 
+  const downloadZip = async () => {
+    if (zipping) return;
+    setZipping(true);
+    try {
+      const { url } = await createEventZip(event.id);
+      window.location.href = url;
+    } catch {
+      window.alert(t('zipFailed'));
+    } finally {
+      setZipping(false);
+    }
+  };
+
   const current = viewer != null ? visible[viewer] : null;
 
   return (
@@ -90,6 +104,18 @@ export function Gallery({ event, uid, photos }: Props) {
         )}
       </div>
 
+      {revealed && visible.length > 0 && (
+        <div className="mb-3 flex justify-center">
+          <button
+            onClick={downloadZip}
+            disabled={zipping}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand to-brand-dark px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(190,106,46,0.7)] transition hover:brightness-105 active:scale-[0.97] disabled:opacity-50"
+          >
+            <IconDownloadSmall /> {zipping ? t('zipPreparing') : t('downloadZip')}
+          </button>
+        </div>
+      )}
+
       {!revealed ? (
         <Empty>
           {t('developing')}
@@ -105,7 +131,7 @@ export function Gallery({ event, uid, photos }: Props) {
             const likes = p.likedBy?.length ?? 0;
             return (
               <button key={p.id} onClick={() => open(idx)} className="relative aspect-[9/13] overflow-hidden rounded-lg bg-paper-deep">
-                <img src={p.thumbnailUrl || p.imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+                <Thumb src={p.thumbnailUrl || p.imageUrl} />
                 {p.mediaType === 'video' && <span className="absolute left-1.5 top-1.5 rounded-full bg-black/55 p-1"><IconPlay /></span>}
                 {p.uploadedBy === uid && <span className="absolute right-1.5 top-1.5 h-4 w-4 rounded-full bg-brand" />}
                 {likes > 0 && (
@@ -166,6 +192,13 @@ export function Gallery({ event, uid, photos }: Props) {
 function Empty({ children }: { children: React.ReactNode }) {
   return <div className="rounded-2xl border border-line bg-paper-card py-12 text-center text-sm text-ink-muted">{children}</div>;
 }
+// Grid image that degrades to a warm placeholder instead of a blank/black box —
+// e.g. an older video whose thumbnailUrl still points at the mp4.
+function Thumb({ src }: { src: string }) {
+  const [err, setErr] = useState(false);
+  if (err || !src) return <div className="h-full w-full bg-gradient-to-br from-brand/30 to-brand-dark/50" />;
+  return <img src={src} alt="" onError={() => setErr(true)} className="h-full w-full object-cover" loading="lazy" />;
+}
 function IconPlay() {
   return <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>;
 }
@@ -174,6 +207,9 @@ function IconX() {
 }
 function IconDownload() {
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>;
+}
+function IconDownloadSmall() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>;
 }
 function IconTrash() {
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>;

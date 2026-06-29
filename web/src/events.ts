@@ -1,11 +1,15 @@
 import {
-  collection, doc, getDocs, setDoc, updateDoc, query, where,
-  serverTimestamp, onSnapshot, runTransaction, increment,
+  collection, doc, getDoc, getDocs, setDoc, updateDoc, query, where,
+  orderBy, limit as fbLimit, serverTimestamp, onSnapshot, runTransaction, increment,
   arrayUnion, arrayRemove, type Unsubscribe,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, storage } from './firebase';
-import type { Event, Photo } from './types';
+import type { Event, Note, Photo } from './types';
+
+export const NOTE_MAX = 240;
+const PHOTO_PAGE = 150;
 
 export type LimitCode = 'event_full' | 'photo_cap' | 'no_shots' | 'event_ended';
 export class LimitError extends Error {
@@ -57,32 +61,67 @@ export async function decrementShots(eventId: string, userId: string): Promise<v
   });
 }
 
-// Resize + re-encode photos client-side (≤1920px, jpeg 0.85). The classic
-// <img> path is the most compatible across iOS Safari and also converts iPhone
-// HEIC captures to JPEG so every browser can render them.
-function compressImage(file: File): Promise<Blob> {
+// Resize + re-encode an image blob to JPEG (≤ max px). The classic <img>/canvas
+// path is the most compatible across iOS Safari and also converts iPhone HEIC
+// captures to JPEG so every browser can render them.
+function resizeToJpeg(source: Blob, max: number, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
+    const url = URL.createObjectURL(source);
     const img = new Image();
     img.onload = () => {
-      const max = 1920;
       let width = img.naturalWidth;
       let height = img.naturalHeight;
-      if (width > max || height > max) {
-        const scale = max / Math.max(width, height);
-        width = Math.round(width * scale);
-        height = Math.round(height * scale);
-      }
+      const scale = Math.min(1, max / Math.max(width, height));
+      width = Math.round(width * scale);
+      height = Math.round(height * scale);
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
       canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
       URL.revokeObjectURL(url);
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode failed'))), 'image/jpeg', 0.85);
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode failed'))), 'image/jpeg', quality);
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode failed')); };
     img.src = url;
   });
+}
+
+const compressImage = (file: File) => resizeToJpeg(file, 1920, 0.85);
+const THUMB_MAX = 400;
+
+// Grab a poster frame from a video file (early frame), downscaled — so the grid
+// shows a real still instead of a blank <img> over an mp4.
+function makeVideoPoster(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'metadata';
+    video.onloadeddata = () => { try { video.currentTime = Math.min(0.1, (video.duration || 1) / 2); } catch { reject(new Error('seek failed')); } };
+    video.onseeked = () => {
+      let w = video.videoWidth, h = video.videoHeight;
+      const scale = Math.min(1, THUMB_MAX / Math.max(w, h));
+      w = Math.round(w * scale); h = Math.round(h * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d')!.drawImage(video, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('poster failed'))), 'image/jpeg', 0.7);
+    };
+    video.onerror = () => { URL.revokeObjectURL(url); reject(new Error('video decode failed')); };
+    video.src = url;
+  });
+}
+
+// Best-effort grid thumbnail (image downscale or video poster). Returns null on
+// failure so the upload still proceeds with the full media as a fallback.
+async function makeThumbnail(file: File, mainBlob: Blob, isVideo: boolean): Promise<Blob | null> {
+  try {
+    return isVideo ? await makeVideoPoster(file) : await resizeToJpeg(mainBlob, THUMB_MAX, 0.7);
+  } catch {
+    return null;
+  }
 }
 
 /** Reserve a photo slot atomically (enforces photoCap), then upload + write the doc. */
@@ -119,9 +158,21 @@ export async function uploadPhoto(
     await uploadBytes(storageRef, blob, { contentType });
     const imageUrl = await getDownloadURL(storageRef);
 
+    // Grid thumbnail (image downscale / video poster). Falls back to the full
+    // media if generation or upload fails.
+    let thumbnailUrl = imageUrl;
+    const thumb = await makeThumbnail(file, blob, isVideo);
+    if (thumb) {
+      try {
+        const thumbRef = ref(storage, `events/${eventId}/thumbs/${photoId}.jpg`);
+        await uploadBytes(thumbRef, thumb, { contentType: 'image/jpeg' });
+        thumbnailUrl = await getDownloadURL(thumbRef);
+      } catch { /* keep the full url */ }
+    }
+
     const photo: Photo = {
       id: photoId, eventId, uploadedBy: userId, uploaderName,
-      imageUrl, thumbnailUrl: imageUrl, mediaType, isVisible: true,
+      imageUrl, thumbnailUrl, mediaType, isVisible: true,
       likesCount: 0, likedBy: [], createdAt: new Date().toISOString(),
     };
     await setDoc(doc(db, 'events', eventId, 'photos', photoId), { ...photo, createdAt: serverTimestamp() });
@@ -132,9 +183,36 @@ export async function uploadPhoto(
   }
 }
 
+// Newest photos, live. Ordered server-side (single-field index) + an in-memory
+// sort with serverTimestamps:'estimate' so a just-uploaded photo shows at the top
+// immediately. The screen filters isVisible/flagged in memory.
 export function subscribeToPhotos(eventId: string, cb: (photos: Photo[]) => void): Unsubscribe {
-  const q = query(collection(db, 'events', eventId, 'photos'), where('isVisible', '==', true));
-  return onSnapshot(q, (snap) => cb(newestFirst(snap.docs.map((d) => d.data() as Photo))));
+  const q = query(collection(db, 'events', eventId, 'photos'), orderBy('createdAt', 'desc'), fbLimit(PHOTO_PAGE));
+  return onSnapshot(q, (snap) =>
+    cb(newestFirst(snap.docs.map((d) => d.data({ serverTimestamps: 'estimate' }) as Photo))));
+}
+
+// "Memory book": one note per guest (doc id = uid), so saving again edits it.
+// Text is trimmed and capped at NOTE_MAX (rules enforce the same).
+export async function saveNote(eventId: string, authorId: string, authorName: string | null, text: string): Promise<void> {
+  const trimmed = text.trim().slice(0, NOTE_MAX);
+  if (!trimmed) return;
+  await setDoc(doc(db, 'events', eventId, 'notes', authorId), {
+    authorId, authorName: authorName?.trim() || null, text: trimmed, createdAt: serverTimestamp(),
+  });
+}
+
+export async function getMyNote(eventId: string, uid: string): Promise<Note | null> {
+  const snap = await getDoc(doc(db, 'events', eventId, 'notes', uid));
+  return snap.exists() ? ({ id: snap.id, ...snap.data() } as Note) : null;
+}
+
+// Whole-gallery ZIP — the createEventZip Cloud Function (us-central1) builds it
+// server-side and returns a tokenized download URL. Any participant may call it.
+export async function createEventZip(eventId: string): Promise<{ url: string; count: number }> {
+  const fn = httpsCallable<{ eventId: string }, { url: string; count: number }>(getFunctions(), 'createEventZip');
+  const res = await fn({ eventId });
+  return res.data;
 }
 
 export async function toggleLike(eventId: string, photoId: string, userId: string, liked: boolean): Promise<void> {

@@ -13,6 +13,10 @@ const dict: Record<string, Record<string, string>> = {
     report: 'Report', reportConfirm: 'Report this photo? It will be hidden and reviewed.',
     reported: 'Thanks — the content was reported and hidden.',
     deleteBtn: 'Delete', deleteConfirm: 'Delete this photo?',
+    leaveMemory: 'Leave a memory', editMemory: 'Edit your memory', memorySubtitle: 'Share a few words about tonight',
+    memoryPlaceholder: 'Write your message…', memorySend: 'Leave note', memoryUpdate: 'Update',
+    memorySent: 'Your note has been added 💌', cancel: 'Cancel',
+    downloadZip: 'Download all (ZIP)', zipPreparing: 'Preparing…', zipFailed: 'Could not prepare the ZIP. Try again in a moment.',
   },
   tr: {
     joining: 'Etkinliğe katılıyor…', notFound: 'Bu etkinliği bulamadık. Kodu kontrol edip tekrar dene.', enterCode: 'Etkinlik kodunu gir',
@@ -27,6 +31,10 @@ const dict: Record<string, Record<string, string>> = {
     report: 'Bildir', reportConfirm: 'Bu fotoğraf bildirilsin mi? Gizlenir ve incelenir.',
     reported: 'Teşekkürler — içerik bildirildi ve gizlendi.',
     deleteBtn: 'Sil', deleteConfirm: 'Bu fotoğraf silinsin mi?',
+    leaveMemory: 'Bir anı bırak', editMemory: 'Anını düzenle', memorySubtitle: 'Bu akşam için birkaç kelime',
+    memoryPlaceholder: 'Mesajını yaz…', memorySend: 'Notu bırak', memoryUpdate: 'Güncelle',
+    memorySent: 'Notun eklendi 💌', cancel: 'İptal',
+    downloadZip: 'Hepsini indir (ZIP)', zipPreparing: 'Hazırlanıyor…', zipFailed: 'ZIP hazırlanamadı. Birazdan tekrar dene.',
   },
 };
 
