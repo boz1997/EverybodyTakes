@@ -23,11 +23,23 @@
     <p id="loading" class="muted" style="margin-top:28px;">Opening your event…</p>
 
     <div id="choice" style="display:none;margin-top:24px;">
-      <a id="appBtn" class="btn" href="#">Open in GuestCam app</a>
-      <a id="webBtn" class="btn" href="app/"
-         style="margin-top:12px;background:transparent;border:1px solid currentColor;">
-        Continue in browser
-      </a>
+      <!-- Primary: just get in. The web app works fully — add photos, see the
+           gallery — with no download and no risk of a broken custom-scheme link. -->
+      <a id="webBtn" class="btn" href="app/">Continue in browser</a>
+
+      <!-- Secondary: a real App Store link (never errors). -->
+      <a id="appStoreBtn" class="btn"
+         style="margin-top:12px;background:transparent;border:1px solid currentColor;"
+         href="https://apps.apple.com/app/id6777402204">Get the app</a>
+
+      <!-- Opt-in: only people who already have the app tap this, so the custom
+           scheme is never triggered for someone without it. Falls back to the
+           store if the app doesn't open. -->
+      <p style="margin-top:18px;">
+        <a id="openAppLink" href="#" class="muted" style="font-size:14px;text-decoration:underline;">
+          Already have the app? Open it →
+        </a>
+      </p>
     </div>
 
     <footer>
@@ -40,9 +52,10 @@
   <script>
     (function () {
       // Smart single-QR entry:
-      //  • iPhone  → let the guest choose: open the native app (App Store) or stay on web.
-      //  • Android / desktop → straight to the web guest app (no iOS app there).
-      var APP_STORE_ID = '6777402204';
+      //  • iPhone  → a clear, error-free choice: continue on web (primary), get
+      //    the app, or — only if they already have it — open the app.
+      //  • Android / desktop → straight to the web guest app.
+      var APP_STORE_URL = 'https://apps.apple.com/app/id6777402204';
 
       var params = new URLSearchParams(window.location.search);
       var code = (params.get('code') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
@@ -60,25 +73,22 @@
         return;
       }
 
-      // iPhone: show the choice.
+      // iPhone: show the choice (no auto deep-link, so no "address invalid" error).
       document.getElementById('loading').style.display = 'none';
       document.getElementById('choice').style.display = 'block';
 
-      document.getElementById('appBtn').addEventListener('click', function (e) {
+      // Opt-in app open: try the app; if it doesn't take over within ~1.2s,
+      // send them to the App Store instead.
+      document.getElementById('openAppLink').addEventListener('click', function (e) {
         e.preventDefault();
         var start = Date.now();
-        // If the app opens, the page is backgrounded — cancel the fallback.
         var fallback = setTimeout(function () {
-          if (Date.now() - start < 2000) {
-            window.location.href = APP_STORE_ID
-              ? 'https://apps.apple.com/app/id' + APP_STORE_ID
-              : web; // no store id yet (pre-launch) → keep the guest moving on web
-          }
+          if (Date.now() - start < 2000) window.location.href = APP_STORE_URL;
         }, 1200);
         document.addEventListener('visibilitychange', function () {
           if (document.hidden) clearTimeout(fallback);
         });
-        window.location.href = deep; // try to open the app
+        window.location.href = deep;
       });
     })();
   </script>
