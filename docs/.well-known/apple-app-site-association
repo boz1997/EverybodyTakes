@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "T29WWHT8TZ.com.guestcam.app",
+        "paths": ["/e.html", "/e.html*"]
+      }
+    ]
+  }
+}

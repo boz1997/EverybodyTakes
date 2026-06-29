@@ -18,6 +18,10 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Firebase admin service account keys — full admin access, NEVER commit
+*-firebase-adminsdk-*.json
+serviceAccount*.json
+
 # Metro
 .metro-health-check*
 

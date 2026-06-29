@@ -14,6 +14,7 @@
     "ios": {
       "supportsTablet": false,
       "usesAppleSignIn": true,
+      "associatedDomains": ["applinks:guestcam.store"],
       "bundleIdentifier": "com.guestcam.app",
       "infoPlist": {
         "NSCameraUsageDescription": "GuestCam uses the camera so you can take photos and record videos inside an event you've joined.",

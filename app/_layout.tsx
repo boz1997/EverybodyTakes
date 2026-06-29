@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Stack, router } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -74,6 +75,26 @@ function RootLayout() {
       });
     } catch { /* native module missing */ }
     return () => { try { sub?.remove(); } catch { /* ignore */ } };
+  }, []);
+
+  // Universal Links: guestcam.store/e.html?code=XXX opens the app directly (see
+  // app.json associatedDomains + the AASA file). That path isn't an app route, so
+  // we read the code and jump to the join screen. The custom guestcam:// scheme is
+  // already handled by expo-router, so we only act on the e.html bridge link.
+  useEffect(() => {
+    const handle = (url: string | null) => {
+      if (!url) return;
+      try {
+        const { path, queryParams } = Linking.parse(url);
+        const code = typeof queryParams?.code === 'string' ? queryParams.code : null;
+        if (code && path && path.includes('e.html')) {
+          router.push({ pathname: '/guest/join', params: { code } });
+        }
+      } catch { /* ignore malformed links */ }
+    };
+    Linking.getInitialURL().then(handle);
+    const sub = Linking.addEventListener('url', ({ url }) => handle(url));
+    return () => sub.remove();
   }, []);
 
   if (!i18nReady || !fontsLoaded) {
