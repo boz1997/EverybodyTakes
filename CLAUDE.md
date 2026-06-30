@@ -196,6 +196,17 @@ Commit mesajı ne yaptığını değil **neden** yaptığını açıklar.
 | Camera | expo-camera (app) / input-capture (web) |
 | Real-time | Firestore onSnapshot |
 | Payments | RevenueCat (App Store IAP) |
+| Ads | AdMob — rewarded, free-plan toplu indirme (publisher `pub-2047522925796554`) |
+| Marketing site | GitHub Pages: `main` branch `/docs` → **guestcam.store** |
+
+---
+
+## 12.1 Deploy & Domain (sık aranıyor — referans)
+
+- **Site + App Store sayfaları:** `docs/` klasörü → GitHub Pages → **https://guestcam.store** (kaynak: `main` branch, `/docs`; CNAME `docs/CNAME` = `guestcam.store`). Yani `docs/<x>` = `guestcam.store/<x>`.
+- **app-ads.txt:** `docs/app-ads.txt` → `guestcam.store/app-ads.txt`. AdMob bunu App Store'daki geliştirici domain'inden çeker, o yüzden App Store Connect'teki Marketing/Support/Privacy URL'leri `guestcam.store` üstünden olmalı. Publisher `pub-2047522925796554`.
+- **Guest web app** (tarayıcıdan çekim): `web/` (Vite) → ayrı **Vercel** deploy (`web/vercel.json`). `docs/app/` ise landing içine gömülü guest app build'i.
+- **Mobil:** Expo/EAS, bundle `com.guestcam.app`.
 
 ---
 

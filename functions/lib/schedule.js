@@ -39,4 +39,21 @@ function dailyTickPlan(ev, now, timeZone) {
   return { remind, wrap };
 }
 
-module.exports = { ymdInTz, dailyTickPlan };
+// Two-stage free-event retention: warn 24h before the deadline, then delete —
+// but NEVER delete without a prior warning, and never touch paid or
+// grandfathered events. Kept pure so the gating is unit-testable.
+// ev = { plan, retentionExempt, retentionDays, firstPhotoAtMs, purgeWarnSent }
+function retentionPlan(ev, now) {
+  const DAY = 24 * 60 * 60 * 1000;
+  const eligible = ev.plan === 'free' && !ev.retentionExempt
+    && ev.retentionDays != null && ev.firstPhotoAtMs != null;
+  if (!eligible) return { warn: false, purge: false };
+
+  const purgeAt = ev.firstPhotoAtMs + ev.retentionDays * DAY;
+  const t = now.getTime();
+  const warn = !ev.purgeWarnSent && t >= purgeAt - DAY;     // from 24h out, once
+  const purge = !!ev.purgeWarnSent && t >= purgeAt;         // only after a warning
+  return { warn, purge };
+}
+
+module.exports = { ymdInTz, dailyTickPlan, retentionPlan };

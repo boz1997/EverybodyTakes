@@ -300,7 +300,6 @@ export default {
     noWatermark: 'Filigran yok',
     watermark: 'GuestCam filigranı',
     hdExport: 'HD indirme (ZIP)',
-    liveWall: 'Canlı duvar / projeksiyon',
     continueWithFree: 'Ücretsiz Devam Et',
     selectPlan: 'Bu Paketi Seç',
     restorePurchase: 'Satın Almayı Geri Yükle',

@@ -300,7 +300,6 @@ export default {
     noWatermark: 'Kein Wasserzeichen',
     watermark: 'GuestCam-Wasserzeichen',
     hdExport: 'HD-Download (ZIP)',
-    liveWall: 'Live-Wand / Projektion',
     continueWithFree: 'Kostenlos fortfahren',
     selectPlan: 'Dieses Paket wählen',
     restorePurchase: 'Kauf wiederherstellen',

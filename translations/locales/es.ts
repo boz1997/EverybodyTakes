@@ -300,7 +300,6 @@ export default {
     noWatermark: 'Sin marca de agua',
     watermark: 'Marca de agua GuestCam',
     hdExport: 'Descarga HD (ZIP)',
-    liveWall: 'Muro en vivo / proyección',
     continueWithFree: 'Continuar con Gratis',
     selectPlan: 'Elegir este paquete',
     restorePurchase: 'Restaurar compra',

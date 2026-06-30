@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 // CommonJS helper from the Cloud Functions package (no Firebase init inside).
-import { ymdInTz, dailyTickPlan } from '../../functions/lib/schedule';
+import { ymdInTz, dailyTickPlan, retentionPlan } from '../../functions/lib/schedule';
 
 const TZ = 'Europe/Istanbul'; // permanent UTC+3, no DST
 const DAY = 24 * 60 * 60 * 1000;
@@ -57,5 +57,46 @@ describe('dailyTickPlan', () => {
 
   it('an undated event with no photos yet does nothing', () => {
     expect(dailyTickPlan(base, new Date('2026-06-20T09:00:00.000Z'), TZ)).toEqual({ remind: false, wrap: false });
+  });
+});
+
+describe('retentionPlan', () => {
+  const now = new Date('2026-06-20T09:00:00.000Z');
+  const ago = (days: number) => now.getTime() - days * DAY;
+  const freeBase = { plan: 'free', retentionExempt: false, retentionDays: 7, firstPhotoAtMs: ago(0), purgeWarnSent: false };
+
+  it('warns once, from 24h before the 7-day deadline', () => {
+    // First photo 6 days ago → deadline in 1 day → inside the warn window.
+    expect(retentionPlan({ ...freeBase, firstPhotoAtMs: ago(6) }, now)).toEqual({ warn: true, purge: false });
+  });
+
+  it('does not warn before the 24h window', () => {
+    expect(retentionPlan({ ...freeBase, firstPhotoAtMs: ago(5) }, now)).toEqual({ warn: false, purge: false });
+  });
+
+  it('does not warn twice once purgeWarnSent', () => {
+    expect(retentionPlan({ ...freeBase, firstPhotoAtMs: ago(6), purgeWarnSent: true }, now).warn).toBe(false);
+  });
+
+  it('purges only after the deadline AND a prior warning', () => {
+    expect(retentionPlan({ ...freeBase, firstPhotoAtMs: ago(8), purgeWarnSent: true }, now).purge).toBe(true);
+  });
+
+  it('NEVER purges without a prior warning, even long past the deadline', () => {
+    expect(retentionPlan({ ...freeBase, firstPhotoAtMs: ago(30), purgeWarnSent: false }, now).purge).toBe(false);
+  });
+
+  it('never touches paid events (retentionDays null)', () => {
+    expect(retentionPlan({ ...freeBase, plan: 'small', retentionDays: null, firstPhotoAtMs: ago(30), purgeWarnSent: true }, now))
+      .toEqual({ warn: false, purge: false });
+  });
+
+  it('never touches grandfathered (exempt) events', () => {
+    expect(retentionPlan({ ...freeBase, retentionExempt: true, firstPhotoAtMs: ago(30), purgeWarnSent: true }, now))
+      .toEqual({ warn: false, purge: false });
+  });
+
+  it('does nothing for a free event with no photos yet', () => {
+    expect(retentionPlan({ ...freeBase, firstPhotoAtMs: null }, now)).toEqual({ warn: false, purge: false });
   });
 });

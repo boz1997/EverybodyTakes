@@ -63,6 +63,9 @@ export interface Event {
   guestCount: number;
   photoCount: number;
   plan: string;
+  watermark: boolean;         // resolved from plan — free stamps a "GuestCam" mark
+  retentionDays: number | null; // resolved from plan — free auto-deletes after N days
+  retentionExempt?: boolean;  // grandfathered events (pre-retention) are never auto-deleted
   createdAt: string;
 }
 
@@ -190,6 +193,9 @@ export const EventService = {
       guestCount: 0,
       photoCount: 0,
       plan,
+      watermark: limits.watermark,
+      retentionDays: limits.retentionDays,
+      retentionExempt: false,
       createdAt: serverTimestamp(),
     };
 
@@ -439,6 +445,7 @@ export const EventService = {
     const p = getPlan(planId);
     await updateDoc(doc(db, 'events', eventId), {
       plan: p.id, maxGuests: p.maxGuests, photoCap: p.photoCap, video: p.video, notes: p.notes,
+      watermark: p.watermark, retentionDays: p.retentionDays,
     });
   },
 

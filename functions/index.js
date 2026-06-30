@@ -6,8 +6,8 @@ const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { getStorage } = require('firebase-admin/storage');
 const { randomUUID } = require('crypto');
 const archiver = require('archiver');
-const { deleteEventGuarded, deleteAccountGuarded, PurgeError } = require('./lib/purge');
-const { dailyTickPlan } = require('./lib/schedule');
+const { deleteEventGuarded, deleteAccountGuarded, purgeEvent, PurgeError } = require('./lib/purge');
+const { dailyTickPlan, retentionPlan } = require('./lib/schedule');
 
 initializeApp();
 const db = getFirestore();
@@ -41,6 +41,7 @@ const STR = {
     hostTomorrow: 'Your event is tomorrow — share your QR so guests are ready 🎉',
     nudge: 'No guests yet — share your QR or code to get the photos rolling 📷',
     wrapPrompt: 'Has your event wrapped up? Keep the gallery open, or close it whenever you like 🎉',
+    retentionWarn: 'Your free album is deleted tomorrow — upgrade to keep your memories 💾',
   },
   tr: {
     newPhoto: (w, v) => `${w} bir ${v ? 'video' : 'fotoğraf'} ekledi 📸`,
@@ -57,6 +58,7 @@ const STR = {
     hostTomorrow: 'Etkinliğin yarın — QR kodunu paylaş, misafirler hazır olsun 🎉',
     nudge: 'Henüz misafir yok — QR veya kodu paylaş, fotoğraflar gelmeye başlasın 📷',
     wrapPrompt: 'Etkinliğin bitti mi? Galerini açık tutabilir ya da istediğin zaman kapatabilirsin 🎉',
+    retentionWarn: 'Ücretsiz albümün yarın silinecek — anıların kalsın diye pakete geç 💾',
   },
   es: {
     newPhoto: (w, v) => `${w} añadió ${v ? 'un vídeo' : 'una foto'} 📸`,
@@ -73,6 +75,7 @@ const STR = {
     hostTomorrow: 'Tu evento es mañana — comparte tu QR para que los invitados estén listos 🎉',
     nudge: 'Aún no hay invitados — comparte tu QR o código para empezar 📷',
     wrapPrompt: '¿Tu evento ha terminado? Mantén la galería abierta o ciérrala cuando quieras 🎉',
+    retentionWarn: 'Tu álbum gratis se borra mañana — mejora para conservar tus recuerdos 💾',
   },
   fr: {
     newPhoto: (w, v) => `${w} a ajouté ${v ? 'une vidéo' : 'une photo'} 📸`,
@@ -89,6 +92,7 @@ const STR = {
     hostTomorrow: 'Votre événement est demain — partagez votre QR pour que les invités soient prêts 🎉',
     nudge: 'Aucun invité pour l\'instant — partagez votre QR ou code 📷',
     wrapPrompt: 'Ton événement est terminé ? Garde la galerie ouverte ou ferme-la quand tu veux 🎉',
+    retentionWarn: 'Ton album gratuit sera supprimé demain — passe à une offre pour garder tes souvenirs 💾',
   },
   de: {
     newPhoto: (w, v) => `${w} hat ${v ? 'ein Video' : 'ein Foto'} hinzugefügt 📸`,
@@ -105,6 +109,7 @@ const STR = {
     hostTomorrow: 'Dein Event ist morgen — teile deinen QR-Code, damit die Gäste bereit sind 🎉',
     nudge: 'Noch keine Gäste — teile deinen QR-Code oder Code 📷',
     wrapPrompt: 'Ist dein Event vorbei? Lass die Galerie offen oder schließe sie, wann du willst 🎉',
+    retentionWarn: 'Dein kostenloses Album wird morgen gelöscht — upgrade, um deine Erinnerungen zu behalten 💾',
   },
 };
 const strings = (lang) => STR[(lang || 'en').slice(0, 2)] || STR.en;
@@ -358,6 +363,40 @@ exports.eventDailyTick = onSchedule({ schedule: '0 12 * * *', timeZone: TICK_TZ 
       const ctx = await loadHost(doc.id);
       if (ctx && ctx.token && ctx.ev.uploadNotify !== false) await sendPush(ctx, strings(ctx.lang).wrapPrompt);
       await doc.ref.update({ wrapPromptSentAt: FieldValue.serverTimestamp() }).catch(() => {});
+    }
+  }
+
+  // Retention: free events are warned 24h before deletion, then purged. Paid and
+  // grandfathered events are filtered out by retentionPlan. A purge NEVER runs
+  // without a prior warning (purgeWarnSentAt), and the event is re-read right
+  // before deletion in case the host upgraded since the tick began. The data-loss
+  // warning ignores the host's per-event mute — they must know the album is going.
+  const freeSnap = await db.collection('events').where('plan', '==', 'free').get();
+  for (const doc of freeSnap.docs) {
+    const ev = doc.data();
+    const r = retentionPlan({
+      plan: ev.plan,
+      retentionExempt: ev.retentionExempt,
+      retentionDays: ev.retentionDays,
+      firstPhotoAtMs: ev.firstPhotoAt && ev.firstPhotoAt.toMillis ? ev.firstPhotoAt.toMillis() : null,
+      purgeWarnSent: !!ev.purgeWarnSentAt,
+    }, now);
+
+    if (r.warn) {
+      const ctx = await loadHost(doc.id);
+      if (ctx && ctx.token) await sendPush(ctx, strings(ctx.lang).retentionWarn, upgrade(ctx));
+      await doc.ref.update({ purgeWarnSentAt: FieldValue.serverTimestamp() }).catch(() => {});
+    }
+    if (r.purge) {
+      const fresh = await doc.ref.get();
+      const fd = fresh.exists ? fresh.data() : null;
+      if (fd && fd.plan === 'free' && !fd.retentionExempt) {
+        try {
+          await purgeEvent(db, getStorage().bucket(STORAGE_BUCKET), doc.id);
+        } catch (e) {
+          console.error('retention purge failed', doc.id, e);
+        }
+      }
     }
   }
 });

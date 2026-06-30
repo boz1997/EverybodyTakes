@@ -15,7 +15,10 @@ export interface Plan {
   video: boolean;
   notes: boolean;             // "Memory book" — guests can leave written notes
   hdExport: boolean;
-  liveWall: boolean;
+  /** Free shows a "GuestCam" watermark on the gallery + downloads; paid is clean. */
+  watermark: boolean;
+  /** Days after the first photo a free event is auto-deleted. null = kept forever. */
+  retentionDays: number | null;
   /** App Store IAP product id (must match App Store Connect + RevenueCat). */
   productId: string | null;
   /** Reference USD price (display fallback; the live price comes from the store). */
@@ -23,10 +26,10 @@ export interface Plan {
 }
 
 export const PLANS: Record<PlanId, Plan> = {
-  free: { id: 'free', maxGuests: 10, photoCap: 100, video: false, notes: false, hdExport: false, liveWall: false, productId: null, priceUSD: 0 },
-  small: { id: 'small', maxGuests: 20, photoCap: null, video: false, notes: false, hdExport: true, liveWall: false, productId: 'event_small', priceUSD: 3.99 },
-  medium: { id: 'medium', maxGuests: 50, photoCap: null, video: false, notes: true, hdExport: true, liveWall: true, productId: 'event_medium', priceUSD: 14.99 },
-  unlimited: { id: 'unlimited', maxGuests: null, photoCap: null, video: true, notes: true, hdExport: true, liveWall: true, productId: 'event_unlimited', priceUSD: 29.99 },
+  free: { id: 'free', maxGuests: 10, photoCap: 100, video: false, notes: false, hdExport: false, watermark: true, retentionDays: 7, productId: null, priceUSD: 0 },
+  small: { id: 'small', maxGuests: 20, photoCap: null, video: false, notes: false, hdExport: true, watermark: false, retentionDays: null, productId: 'event_small', priceUSD: 3.99 },
+  medium: { id: 'medium', maxGuests: 50, photoCap: null, video: false, notes: true, hdExport: true, watermark: false, retentionDays: null, productId: 'event_medium', priceUSD: 14.99 },
+  unlimited: { id: 'unlimited', maxGuests: null, photoCap: null, video: true, notes: true, hdExport: true, watermark: false, retentionDays: null, productId: 'event_unlimited', priceUSD: 29.99 },
 };
 
 export const PAID_PLAN_ORDER: PlanId[] = ['small', 'medium', 'unlimited'];

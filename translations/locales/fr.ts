@@ -300,7 +300,6 @@ export default {
     noWatermark: 'Sans filigrane',
     watermark: 'Filigrane GuestCam',
     hdExport: 'Téléchargement HD (ZIP)',
-    liveWall: 'Mur en direct / projection',
     continueWithFree: 'Continuer avec Gratuit',
     selectPlan: 'Choisir ce forfait',
     restorePurchase: 'Restaurer l\'achat',

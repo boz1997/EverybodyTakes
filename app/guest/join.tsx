@@ -18,6 +18,9 @@ import { EventService, Event, Photo, LimitError } from '@features/events/service
 import { useEventPhotos } from '@features/gallery/hooks/useEventPhotos';
 import { LeaveNoteModal } from '@features/notes/LeaveNoteModal';
 import { savePhotosToLibrary, savePhotoToLibrary } from '@features/gallery/downloadPhotos';
+import { WatermarkOverlay } from '@features/gallery/components/WatermarkOverlay';
+import { useWatermarkBaker } from '@features/gallery/components/WatermarkBaker';
+import { showDownloadAd } from '@features/ads/adService';
 import { createEventZip } from '@features/events/services/exportService';
 import { AuthService } from '@features/auth/services/authService';
 import { useAuthStore } from '@store/authStore';
@@ -89,9 +92,13 @@ export default function EventHubScreen() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [hasNote, setHasNote] = useState(false);
   const flatRef = useRef<FlatList<Photo>>(null);
+  // Free plan burns a "GuestCam" stamp into downloads; paid saves stay clean.
+  const { node: watermarkNode, bake } = useWatermarkBaker();
+  const watermarker = event?.watermark ? bake : undefined;
 
   const handleZip = async () => {
     if (!event || zipping) return;
+    if (event.plan === 'free') await showDownloadAd();
     try {
       setZipping(true);
       const { url } = await createEventZip(event.id);
@@ -259,7 +266,7 @@ export default function EventHubScreen() {
       setSaving(true);
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
-      await savePhotoToLibrary(photo);
+      await savePhotoToLibrary(photo, watermarker);
       Alert.alert(t('host.photoSaved'));
     } catch (e: any) {
       Alert.alert(t('common.error'), String(e?.message ?? e));
@@ -270,12 +277,14 @@ export default function EventHubScreen() {
 
   const downloadList = async (list: Photo[]) => {
     if (list.length === 0 || saving) return;
+    // Free bulk saves watch a rewarded ad first; paid downloads skip it.
+    if (event?.plan === 'free') await showDownloadAd();
     try {
       setSaving(true);
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
       setDlProgress({ done: 0, total: list.length });
-      const { saved, lastError } = await savePhotosToLibrary(list, (done, total) => setDlProgress({ done, total }));
+      const { saved, lastError } = await savePhotosToLibrary(list, (done, total) => setDlProgress({ done, total }), watermarker);
       if (saved === 0 && lastError) Alert.alert(t('common.error'), String((lastError as { message?: string })?.message ?? lastError));
       else Alert.alert(t('host.downloadAllDone', { count: saved }));
       exitSelect();
@@ -443,6 +452,7 @@ export default function EventHubScreen() {
         activeOpacity={0.85}
       >
         <Image source={p.thumbnailUrl || p.imageUrl} style={styles.cellImg} contentFit="cover" transition={120} recyclingKey={p.id} />
+        {event?.watermark && <WatermarkOverlay />}
         {p.mediaType === 'video' && (
           <View style={styles.playBadge}><Icon name="play" size={14} color="#fff" /></View>
         )}
@@ -528,6 +538,9 @@ export default function EventHubScreen() {
                         ? <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
                         : <Image source={item.thumbnailUrl || item.imageUrl} style={StyleSheet.absoluteFill} contentFit="contain" />)
                     : <Image source={item.imageUrl} placeholder={item.thumbnailUrl ? { uri: item.thumbnailUrl } : undefined} style={StyleSheet.absoluteFill} contentFit="contain" transition={150} />}
+                  {event?.watermark && item.mediaType !== 'video' && (
+                    <WatermarkOverlay size="lg" style={styles.lbWatermark} />
+                  )}
                 </View>
               )}
             />
@@ -591,6 +604,7 @@ export default function EventHubScreen() {
           onSaved={() => setHasNote(true)}
         />
       )}
+      {watermarkNode}
     </LinearGradient>
   );
 }
@@ -657,6 +671,7 @@ const styles = StyleSheet.create({
   lbNav: { position: 'absolute', top: '46%', width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
   lbNavLeft: { left: spacing.md },
   lbNavRight: { right: spacing.md },
+  lbWatermark: { top: 56, left: spacing.lg },
   lbCaption: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 3 },
   lbBy: { color: 'rgba(255,255,255,0.7)', fontSize: typography.sizes.sm, fontFamily: fonts.body },
   lbByName: { color: '#fff', fontFamily: fonts.bodySemibold },

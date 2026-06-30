@@ -15,6 +15,9 @@ import { EventService, Event, Photo } from '@features/events/services/eventServi
 import { useEventPhotos } from '@features/gallery/hooks/useEventPhotos';
 import { NotesModal } from '@features/notes/NotesModal';
 import { savePhotosToLibrary, savePhotoToLibrary } from '@features/gallery/downloadPhotos';
+import { WatermarkOverlay } from '@features/gallery/components/WatermarkOverlay';
+import { useWatermarkBaker } from '@features/gallery/components/WatermarkBaker';
+import { showDownloadAd } from '@features/ads/adService';
 import { createEventZip } from '@features/events/services/exportService';
 import { getPlan, PAID_PLANS_ENABLED } from '@constants/plans';
 import { Icon } from '@shared/components/Icon';
@@ -42,6 +45,9 @@ export default function EventManage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [dlProgress, setDlProgress] = useState<{ done: number; total: number } | null>(null);
+  // Free plan burns a "GuestCam" stamp into downloads; paid saves stay clean.
+  const { node: watermarkNode, bake } = useWatermarkBaker();
+  const watermarker = event?.watermark ? bake : undefined;
 
   useEffect(() => {
     if (!id) return;
@@ -196,7 +202,7 @@ export default function EventManage() {
       setSaving(true);
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
-      await savePhotoToLibrary(photo);
+      await savePhotoToLibrary(photo, watermarker);
       Alert.alert(t('host.photoSaved'));
     } catch (e: any) {
       Alert.alert(t('common.error'), String(e?.message ?? e));
@@ -207,12 +213,14 @@ export default function EventManage() {
 
   const downloadList = async (list: Photo[]) => {
     if (list.length === 0 || saving) return;
+    // Free bulk saves watch a rewarded ad first; paid downloads skip it.
+    if (event?.plan === 'free') await showDownloadAd();
     try {
       setSaving(true);
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) { Alert.alert(t('errors.cameraPermission')); return; }
       setDlProgress({ done: 0, total: list.length });
-      const { saved, lastError } = await savePhotosToLibrary(list, (done, total) => setDlProgress({ done, total }));
+      const { saved, lastError } = await savePhotosToLibrary(list, (done, total) => setDlProgress({ done, total }), watermarker);
       if (saved === 0 && lastError) Alert.alert(t('common.error'), String((lastError as any)?.message ?? lastError));
       else Alert.alert(t('host.downloadAllDone', { count: saved }));
       exitSelect();
@@ -228,6 +236,7 @@ export default function EventManage() {
   const [zipping, setZipping] = useState(false);
   const handleZip = async () => {
     if (!event || zipping) return;
+    if (event.plan === 'free') await showDownloadAd();
     try {
       setZipping(true);
       const { url } = await createEventZip(event.id);
@@ -256,6 +265,7 @@ export default function EventManage() {
         activeOpacity={0.85}
       >
         <Image source={item.thumbnailUrl || item.imageUrl} style={styles.photo} contentFit="cover" transition={120} recyclingKey={item.id} />
+        {event?.watermark && <WatermarkOverlay />}
         {item.mediaType === 'video' && (
           <View style={styles.playBadge}><Icon name="play" size={14} color="#fff" /></View>
         )}
@@ -411,6 +421,9 @@ export default function EventManage() {
           {selectedPhoto && (selectedIsVideo
             ? <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
             : <Image source={selectedPhoto.imageUrl} placeholder={selectedPhoto.thumbnailUrl ? { uri: selectedPhoto.thumbnailUrl } : undefined} style={StyleSheet.absoluteFill} contentFit="contain" transition={150} />)}
+          {selectedPhoto && event?.watermark && !selectedIsVideo && (
+            <WatermarkOverlay size="lg" style={{ top: insets.top + 52, left: spacing.lg }} />
+          )}
           <View style={[styles.lightboxTop, { paddingTop: insets.top + spacing.sm }]}>
             <TouchableOpacity onPress={() => setSelectedPhoto(null)} style={styles.lbBtn}>
               <Icon name="close" size={22} color="#fff" />
@@ -458,6 +471,7 @@ export default function EventManage() {
       </Modal>
 
       {id && <NotesModal visible={notesOpen} onClose={() => setNotesOpen(false)} eventId={id} eventName={event?.name ?? ''} />}
+      {watermarkNode}
     </LinearGradient>
   );
 }

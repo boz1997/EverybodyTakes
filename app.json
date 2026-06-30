@@ -14,7 +14,9 @@
     "ios": {
       "supportsTablet": false,
       "usesAppleSignIn": true,
-      "associatedDomains": ["applinks:guestcam.store"],
+      "associatedDomains": [
+        "applinks:guestcam.store"
+      ],
       "bundleIdentifier": "com.guestcam.app",
       "infoPlist": {
         "NSCameraUsageDescription": "GuestCam uses the camera so you can take photos and record videos inside an event you've joined.",
@@ -76,7 +78,8 @@
           "project": "guestcam-mobile",
           "url": "https://de.sentry.io/"
         }
-      ]
+      ],
+      "react-native-google-mobile-ads"
     ],
     "experiments": {
       "typedRoutes": true
@@ -87,7 +90,13 @@
       "revenueCatIosKey": "appl_wexvGCqkWXzUjDvyCfNQlhPxWtn",
       "eas": {
         "projectId": "b3d702ff-7787-4a6b-8b0b-ffb5a1989da7"
-      }
+      },
+      "admobRewardedIos": "",
+      "admobRewardedAndroid": ""
     }
+  },
+  "react-native-google-mobile-ads": {
+    "ios_app_id": "ca-app-pub-3940256099942544~1458002511",
+    "android_app_id": "ca-app-pub-3940256099942544~3347511713"
   }
 }
