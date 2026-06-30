@@ -39,6 +39,10 @@ async function ensureInit(ads: AdsModule): Promise<void> {
 // app.json → extra.admobRewarded*. Test ids are safe in dev/review; real revenue
 // needs the host's own AdMob unit id.
 function rewardedUnitId(ads: AdsModule): string {
+  // In dev always use Google's test unit — it fills instantly, whereas a freshly
+  // created real unit needs up to an hour before it serves any ads. Prod uses the
+  // configured real unit.
+  if (__DEV__) return ads.TestIds.REWARDED;
   const extra = Constants.expoConfig?.extra ?? {};
   const configured = Platform.OS === 'ios' ? extra.admobRewardedIos : extra.admobRewardedAndroid;
   return configured || ads.TestIds.REWARDED;
