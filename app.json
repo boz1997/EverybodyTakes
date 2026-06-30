@@ -91,12 +91,12 @@
       "eas": {
         "projectId": "b3d702ff-7787-4a6b-8b0b-ffb5a1989da7"
       },
-      "admobRewardedIos": "",
+      "admobRewardedIos": "ca-app-pub-2047522925796554/4749099061",
       "admobRewardedAndroid": ""
     }
   },
   "react-native-google-mobile-ads": {
-    "ios_app_id": "ca-app-pub-3940256099942544~1458002511",
+    "ios_app_id": "ca-app-pub-2047522925796554~3140925389",
     "android_app_id": "ca-app-pub-3940256099942544~3347511713"
   }
 }
