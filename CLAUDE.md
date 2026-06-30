@@ -226,6 +226,31 @@ MVP bitmeden Phase 2 kodu yazılmaz.
 
 > Bu bölüm yeni bir Claude Code oturumu için özet/devir notudur. Önce bunu oku.
 
+## ⭐ 2026-06-30 OTURUMU — 1.0.2 build+submit, refund desteği, maliyet analizi — ÖNCE BUNU OKU
+
+### Yapılanlar / öğrenilenler
+- **1.0.2 ücretsiz LOKAL build + submit BAŞARILI** (EAS cloud kotası bitince reçete). Detay: kişisel memory `project-ios-local-build`. Komut:
+  `cd <repo> && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 SENTRY_DISABLE_AUTO_UPLOAD=true npx eas build --platform ios --profile production --local --non-interactive` → imzalı `.ipa` repo kökünde `build-<ts>.ipa`. Submit: `npx eas submit --platform ios --path build-<ts>.ipa --profile production --non-interactive`.
+  **4 gotcha (hepsi build'i bloke etmişti):** (1) `brew install fastlane cocoapods`; (2) **Apple WWDR G3 ara sertifikası login keychain'de olmalı** — yoksa cert `CSSMERR_TP_NOT_TRUSTED` → "Distribution certificate ... hasn't been imported successfully"; düzeltme: `curl -fsSL https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer -o w.cer && security import w.cer -k ~/Library/Keychains/login.keychain-db` (KURULDU); (3) `--non-interactive` (headless'te Apple-login sorusu stdin'siz patlar); (4) `SENTRY_DISABLE_AUTO_UPLOAD=true` (yoksa Xcode Sentry source-map upload token'sız → ARCHIVE FAILED exit 65; **eas.json'a KOYMA**, sadece lokal komutta).
+- **eas.json submit profili:** iOS alanları `ios:` altında olmalı → eklendi `submit.production.ios.ascAppId = "6777402204"` (düz koyma → "ascAppId is not allowed"). EAS'te ASC API key zaten kayıtlı (Key ID `Z9MP4N223B`) → submit Apple 2FA istemez.
+- **1.0.2 ASC'de "Add for Review" yapıldı** (review bekliyor). İçerik: otomatik-kapanma kaldırma + QR/Safari "adres geçersiz" fix + tarih-dil fix + **Memory book (notes)**. (App Store app id `6777402204`.)
+- **Version skew GÜVENLİ:** web'de notes canlı ama eski 1.0.1 host'lar `event.notes:true` set EDEMEZ (sadece 1.0.2 plana göre yazar — `eventService.ts:185` create, `:441` plan değişimi). Üç katman: kural `notesOpen()` (`firestore.rules:124`) + web buton gate (`web/src/App.tsx:168`) + `notes` alanını sadece 1.0.2 yazar. "Misafir not bırakabiliyorsa host okuyabilir" garantisi koddan → öksüz not imkansız. Cloud Functions notes'a dokunmuyor.
+- **Refund (IAP) BİZ YAPAMAYIZ — Apple tekeli** (consumable, event başına; `purchaseService.ts:65`). Müşteri **reportaproblem.apple.com**'dan ister, Apple karar verir. Biz: RevenueCat'te **uid (appUserID)** ile bul, Firestore'da event koduyla planı doğrula, goodwill için **promo kod** ver (`node scripts/seedPromoCodes.mjs [adet]` — Firebase CLI token; tek-kullanımlık, süresiz, seçilen plan bedava). Müşteri lookup: service-account ile `auth.getUserByEmail` → `events where hostId==uid` (reopen.js pattern, salt-okunur).
+
+### Maliyet / Firebase (Blaze) — anlık ölçek 2026-06-30
+- 94 event (56 aktif, 34 ücretli, 18 video) · 198 user · 142 guest · 291 foto doc (~0.15GB) · 4 not · 50 promo. **Ücretsiz katmanın küçük bir kısmında → fatura ~$0.** Ani sıçrama riski = abuse veya viral, normal kullanım değil.
+- **Lokal Firebase:** emulator kurulu (`firebase.json`: firestore:8080, storage:9199, **UI kapalı**). Göz atmak için `"ui":{"enabled":true}` → `firebase emulators:start` → localhost:4000. ⚠️ Emulator BOŞ/lokal (prod verisi DEĞİL — dev/test içindir). Gerçek veri = Firebase Console veya admin script.
+- Service-account anahtarı **veri** erişimi verir, **fatura $ tutarını VERMEZ** (GCP Billing; bu makinede `gcloud` yok).
+
+### 🔧 TODO — Maliyet sertleştirme (3 madde, ERTELENDİ — onayla yapılacak)
+1. **Budget alert (ÖNCE, 2dk):** GCP Console → Billing → Budgets & alerts → ~$10/ay → %50/%90/%100 mail. ⚠️ Blaze'de SERT/otomatik-durduran limit YOK; bu sadece UYARIR (fatura sessizce şişemez, saatler içinde haber). Sert kesme = billing'i kapatan Cloud Function ama app'i komple offline eder (gereksiz).
+2. **App Check (ana abuse savunması; "AÇIK İŞLER #4" ile aynı):** kurulu DEĞİL — grep doğruladı (sadece Google-SignIn transitive `AppCheckCore` pod'u var, gerçek `initializeAppCheck` YOK). Config public → App Check olmadan biri doğrudan Firestore/Storage/Functions'a vurup fatura şişirebilir. iOS DeviceCheck/AppAttest + web reCAPTCHA. Sıra: önce token gönderen build canlıya, SONRA enforce (yoksa eski build'ler kırılır).
+3. **Cloud Functions `maxInstances` cap YOK:** hiçbir yerde `setGlobalOptions`/`maxInstances` yok → v2 default'u yüksek ölçeklenir. `setGlobalOptions({ maxInstances: 10 })` ekle (özellikle `createEventZip` **1GiB/540s** en pahalı; spam'lenirse yüzlerce instance). Küçük kod + `firebase deploy --only functions`.
+
+### Karar: `eventSilenceNudge` 30dk'da bir KALSIN (daily YAPMA)
+- `functions/index.js:316` — host'a, event başına **TEK** nudge. Guard: `silenceNudgedAt` veya `guestCount>0` ise atla; sadece >1sa eski + 0 misafir event'e "kodunu paylaş" der, sonra damgalar. **Misafirlere 30dk'da bir bildirim ATMAZ**; maliyet ~2700 okuma/gün (önemsiz, 50K/gün free).
+- Daily yapılırsa nudge ~24sa geç gelebilir (akşam etkinliği → ertesi gün = işe yaramaz). Timely olmak şart → 30dk (en fazla saatlik) kalsın.
+
 ## ⭐ GÜNCEL DURUM (2026-06-28) — WEB SİTESİ + DOMAIN ACİL DÜZELTME — ÖNCE BUNU OKU
 
 Bu tur tamamen **web tarafı** (`docs/` landing + `web/` misafir app) ve **domain/QR** ile ilgiliydi. App (Expo) koduna dokunulmadı. Hepsi `main`'e push'landı.
