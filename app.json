@@ -79,7 +79,13 @@
           "url": "https://de.sentry.io/"
         }
       ],
-      "react-native-google-mobile-ads"
+      [
+        "react-native-google-mobile-ads",
+        {
+          "iosAppId": "ca-app-pub-2047522925796554~3140925389",
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -94,9 +100,5 @@
       "admobRewardedIos": "ca-app-pub-2047522925796554/4749099061",
       "admobRewardedAndroid": ""
     }
-  },
-  "react-native-google-mobile-ads": {
-    "ios_app_id": "ca-app-pub-2047522925796554~3140925389",
-    "android_app_id": "ca-app-pub-3940256099942544~3347511713"
   }
 }
