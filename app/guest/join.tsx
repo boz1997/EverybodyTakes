@@ -98,7 +98,7 @@ export default function EventHubScreen() {
 
   const handleZip = async () => {
     if (!event || zipping) return;
-    if (event.plan === 'free') await showDownloadAd();
+    if (event.plan === 'free') void showDownloadAd();
     try {
       setZipping(true);
       const { url } = await createEventZip(event.id);
@@ -277,8 +277,9 @@ export default function EventHubScreen() {
 
   const downloadList = async (list: Photo[]) => {
     if (list.length === 0 || saving) return;
-    // Free bulk saves watch a rewarded ad first; paid downloads skip it.
-    if (event?.plan === 'free') await showDownloadAd();
+    // Free bulk saves fire a rewarded ad WHILE the download runs in the
+    // background — the ad never blocks or delays the save.
+    if (event?.plan === 'free') void showDownloadAd();
     try {
       setSaving(true);
       const perm = await MediaLibrary.requestPermissionsAsync();
