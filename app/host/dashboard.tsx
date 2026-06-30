@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { tr as trLocale } from 'date-fns/locale';
+import { dateLocale } from '@shared/utils/dateLocale';
 import { useAuthStore } from '@store/authStore';
 import { EventService, Event } from '@features/events/services/eventService';
 import { deleteEventCompletely } from '@features/events/services/eventLifecycle';
@@ -85,7 +85,7 @@ export default function HostDashboard() {
           </View>
 
           <Text style={styles.cardDate}>
-            {item.date ? format(new Date(item.date), 'd MMM yyyy', { locale: trLocale }) : '—'}
+            {item.date ? format(new Date(item.date), 'd MMM yyyy', { locale: dateLocale() }) : '—'}
           </Text>
 
           <View style={styles.cardStats}>

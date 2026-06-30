@@ -11,7 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { format } from 'date-fns';
-import { tr as trLocale } from 'date-fns/locale';
+import { dateLocale } from '@shared/utils/dateLocale';
 import { useEventStore, EventType } from '@store/eventStore';
 import { StepIndicator } from '@shared/components/StepIndicator';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
@@ -35,7 +35,7 @@ const EVENT_TYPES: { key: EventType; labelKey: string }[] = [
 const SHOT_OPTIONS = [10, 12, 24, 36, 48, 72];
 
 export default function CreateEvent() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const { draft, updateDraft, resetDraft } = useEventStore();
 
@@ -176,7 +176,7 @@ export default function CreateEvent() {
                     <Icon name="calendar" size={20} color={colors.brand.light} />
                     <Text style={[styles.dateText, !draft.date && styles.datePlaceholder]}>
                       {draft.date
-                        ? format(draft.date, 'd MMMM yyyy, EEEE', { locale: trLocale })
+                        ? format(draft.date, 'd MMMM yyyy, EEEE', { locale: dateLocale() })
                         : t('common.optional')}
                     </Text>
                     <Icon name={showPicker ? 'chevronUp' : 'chevronDown'} size={16} color={colors.text.muted} />
@@ -187,6 +187,7 @@ export default function CreateEvent() {
                       <DateTimePicker
                         value={draft.date ?? new Date()}
                         mode="date"
+                        locale={i18n.language}
                         display={Platform.OS === 'ios' ? 'inline' : 'default'}
                         themeVariant="light"
                         textColor={colors.text.primary}

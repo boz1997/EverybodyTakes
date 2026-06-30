@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { tr as trLocale } from 'date-fns/locale';
+import { dateLocale } from '@shared/utils/dateLocale';
 import ViewShot, { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library/legacy';
@@ -56,7 +56,7 @@ export default function ShareCardScreen() {
 
   const data: ShareData = {
     name: event.name,
-    dateLabel: event.date ? format(new Date(event.date), 'd MMMM yyyy', { locale: trLocale }) : '',
+    dateLabel: event.date ? format(new Date(event.date), 'd MMMM yyyy', { locale: dateLocale() }) : '',
     code: event.shortCode,
     qrValue: LINKS.eventUrl(event.shortCode),
     coverUrl: event.coverImageUrl,

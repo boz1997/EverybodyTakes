@@ -13,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 import * as MediaLibrary from 'expo-media-library/legacy';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { format } from 'date-fns';
+import { dateLocale } from '@shared/utils/dateLocale';
 import { EventService, Event, Photo, LimitError } from '@features/events/services/eventService';
 import { useEventPhotos } from '@features/gallery/hooks/useEventPhotos';
 import { LeaveNoteModal } from '@features/notes/LeaveNoteModal';
@@ -317,7 +318,7 @@ export default function EventHubScreen() {
     <View style={styles.locked}>
       <Icon name="film" size={32} color={colors.brand.DEFAULT} strokeWidth={1.6} />
       <Text style={styles.lockedText}>{t('guest.developing')}</Text>
-      <Text style={styles.opensText}>{t('guest.opensAt', { time: format(new Date(revealAtMs(event)), 'd MMM HH:mm') })}</Text>
+      <Text style={styles.opensText}>{t('guest.opensAt', { time: format(new Date(revealAtMs(event)), 'd MMM HH:mm', { locale: dateLocale() }) })}</Text>
     </View>
   ) : !photosLoaded && (event.photoCount ?? 0) > 0 ? (
     <View style={[styles.grid, styles.gridPad]}>
@@ -350,7 +351,7 @@ export default function EventHubScreen() {
 
       <View style={styles.body}>
         <Text style={styles.eventName}>{event.name}</Text>
-        {event.date ? <Text style={styles.eventDate}>{format(new Date(event.date), 'd MMMM yyyy')}</Text> : null}
+        {event.date ? <Text style={styles.eventDate}>{format(new Date(event.date), 'd MMMM yyyy', { locale: dateLocale() })}</Text> : null}
 
         <View style={styles.stats}>
           <View style={styles.statChip}>
