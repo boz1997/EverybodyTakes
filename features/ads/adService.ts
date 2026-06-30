@@ -2,12 +2,17 @@
 // build without it — Expo Go, or before the next dev-client build — degrades to
 // "no ad, save proceeds" instead of crashing at import. Mirrors purchaseService.
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
+import { Platform, TurboModuleRegistry } from 'react-native';
 
 type AdsModule = typeof import('react-native-google-mobile-ads');
 
+// The ads package throws at require-time when its native binary isn't present
+// (Expo Go, or before the dev-client rebuild). Probe the native module with
+// TurboModuleRegistry.get — which returns null instead of throwing — BEFORE
+// requiring, so degraded environments degrade quietly instead of red-screening.
 function getAds(): AdsModule | null {
   try {
+    if (!TurboModuleRegistry.get('RNGoogleMobileAdsModule')) return null;
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require('react-native-google-mobile-ads');
   } catch {

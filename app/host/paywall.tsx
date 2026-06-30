@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, InteractionManager, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
@@ -56,6 +57,8 @@ export default function PaywallScreen() {
   const featureLines = (plan: Plan): { label: string; ok: boolean }[] => [
     { label: plan.maxGuests == null ? t('paywall.unlimitedGuests') : t('paywall.upToGuests', { n: plan.maxGuests }), ok: true },
     { label: plan.photoCap == null ? t('paywall.unlimitedPhotos') : t('paywall.photoCap', { n: plan.photoCap }), ok: true },
+    { label: plan.retentionDays == null ? t('paywall.storageForever') : t('paywall.storageDays', { n: plan.retentionDays }), ok: plan.retentionDays == null },
+    { label: plan.watermark ? t('paywall.adsShown') : t('paywall.noAds'), ok: !plan.watermark },
     { label: plan.video ? t('paywall.videoOn') : t('paywall.videoOff'), ok: plan.video },
     { label: plan.notes ? t('notes.bookTitle') : t('notes.featureOff'), ok: plan.notes },
   ];
@@ -153,6 +156,10 @@ export default function PaywallScreen() {
         </TouchableOpacity>
 
         <View style={styles.header}>
+          <View style={styles.brandRow}>
+            <Image source={require('../../assets/guestmark.png')} style={styles.brandLogo} contentFit="contain" />
+            <Text style={styles.brandName}>GuestCam</Text>
+          </View>
           <Text style={styles.title}>{isUpgrade ? t('paywall.upgradeTitle') : t('paywall.title')}</Text>
           <Text style={styles.subtitle}>{!PAID_PLANS_ENABLED ? t('paywall.freeSubtitle') : (isUpgrade ? t('paywall.upgradeSubtitle') : t('paywall.subtitle'))}</Text>
         </View>
@@ -280,6 +287,9 @@ const styles = StyleSheet.create({
   backBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6 },
   backText: { color: colors.text.secondary, fontSize: typography.sizes.base, fontFamily: fonts.body },
   header: { gap: spacing.xs },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
+  brandLogo: { width: 22, height: 22, borderRadius: 5 },
+  brandName: { fontSize: typography.sizes.sm, fontFamily: fonts.bodyBold, color: colors.brand.dark },
   title: { fontSize: typography.sizes['3xl'], fontFamily: fonts.displayBold, color: colors.text.primary },
   subtitle: { fontSize: typography.sizes.sm, fontFamily: fonts.body, color: colors.text.muted, lineHeight: 20 },
   eventPill: {

@@ -67,6 +67,21 @@ Branch: `feature/monetization` · main'den izole, test sonrası merge edilir.
 - Build alıp cihazda reklam + filigran bake-in doğrulanır (kullanıcı).
 
 ## Riskler / notlar
-- AdMob prod ID'leri kullanıcı tarafından girilecek (test ID ile teslim).
+- AdMob gerçek ID'leri app.json'da (iOS App ID `~3140925389`, rewarded `/4749099061`). Android test ID kaldı (Android build yok).
 - ZIP free'de filigransız (kabul edildi).
 - Retention migration **bir kez** çalıştırılır; mevcut tüm event'leri muaf tutar.
+
+## Açık Yapılacaklar — 1.0.3 (KULLANICI)
+- [ ] **App Privacy beyanı** (App Store Connect): AdMob → "Üçüncü taraf reklamcılık" + "Tanımlayıcılar (Device ID)". ⚠️ Atlanırsa 1.0.3 reddedilir (reklam öncesi bu yoktu).
+- [ ] **AdMob ödeme profili** tamamla ("Sorunu gider").
+- [ ] **App Store Marketing + Support URL → guestcam.store** (1.0.2 onayı sonrası). app-ads.txt doğrulaması bunu bekliyor: AdMob "doğrulayamadık" diyor çünkü App Store'da hâlâ `boz1997.github.io/...`; URL guestcam.store olunca `guestcam.store/app-ads.txt`'i bulur. **1.0.3 binary GEREKMEZ, sadece URL (metadata).**
+
+## Açık Yapılacaklar — 1.0.3 (KOD/DEPLOY)
+- [ ] feature/monetization → main merge.
+- [ ] `firebase deploy --only functions` (retention job + bildirimler).
+- [ ] `node functions/scripts/backfill-retention-exempt.js` (eskileri muaf tut, ilk daily tick öncesi).
+- [ ] Yeni EAS build (google-mobile-ads native modülü için).
+
+## Simülatör Testi
+- **Expo Go YETMEZ** — `google-mobile-ads` + `view-shot` native; Expo Go'da graceful degrade (reklam + indirme-filigranı görünmez, crash yok; sadece galeri overlay'i çıkar).
+- **Doğru yol:** `npx expo run:ios` (dev-client, native derler). Simülatörde kamera yok ama galeri + indirme + filigran + reklam (test) çalışır.
