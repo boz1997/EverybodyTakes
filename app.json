@@ -14,11 +14,13 @@
     "ios": {
       "supportsTablet": false,
       "usesAppleSignIn": true,
-      "associatedDomains": ["applinks:guestcam.store"],
+      "associatedDomains": [
+        "applinks:guestcam.store"
+      ],
       "bundleIdentifier": "com.guestcam.app",
       "infoPlist": {
         "NSCameraUsageDescription": "GuestCam uses the camera so you can take photos and record videos inside an event you've joined.",
-        "NSMicrophoneUsageDescription": "GuestCam uses the microphone only while you record a video, so your clip has sound.",
+        "NSMicrophoneUsageDescription": "GuestCam uses the microphone when you record a video or leave a voice memory, so your clip has sound.",
         "NSPhotoLibraryUsageDescription": "GuestCam accesses your photos only when you choose to add an existing photo to an event.",
         "NSPhotoLibraryAddUsageDescription": "GuestCam saves photos and QR codes to your library only when you tap save.",
         "NSSupportsLiveActivities": true,
@@ -75,6 +77,12 @@
           "organization": "guestcam",
           "project": "guestcam-mobile",
           "url": "https://de.sentry.io/"
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "GuestCam uses the microphone when you record a video or leave a voice memory, so your clip has sound."
         }
       ]
     ],

@@ -35,6 +35,9 @@ async function purgeAccountData(db, bucket, uid, joinedEventIds) {
         await bucket.deleteFiles({ prefix: `events/${eventId}/thumbs/${p.id}` }).catch(() => {});
         await p.ref.delete();
       }
+      // Their one voice memory (clip file + doc), if any.
+      await bucket.deleteFiles({ prefix: `events/${eventId}/voices/${uid}` }).catch(() => {});
+      await db.doc(`events/${eventId}/voices/${uid}`).delete().catch(() => {});
       await db.doc(`events/${eventId}/guests/${uid}`).delete();
     } catch (e) {
       console.error('purge joined event failed', eventId, e);

@@ -14,6 +14,7 @@ import { Linking } from 'react-native';
 import { EventService, Event, Photo } from '@features/events/services/eventService';
 import { useEventPhotos } from '@features/gallery/hooks/useEventPhotos';
 import { NotesModal } from '@features/notes/NotesModal';
+import { VoicesModal } from '@features/voices/VoicesModal';
 import { savePhotosToLibrary, savePhotoToLibrary } from '@features/gallery/downloadPhotos';
 import { createEventZip } from '@features/events/services/exportService';
 import { getPlan, PAID_PLANS_ENABLED } from '@constants/plans';
@@ -38,6 +39,7 @@ export default function EventManage() {
   const photos = allPhotos.filter((p) => p.isVisible !== false);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [voicesOpen, setVoicesOpen] = useState(false);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
@@ -111,6 +113,23 @@ export default function EventManage() {
             <Switch
               value={event.notesEnabled !== false}
               onValueChange={(on) => patchSettings({ notesEnabled: on })}
+              trackColor={{ false: colors.bg.elevated, true: colors.brand.DEFAULT }}
+              thumbColor="#fff"
+              ios_backgroundColor={colors.bg.elevated}
+            />
+          </View>
+        )}
+
+        {/* Voice memories toggle — only when the plan includes voices */}
+        {event.voices && (
+          <View style={styles.switchRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>{t('voices.toggle')}</Text>
+              <Text style={styles.settingDesc}>{t('voices.toggleDesc')}</Text>
+            </View>
+            <Switch
+              value={event.voicesEnabled !== false}
+              onValueChange={(on) => patchSettings({ voicesEnabled: on })}
               trackColor={{ false: colors.bg.elevated, true: colors.brand.DEFAULT }}
               thumbColor="#fff"
               ios_backgroundColor={colors.bg.elevated}
@@ -326,12 +345,23 @@ export default function EventManage() {
         ListHeaderComponent={
           <>
             {renderSettings()}
-            {/* Memory book — host taps to read guests' notes */}
-            {event?.notes && (
-              <TouchableOpacity onPress={() => setNotesOpen(true)} style={styles.notesRow} activeOpacity={0.85}>
-                <Icon name="heart" size={18} color={colors.brand.DEFAULT} />
-                <Text style={styles.notesRowText}>{t('notes.heading')}</Text>
-              </TouchableOpacity>
+            {/* Memory book + voice memories — host taps to read notes / hear voices.
+                Half-width side by side when both are on, full width when only one. */}
+            {(event?.notes || event?.voices) && (
+              <View style={styles.memoryRow}>
+                {event?.notes && (
+                  <TouchableOpacity onPress={() => setNotesOpen(true)} style={styles.memoryRowBtn} activeOpacity={0.85}>
+                    <Icon name="heart" size={18} color={colors.brand.DEFAULT} />
+                    <Text style={styles.notesRowText} numberOfLines={1}>{t('notes.heading')}</Text>
+                  </TouchableOpacity>
+                )}
+                {event?.voices && (
+                  <TouchableOpacity onPress={() => setVoicesOpen(true)} style={styles.memoryRowBtn} activeOpacity={0.85}>
+                    <Icon name="mic" size={18} color={colors.brand.DEFAULT} strokeWidth={2.2} />
+                    <Text style={styles.notesRowText} numberOfLines={1}>{t('voices.heading')}</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
             <View style={styles.sectionHead}>
               <Text style={styles.sectionTitle}>
@@ -458,6 +488,7 @@ export default function EventManage() {
       </Modal>
 
       {id && <NotesModal visible={notesOpen} onClose={() => setNotesOpen(false)} eventId={id} eventName={event?.name ?? ''} />}
+      {id && <VoicesModal visible={voicesOpen} onClose={() => setVoicesOpen(false)} eventId={id} />}
     </LinearGradient>
   );
 }
@@ -494,7 +525,8 @@ const styles = StyleSheet.create({
   grid: { padding: spacing.lg, gap: spacing.sm },
   settingsCard: { backgroundColor: colors.bg.card, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, padding: spacing.md, gap: spacing.sm, marginBottom: spacing.lg },
   settingsTitle: { fontSize: typography.sizes.base, fontFamily: fonts.displayBold, color: colors.text.primary, marginBottom: spacing.xs },
-  notesRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.bg.card, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, paddingHorizontal: spacing.md, paddingVertical: 14, marginBottom: spacing.md },
+  memoryRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  memoryRowBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.bg.card, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border.DEFAULT, paddingHorizontal: spacing.md, paddingVertical: 14 },
   notesRowText: { fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold, color: colors.text.primary },
   settingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   settingLabel: { flex: 1, fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium, color: colors.text.primary },

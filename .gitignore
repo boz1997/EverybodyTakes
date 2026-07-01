@@ -9,6 +9,9 @@ dist/
 web-build/
 expo-env.d.ts
 
+# local build artifacts (EAS --local output)
+build-*.ipa
+
 # Native
 .kotlin/
 *.orig.*

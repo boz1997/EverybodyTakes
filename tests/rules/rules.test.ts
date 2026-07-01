@@ -42,7 +42,7 @@ beforeEach(async () => {
     await setDoc(doc(db, 'events/e1'), {
       hostId: HOST, name: 'Wedding', shortCode: 'ABC234', isActive: true,
       guestCount: 1, photoCount: 5, photoCap: 100, maxGuests: 10, plan: 'free',
-      notes: true, notesEnabled: true,
+      notes: true, notesEnabled: true, voices: true, voicesEnabled: true,
     });
     await setDoc(doc(db, 'events/e1/guests', GUEST), { userId: GUEST, shotsRemaining: 3 });
     await setDoc(doc(db, 'events/e1/photos/p1'), { uploadedBy: GUEST, isVisible: true, likedBy: [] });
@@ -210,6 +210,70 @@ describe('firestore rules — notes (memory book)', () => {
       await setDoc(doc(ctx.firestore(), `events/e1/notes/${GUEST}`), note);
     });
     await assertSucceeds(deleteDoc(doc(asHost(), `events/e1/notes/${GUEST}`)));
+  });
+});
+
+describe('firestore rules — voices (voice memories)', () => {
+  const voice = { authorId: GUEST, authorName: 'Mia', audioUrl: 'https://x/a.m4a', durationMs: 4200 };
+
+  // Extra events for the plan/host gates.
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'events/noVoicesPlan'), { hostId: HOST, voices: false, voicesEnabled: true });
+      await setDoc(doc(db, 'events/noVoicesPlan/guests', GUEST), { userId: GUEST });
+      await setDoc(doc(db, 'events/voicesOff'), { hostId: HOST, voices: true, voicesEnabled: false });
+      await setDoc(doc(db, 'events/voicesOff/guests', GUEST), { userId: GUEST });
+    });
+  });
+
+  it('a participant can leave a valid voice (doc id = their uid)', async () => {
+    await assertSucceeds(setDoc(doc(asGuest(), `events/e1/voices/${GUEST}`), voice));
+  });
+
+  it('a guest can replace their own voice by writing it again', async () => {
+    await assertSucceeds(setDoc(doc(asGuest(), `events/e1/voices/${GUEST}`), voice));
+    await assertSucceeds(setDoc(doc(asGuest(), `events/e1/voices/${GUEST}`), { ...voice, audioUrl: 'https://x/b.m4a' }));
+  });
+
+  it('a guest cannot write to a voice id that is not their uid (one per guest)', async () => {
+    await assertFails(setDoc(doc(asGuest(), `events/e1/voices/${STRANGER}`), voice));
+  });
+
+  it('a signed-in non-participant cannot leave a voice', async () => {
+    await assertFails(setDoc(doc(asStranger(), `events/e1/voices/${STRANGER}`), { ...voice, authorId: STRANGER }));
+  });
+
+  it('the voice author must be the writer', async () => {
+    await assertFails(setDoc(doc(asGuest(), `events/e1/voices/${GUEST}`), { ...voice, authorId: STRANGER }));
+  });
+
+  it('rejects a voice with no audioUrl', async () => {
+    await assertFails(setDoc(doc(asGuest(), `events/e1/voices/${GUEST}`), { ...voice, audioUrl: '' }));
+  });
+
+  it('rejects voices when the plan does not include them', async () => {
+    await assertFails(setDoc(doc(asGuest(), `events/noVoicesPlan/voices/${GUEST}`), voice));
+  });
+
+  it('rejects voices when the host has switched them off', async () => {
+    await assertFails(setDoc(doc(asGuest(), `events/voicesOff/voices/${GUEST}`), voice));
+  });
+
+  it('a participant and the host can read voices; a stranger cannot', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `events/e1/voices/${GUEST}`), voice);
+    });
+    await assertSucceeds(getDoc(doc(asGuest(), `events/e1/voices/${GUEST}`)));
+    await assertSucceeds(getDoc(doc(asHost(), `events/e1/voices/${GUEST}`)));
+    await assertFails(getDoc(doc(asStranger(), `events/e1/voices/${GUEST}`)));
+  });
+
+  it('the author or host can delete a voice', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `events/e1/voices/${GUEST}`), voice);
+    });
+    await assertSucceeds(deleteDoc(doc(asHost(), `events/e1/voices/${GUEST}`)));
   });
 });
 

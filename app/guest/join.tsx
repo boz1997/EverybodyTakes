@@ -17,6 +17,7 @@ import { dateLocale } from '@shared/utils/dateLocale';
 import { EventService, Event, Photo, LimitError } from '@features/events/services/eventService';
 import { useEventPhotos } from '@features/gallery/hooks/useEventPhotos';
 import { LeaveNoteModal } from '@features/notes/LeaveNoteModal';
+import { RecordVoiceModal } from '@features/voices/RecordVoiceModal';
 import { savePhotosToLibrary, savePhotoToLibrary } from '@features/gallery/downloadPhotos';
 import { createEventZip } from '@features/events/services/exportService';
 import { AuthService } from '@features/auth/services/authService';
@@ -88,6 +89,8 @@ export default function EventHubScreen() {
   const [zipping, setZipping] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [hasNote, setHasNote] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [hasVoice, setHasVoice] = useState(false);
   const flatRef = useRef<FlatList<Photo>>(null);
 
   const handleZip = async () => {
@@ -176,6 +179,12 @@ export default function EventHubScreen() {
     if (!event?.notes || !uid || !joined) return;
     EventService.getMyNote(event.id, uid).then((n) => setHasNote(!!n)).catch(() => {});
   }, [event?.id, event?.notes, uid, joined]);
+
+  // ...and a voice memory? (drives the leave/edit voice button label)
+  useEffect(() => {
+    if (!event?.voices || !uid || !joined) return;
+    EventService.getMyVoice(event.id, uid).then((v) => setHasVoice(!!v)).catch(() => {});
+  }, [event?.id, event?.voices, uid, joined]);
 
   const onNicknameChange = (v: string) => { setNicknameState(v); saveNickname(v); };
 
@@ -382,12 +391,23 @@ export default function EventHubScreen() {
           <PrimaryButton label={t('guest.enterCamera')} icon="camera" onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push({ pathname: '/guest/camera', params: { id: event.id } }); }} />
         )}
 
-        {/* Memory book — leave a written note (medium/unlimited, host-enabled) */}
-        {event.notes && event.notesEnabled !== false && joined && uid && (
-          <TouchableOpacity onPress={() => { Haptics.selectionAsync(); setNoteOpen(true); }} style={styles.noteBtn} activeOpacity={0.85}>
-            <Text style={styles.noteBtnEmoji}>📖</Text>
-            <Text style={styles.noteBtnText}>{hasNote ? t('notes.edit') : t('notes.leave')}</Text>
-          </TouchableOpacity>
+        {/* Memory book + voice memory — half-width side by side when both are on,
+            full width when only one is enabled (medium/unlimited, host-enabled) */}
+        {joined && uid && ((event.notes && event.notesEnabled !== false) || (event.voices && event.voicesEnabled !== false)) && (
+          <View style={styles.memoryRow}>
+            {event.notes && event.notesEnabled !== false && (
+              <TouchableOpacity onPress={() => { Haptics.selectionAsync(); setNoteOpen(true); }} style={styles.memoryBtn} activeOpacity={0.85}>
+                <Text style={styles.noteBtnEmoji}>📖</Text>
+                <Text style={styles.memoryBtnText} numberOfLines={1}>{hasNote ? t('notes.edit') : t('notes.leave')}</Text>
+              </TouchableOpacity>
+            )}
+            {event.voices && event.voicesEnabled !== false && (
+              <TouchableOpacity onPress={() => { Haptics.selectionAsync(); setVoiceOpen(true); }} style={styles.memoryBtn} activeOpacity={0.85}>
+                <Icon name="mic" size={17} color={colors.brand.DEFAULT} strokeWidth={2.2} />
+                <Text style={styles.memoryBtnText} numberOfLines={1}>{hasVoice ? t('voices.edit') : t('voices.leave')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         )}
 
         {/* Gallery */}
@@ -591,6 +611,16 @@ export default function EventHubScreen() {
           onSaved={() => setHasNote(true)}
         />
       )}
+      {uid && (
+        <RecordVoiceModal
+          visible={voiceOpen}
+          onClose={() => setVoiceOpen(false)}
+          eventId={event.id}
+          authorId={uid}
+          authorName={nickname || null}
+          onChanged={setHasVoice}
+        />
+      )}
     </LinearGradient>
   );
 }
@@ -616,9 +646,10 @@ const styles = StyleSheet.create({
   endedText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodyMedium, color: colors.text.muted },
   usedPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 56, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
   usedText: { fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold, color: colors.brand.dark },
-  noteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
+  memoryRow: { flexDirection: 'row', gap: spacing.sm },
+  memoryBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, paddingHorizontal: spacing.sm, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
   noteBtnEmoji: { fontSize: 17 },
-  noteBtnText: { fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold, color: colors.brand.DEFAULT },
+  memoryBtnText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold, color: colors.brand.DEFAULT, flexShrink: 1 },
   galleryHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm },
   galleryTitle: { fontSize: typography.sizes.lg, fontFamily: fonts.displayBold, color: colors.text.primary },
   tabs: { flexDirection: 'row', gap: spacing.xs, backgroundColor: colors.bg.card, borderRadius: radius.full, padding: 3, borderWidth: 1, borderColor: colors.border.DEFAULT },

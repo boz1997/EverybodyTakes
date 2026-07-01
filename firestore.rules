@@ -139,6 +139,34 @@ service cloud.firestore {
         allow delete: if signedIn()
           && (resource.data.authorId == request.auth.uid || isEventHost());
       }
+
+      // "Voice memories". Same participant gate and one-per-guest model as notes;
+      // gated on the event's plan (voices) AND the host toggle (voicesEnabled).
+      // The audio bytes live in Storage; the doc just carries the download URL.
+      match /voices/{voiceId} {
+        function isEventHost() {
+          return get(/databases/$(database)/documents/events/$(eventId)).data.hostId == request.auth.uid;
+        }
+        function isParticipant() {
+          return exists(/databases/$(database)/documents/events/$(eventId)/guests/$(request.auth.uid));
+        }
+        function voicesOpen() {
+          let e = get(/databases/$(database)/documents/events/$(eventId)).data;
+          return e.voices == true && e.voicesEnabled != false;
+        }
+        allow read: if signedIn() && (isParticipant() || isEventHost());
+        // One voice per guest: the doc id IS the author's uid, so recording again
+        // replaces their own voice rather than adding a second.
+        allow create, update: if signedIn()
+          && voiceId == request.auth.uid
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.audioUrl is string
+          && request.resource.data.audioUrl.size() > 0
+          && (isParticipant() || isEventHost())
+          && voicesOpen();
+        allow delete: if signedIn()
+          && (resource.data.authorId == request.auth.uid || isEventHost());
+      }
     }
   }
 }

@@ -47,6 +47,13 @@ describe('plans', () => {
     expect(PLANS.small.notes).toBe(false);
   });
 
+  it('voices (voice memories) are on medium and unlimited only', () => {
+    const withVoices = Object.values(PLANS).filter((p) => p.voices).map((p) => p.id);
+    expect(withVoices).toEqual(['medium', 'unlimited']);
+    expect(PLANS.free.voices).toBe(false);
+    expect(PLANS.small.voices).toBe(false);
+  });
+
   it('getPlan falls back to free for unknown / empty ids', () => {
     expect(getPlan('free')).toBe(PLANS.free);
     expect(getPlan('unlimited')).toBe(PLANS.unlimited);

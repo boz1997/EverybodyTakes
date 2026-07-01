@@ -18,7 +18,7 @@ import {
   arrayRemove,
   Unsubscribe,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { db, storage } from '@lib/firebase';
 import { EventDraft } from '@store/eventStore';
@@ -57,6 +57,8 @@ export interface Event {
   video: boolean;             // resolved from plan
   notes: boolean;             // resolved from plan — "Memory book" capability
   notesEnabled: boolean;      // host toggle (default true) — guests can leave notes
+  voices: boolean;            // resolved from plan — "Voice memories" capability
+  voicesEnabled: boolean;     // host toggle (default true) — guests can leave a voice
   endsAt: string | null;      // for reveal timing
   shortCode: string;
   isActive: boolean;
@@ -91,6 +93,19 @@ export interface Note {
   authorId: string;
   authorName: string | null;
   text: string;
+  createdAt: string;
+}
+
+// A guest-left spoken memory ("Voice memories"). Available on medium/unlimited.
+// Hard cap on clip length so storage/cost stays trivial (~1 MB/min).
+export const VOICE_MAX_MS = 60000;
+
+export interface Voice {
+  id: string;
+  authorId: string;
+  authorName: string | null;
+  audioUrl: string;
+  durationMs: number;
   createdAt: string;
 }
 
@@ -184,6 +199,8 @@ export const EventService = {
       video: limits.video,
       notes: limits.notes,
       notesEnabled: true,
+      voices: limits.voices,
+      voicesEnabled: true,
       endsAt,
       shortCode,
       isActive: true,
@@ -394,6 +411,44 @@ export const EventService = {
     });
   },
 
+  // "Voice memories": each guest gets ONE voice (the doc id is their uid), so
+  // recording again overwrites the same storage file and doc rather than piling
+  // up clips. Uploads the m4a, then writes the doc pointing at its download URL.
+  async saveVoice(eventId: string, authorId: string, authorName: string | null, uri: string, durationMs: number): Promise<void> {
+    const storageRef = ref(storage, `events/${eventId}/voices/${authorId}.m4a`);
+    await uploadBytes(storageRef, await uriToBlob(uri), { contentType: 'audio/m4a' });
+    const audioUrl = await getDownloadURL(storageRef);
+    await setDoc(doc(db, 'events', eventId, 'voices', authorId), {
+      authorId,
+      authorName: authorName?.trim() || null,
+      audioUrl,
+      durationMs: Math.round(durationMs),
+      createdAt: serverTimestamp(),
+    });
+  },
+
+  // The current guest's own voice, if they've left one (for the replace flow).
+  async getMyVoice(eventId: string, uid: string): Promise<Voice | null> {
+    const snap = await getDoc(doc(db, 'events', eventId, 'voices', uid));
+    return snap.exists() ? ({ id: snap.id, ...snap.data() } as Voice) : null;
+  },
+
+  // The host (or the voice's author) removes a voice. Deletes the doc, then the
+  // audio file best-effort — the doc governs visibility, so a lingering file is
+  // harmless (and the whole prefix is wiped when the event is deleted).
+  async deleteVoice(eventId: string, voiceId: string): Promise<void> {
+    await deleteDoc(doc(db, 'events', eventId, 'voices', voiceId));
+    await deleteObject(ref(storage, `events/${eventId}/voices/${voiceId}.m4a`)).catch(() => {});
+  },
+
+  // Live voices feed, newest-first (same estimate + in-memory sort as notes).
+  subscribeToVoices(eventId: string, callback: (voices: Voice[]) => void): Unsubscribe {
+    const q = query(collection(db, 'events', eventId, 'voices'), orderBy('createdAt', 'desc'), fbLimit(200));
+    return onSnapshot(q, (snap) => {
+      callback(sortPhotosNewestFirst(snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }) as Voice)));
+    });
+  },
+
   async uploadCoverImage(eventId: string, uri: string): Promise<string> {
     const path = `events/${eventId}/cover.jpg`;
     const storageRef = ref(storage, path);
@@ -429,7 +484,7 @@ export const EventService = {
   // Host-editable settings (the bits we moved out of the create flow).
   async updateSettings(
     eventId: string,
-    settings: Partial<Pick<Event, 'disposableMode' | 'allowGalleryUpload' | 'reminderBefore' | 'revealTiming' | 'uploadNotify' | 'notesEnabled'>>,
+    settings: Partial<Pick<Event, 'disposableMode' | 'allowGalleryUpload' | 'reminderBefore' | 'revealTiming' | 'uploadNotify' | 'notesEnabled' | 'voicesEnabled'>>,
   ): Promise<void> {
     await updateDoc(doc(db, 'events', eventId), settings);
   },
@@ -438,7 +493,7 @@ export const EventService = {
   async updatePlan(eventId: string, planId: string): Promise<void> {
     const p = getPlan(planId);
     await updateDoc(doc(db, 'events', eventId), {
-      plan: p.id, maxGuests: p.maxGuests, photoCap: p.photoCap, video: p.video, notes: p.notes,
+      plan: p.id, maxGuests: p.maxGuests, photoCap: p.photoCap, video: p.video, notes: p.notes, voices: p.voices,
     });
   },
 

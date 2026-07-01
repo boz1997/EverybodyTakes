@@ -406,6 +406,56 @@ exports.createEventZip = onCall({ memory: '1GiB', timeoutSeconds: 540 }, async (
   return { url, count: files.length };
 });
 
+// ---- Voices ZIP export: host downloads every voice memory as one archive ----
+// Like createEventZip, but names each clip after its author (read from the voice
+// docs) so the host gets "Ayşe.m4a", "Mehmet.m4a" rather than raw uids.
+exports.createVoicesZip = onCall({ memory: '512MiB', timeoutSeconds: 300 }, async (req) => {
+  const uid = req.auth && req.auth.uid;
+  const eventId = req.data && req.data.eventId;
+  if (!uid) throw new HttpsError('unauthenticated', 'Sign in required');
+  if (!eventId) throw new HttpsError('invalid-argument', 'eventId required');
+
+  const eventSnap = await db.doc(`events/${eventId}`).get();
+  if (!eventSnap.exists) throw new HttpsError('not-found', 'Event not found');
+  const isHost = eventSnap.data().hostId === uid;
+  const isGuest = (await db.doc(`events/${eventId}/guests/${uid}`).get()).exists;
+  if (!isHost && !isGuest) throw new HttpsError('permission-denied', 'Not a participant');
+
+  // uid → author name, so the archive entries are human-readable.
+  const voiceDocs = await db.collection(`events/${eventId}/voices`).get();
+  const nameByUid = {};
+  voiceDocs.forEach((d) => { nameByUid[d.id] = (d.data().authorName || '').trim(); });
+
+  const bucket = getStorage().bucket('everybodytakes.firebasestorage.app');
+  const [files] = await bucket.getFiles({ prefix: `events/${eventId}/voices/` });
+  if (files.length === 0) throw new HttpsError('not-found', 'No voices yet');
+
+  const zipFile = bucket.file(`events/${eventId}/export/voices.zip`);
+  const archive = archiver('zip', { store: true });
+  const out = zipFile.createWriteStream({ contentType: 'application/zip' });
+  const finished = new Promise((resolve, reject) => {
+    out.on('finish', resolve);
+    out.on('error', reject);
+    archive.on('error', reject);
+  });
+  archive.pipe(out);
+  const used = {};
+  for (const f of files) {
+    const fuid = (f.name.split('/').pop() || '').replace(/\.m4a$/i, '');
+    const clean = (nameByUid[fuid] || 'Guest').replace(/[^\p{L}\p{N} _-]/gu, '').trim() || 'Guest';
+    used[clean] = (used[clean] || 0) + 1;
+    const name = used[clean] > 1 ? `${clean}-${used[clean]}.m4a` : `${clean}.m4a`;
+    archive.append(f.createReadStream(), { name });
+  }
+  await archive.finalize();
+  await finished;
+
+  const token = randomUUID();
+  await zipFile.setMetadata({ metadata: { firebaseStorageDownloadTokens: token } });
+  const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(zipFile.name)}?alt=media&token=${token}`;
+  return { url, count: files.length };
+});
+
 // Runs a guarded deletion and maps its PurgeError code onto an HttpsError.
 async function runGuarded(fn) {
   try {
