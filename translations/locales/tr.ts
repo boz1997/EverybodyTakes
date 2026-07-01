@@ -33,6 +33,7 @@ export default {
     iAmHost: 'Etkinlik Oluştur',
     guestSubtitle: 'QR tara, çekmeye başla',
     hostSubtitle: 'Etkinliğini kur, anıları topla',
+    seeAllEvents: 'Tümünü gör ({{n}})',
   },
 
   auth: {

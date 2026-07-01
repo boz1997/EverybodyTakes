@@ -100,8 +100,8 @@ export default function ScanScreen() {
             label={canAsk ? t('errors.cameraGrant') : t('errors.openSettings')}
             onPress={canAsk ? requestPermission : () => Linking.openSettings()}
           />
-          {/* The camera isn't a hard gate — guests can still type the code,
-              scan a saved QR from their album, or open their joined events. */}
+          {/* The camera isn't a hard gate — guests can still type the code or
+              scan a saved QR from their album. */}
           <View style={styles.permAlt}>
             <TouchableOpacity onPress={() => setMode('code')} style={styles.permCodeBtn}>
               <Icon name="keyboard" size={18} color={colors.brand.DEFAULT} />
@@ -110,10 +110,6 @@ export default function ScanScreen() {
             <TouchableOpacity onPress={handleAlbum} style={styles.permCodeBtn}>
               <Icon name="image" size={18} color={colors.brand.DEFAULT} />
               <Text style={styles.permCodeText}>{t('guest.fromAlbum')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push('/guest/joined')} style={styles.permCodeBtn}>
-              <Icon name="gallery" size={18} color={colors.brand.DEFAULT} />
-              <Text style={styles.permCodeText}>{t('guest.myEvents')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -180,11 +176,6 @@ export default function ScanScreen() {
                 <Text style={styles.scanPillText}>{t('guest.fromAlbum')}</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => router.push('/guest/joined')} style={styles.myEventsBtn} activeOpacity={0.85}>
-              <Icon name="gallery" size={18} color={colors.text.inverse} />
-              <Text style={styles.myEventsText}>{t('guest.myEvents')}</Text>
-              <Icon name="arrowRight" size={16} color={colors.text.inverse} />
-            </TouchableOpacity>
           </View>
         </>
       )}
@@ -236,8 +227,6 @@ const styles = StyleSheet.create({
   scanActions: { flexDirection: 'row', gap: spacing.sm, alignSelf: 'stretch' },
   scanPill: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: radius.full, paddingVertical: 13 },
   scanPillText: { color: '#fff', fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold },
-  myEventsBtn: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.brand.DEFAULT, borderRadius: radius.full, paddingVertical: 20, marginTop: spacing.sm },
-  myEventsText: { color: colors.text.inverse, fontSize: typography.sizes.lg, fontFamily: fonts.bodyBold },
   codeContainer: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   codeSheet: { backgroundColor: colors.bg.secondary, borderTopLeftRadius: radius['2xl'], borderTopRightRadius: radius['2xl'], padding: spacing.lg, gap: spacing.lg, borderTopWidth: 1, borderColor: colors.border.DEFAULT },
   codeSheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border.DEFAULT, alignSelf: 'center', marginBottom: spacing.sm },

@@ -33,6 +33,7 @@ export default {
     iAmHost: 'I\'m hosting an event',
     guestSubtitle: 'Scan a QR code and start shooting',
     hostSubtitle: 'Create an event and collect memories',
+    seeAllEvents: 'See all ({{n}})',
   },
 
   auth: {

@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +11,10 @@ import Animated, {
 import { Linking } from 'react-native';
 import { useAuthStore } from '@store/authStore';
 import { AuthService } from '@features/auth/services/authService';
-import { Icon } from '@shared/components/Icon';
+import { EventService } from '@features/events/services/eventService';
+import { getJoinedEvents, pruneDeletedJoined, JoinedEvent } from '@store/guestEvents';
+import { EventType } from '@store/eventStore';
+import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { GuestArt, HostArt } from '@shared/components/RoleArt';
 import { Wordmark } from '@shared/components/Wordmark';
 import { LINKS } from '@constants/links';
@@ -23,6 +26,37 @@ export default function WelcomeScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { user, setUser } = useAuthStore();
+  const [joined, setJoined] = useState<JoinedEvent[] | null>(null);        // all joined (local)
+  const [activeJoined, setActiveJoined] = useState<JoinedEvent[] | null>(null); // still live
+
+  // Returning guests: surface their live event(s) so they can jump straight in.
+  // Reloads on focus, so a newly joined event — or one the host just ended —
+  // updates the card. Offline/error → no card (isActive only lives on the server).
+  useFocusEffect(useCallback(() => {
+    let alive = true;
+    (async () => {
+      const list = await getJoinedEvents();
+      if (!alive) return;
+      setJoined(list);
+      if (list.length === 0) { setActiveJoined([]); return; }
+      try {
+        const { active, existing } = await EventService.joinedStatus(list.map((e) => e.id));
+        const kept = await pruneDeletedJoined(existing);   // drop host-deleted events
+        if (alive) {
+          setJoined(kept);
+          setActiveJoined(kept.filter((e) => active.has(e.id)));
+        }
+      } catch {
+        if (alive) setActiveJoined([]);
+      }
+    })();
+    return () => { alive = false; };
+  }, []));
+
+  const openJoined = (ev: JoinedEvent) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push({ pathname: '/guest/join', params: { code: ev.code } });
+  };
 
   const headlineOpacity = useSharedValue(0);
   const headlineY = useSharedValue(24);
@@ -86,6 +120,37 @@ export default function WelcomeScreen() {
 
         {/* Role cards */}
         <Animated.View style={[styles.cards, cardsStyle]}>
+
+          {/* Returning guest — jump straight into a live event, above the roles */}
+          {activeJoined && activeJoined.length === 1 && (
+            <TouchableOpacity style={styles.resumeCard} onPress={() => openJoined(activeJoined[0])} activeOpacity={0.85}>
+              {activeJoined[0].coverImageUrl ? (
+                <Image source={{ uri: activeJoined[0].coverImageUrl }} style={styles.resumeCover} />
+              ) : (
+                <View style={styles.resumeIcon}><Icon name={EVENT_TYPE_ICON[activeJoined[0].type as EventType] ?? 'party'} size={22} color={colors.brand.DEFAULT} /></View>
+              )}
+              <View style={styles.resumeText}>
+                <Text style={styles.resumeName} numberOfLines={1}>{activeJoined[0].name}</Text>
+              </View>
+              <Icon name="arrowRight" size={18} color={colors.brand.DEFAULT} />
+            </TouchableOpacity>
+          )}
+          {activeJoined && activeJoined.length > 1 && (
+            <TouchableOpacity style={styles.resumeCard} onPress={() => { Haptics.selectionAsync(); router.push('/guest/joined'); }} activeOpacity={0.85}>
+              <View style={styles.resumeIcon}><Icon name="gallery" size={22} color={colors.brand.DEFAULT} /></View>
+              <View style={styles.resumeText}>
+                <Text style={styles.resumeName} numberOfLines={1}>{t('guest.myEvents')}</Text>
+              </View>
+              <Icon name="arrowRight" size={18} color={colors.brand.DEFAULT} />
+            </TouchableOpacity>
+          )}
+          {activeJoined && ((activeJoined.length === 1 && (joined?.length ?? 0) > 1) || (activeJoined.length === 0 && (joined?.length ?? 0) > 0)) && (
+            <TouchableOpacity onPress={() => router.push('/guest/joined')} style={styles.archiveLink} activeOpacity={0.7}>
+              <Text style={styles.archiveLinkText}>{t('welcome.seeAllEvents', { n: joined?.length ?? 0 })}</Text>
+              <Icon name="arrowRight" size={13} color={colors.text.muted} />
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity style={styles.card} onPress={() => handleRole('guest')} activeOpacity={0.8}>
             <View style={styles.cardIcon}>
               <GuestArt size={44} />
@@ -155,4 +220,16 @@ const styles = StyleSheet.create({
   cardText: { flex: 1, gap: 3 },
   cardTitle: { fontFamily: fonts.displayBold, fontSize: typography.sizes.xl, color: colors.text.primary },
   cardSubtitle: { fontFamily: fonts.body, fontSize: typography.sizes.sm, color: colors.text.muted },
+  resumeCard: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    backgroundColor: colors.brand.glow, borderRadius: radius.xl,
+    borderWidth: 1, borderColor: colors.brand.DEFAULT,
+    paddingVertical: spacing.md, paddingHorizontal: spacing.md,
+  },
+  resumeCover: { width: 50, height: 50, borderRadius: radius.md, backgroundColor: colors.bg.elevated },
+  resumeIcon: { width: 50, height: 50, borderRadius: radius.md, backgroundColor: colors.brand.glow, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border.brand },
+  resumeText: { flex: 1 },
+  resumeName: { fontFamily: fonts.displayBold, fontSize: typography.sizes.xl, color: colors.text.primary },
+  archiveLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: spacing.xs, marginTop: -spacing.xs },
+  archiveLinkText: { fontFamily: fonts.bodyMedium, fontSize: typography.sizes.sm, color: colors.text.muted },
 });

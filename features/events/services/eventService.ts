@@ -8,6 +8,7 @@ import {
   deleteDoc,
   query,
   where,
+  documentId,
   orderBy,
   limit as fbLimit,
   serverTimestamp,
@@ -221,6 +222,25 @@ export const EventService = {
   async getById(eventId: string): Promise<Event | null> {
     const snap = await getDoc(doc(db, 'events', eventId));
     return snap.exists() ? (snap.data() as Event) : null;
+  },
+
+  // Current server state of the given joined events, in one batched read — powers
+  // the welcome "resume" surface and the joined-events list. `existing` are the
+  // ids whose event still exists (a host-DELETED event is absent → callers prune
+  // it from local storage); `active` are the still-live ones. `in` caps at 30.
+  async joinedStatus(ids: string[]): Promise<{ active: Set<string>; existing: Set<string> }> {
+    const active = new Set<string>();
+    const existing = new Set<string>();
+    const unique = [...new Set(ids)];
+    for (let i = 0; i < unique.length; i += 30) {
+      const chunk = unique.slice(i, i + 30);
+      const snap = await getDocs(query(collection(db, 'events'), where(documentId(), 'in', chunk)));
+      snap.forEach((d) => {
+        existing.add(d.id);
+        if ((d.data() as Event).isActive) active.add(d.id);
+      });
+    }
+    return { active, existing };
   },
 
   async getByShortCode(code: string): Promise<Event | null> {

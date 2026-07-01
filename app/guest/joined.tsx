@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { getJoinedEvents, removeJoinedEvent, JoinedEvent } from '@store/guestEvents';
+import { getJoinedEvents, removeJoinedEvent, pruneDeletedJoined, JoinedEvent } from '@store/guestEvents';
+import { EventService } from '@features/events/services/eventService';
 import { Icon, EVENT_TYPE_ICON } from '@shared/components/Icon';
 import { EventType } from '@store/eventStore';
 import { colors, typography, spacing, radius, fonts, gradients } from '@constants/theme';
@@ -14,10 +15,25 @@ export default function JoinedEventsScreen() {
   const insets = useSafeAreaInsets();
   const [events, setEvents] = useState<JoinedEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    getJoinedEvents().then((e) => { setEvents(e); setLoading(false); });
+  // Show the cached list instantly, then reconcile with the server and drop any
+  // events the host has deleted (they'd otherwise 404 when tapped). Offline →
+  // keep the cache.
+  const load = useCallback(async () => {
+    const local = await getJoinedEvents();
+    setEvents(local);
+    setLoading(false);
+    if (local.length === 0) return;
+    try {
+      const { existing } = await EventService.joinedStatus(local.map((e) => e.id));
+      setEvents(await pruneDeletedJoined(existing));
+    } catch { /* offline — keep the cached list */ }
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   const confirmRemove = (item: JoinedEvent) => {
     Alert.alert(item.name, t('guest.removeJoinedConfirm'), [
@@ -76,6 +92,7 @@ export default function JoinedEventsScreen() {
         data={events}
         keyExtractor={(e) => e.id}
         renderItem={renderItem}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand.DEFAULT} />}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + spacing.xl }, events.length === 0 && styles.listEmpty]}
         ListEmptyComponent={
           !loading ? (
