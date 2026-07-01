@@ -76,11 +76,14 @@ Branch: `feature/monetization` · main'den izole, test sonrası merge edilir.
 - [ ] **AdMob ödeme profili** tamamla ("Sorunu gider").
 - [ ] **App Store Marketing + Support URL → guestcam.store** (1.0.2 onayı sonrası). app-ads.txt doğrulaması bunu bekliyor: AdMob "doğrulayamadık" diyor çünkü App Store'da hâlâ `boz1997.github.io/...`; URL guestcam.store olunca `guestcam.store/app-ads.txt`'i bulur. **1.0.3 binary GEREKMEZ, sadece URL (metadata).**
 
-## Açık Yapılacaklar — 1.0.3 (KOD/DEPLOY)
-- [ ] feature/monetization → main merge.
-- [ ] `firebase deploy --only functions` (retention job + bildirimler).
-- [ ] `node functions/scripts/backfill-retention-exempt.js` (eskileri muaf tut, ilk daily tick öncesi).
+- [ ] **Paid paket IAP ürünleri** (App Store Connect → In-App Purchases → 3× **Consumable**): `event_small` $3.99, `event_medium` $14.99, `event_unlimited` $29.99 (plans.ts productId'leri). Bunlar olmadan paywall'da fiyat görünmez + "satın al" başarısız. RevenueCat "offerings empty" uyarısı bundan — kod offerings DEĞİL direkt product kullanıyor, uyarı zararsız; ama ürünler App Store Connect'te olmalı. Reklam/filigran bundan ETKİLENMEZ.
+
+## Açık Yapılacaklar — KOD/DEPLOY
+- [ ] feature/monetization → main merge (1.0.3 build).
 - [ ] Yeni EAS build (google-mobile-ads native modülü için).
+- [ ] **Retention deploy — APP YAYINLANDIKTAN SONRA, ŞU AN DEĞİL** (kullanıcı kararı):
+  - [ ] `firebase deploy --only functions` (retention job + bildirimler)
+  - [ ] `node functions/scripts/backfill-retention-exempt.js` (eskileri muaf tut, ilk daily tick öncesi)
 
 ## Simülatör Testi
 - **Expo Go YETMEZ** — `google-mobile-ads` + `view-shot` native; Expo Go'da graceful degrade (reklam + indirme-filigranı görünmez, crash yok; sadece galeri overlay'i çıkar).
