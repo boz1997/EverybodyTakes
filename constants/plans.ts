@@ -17,6 +17,8 @@ export interface Plan {
   voices: boolean;            // "Voice memories" — guests can leave a spoken note
   hdExport: boolean;
   liveWall: boolean;
+  /** Days a free event's photos are kept before auto-deletion. null = kept forever (paid). */
+  retentionDays: number | null;
   /** App Store IAP product id (must match App Store Connect + RevenueCat). */
   productId: string | null;
   /** Reference USD price (display fallback; the live price comes from the store). */
@@ -24,10 +26,10 @@ export interface Plan {
 }
 
 export const PLANS: Record<PlanId, Plan> = {
-  free: { id: 'free', maxGuests: 10, photoCap: 100, video: false, notes: false, voices: false, hdExport: false, liveWall: false, productId: null, priceUSD: 0 },
-  small: { id: 'small', maxGuests: 20, photoCap: null, video: false, notes: false, voices: false, hdExport: true, liveWall: false, productId: 'event_small', priceUSD: 3.99 },
-  medium: { id: 'medium', maxGuests: 50, photoCap: null, video: false, notes: true, voices: true, hdExport: true, liveWall: true, productId: 'event_medium', priceUSD: 14.99 },
-  unlimited: { id: 'unlimited', maxGuests: null, photoCap: null, video: true, notes: true, voices: true, hdExport: true, liveWall: true, productId: 'event_unlimited', priceUSD: 29.99 },
+  free: { id: 'free', maxGuests: 10, photoCap: 100, video: false, notes: false, voices: false, hdExport: false, liveWall: false, retentionDays: 7, productId: null, priceUSD: 0 },
+  small: { id: 'small', maxGuests: 20, photoCap: null, video: false, notes: false, voices: false, hdExport: true, liveWall: false, retentionDays: null, productId: 'event_small', priceUSD: 3.99 },
+  medium: { id: 'medium', maxGuests: 50, photoCap: null, video: false, notes: true, voices: true, hdExport: true, liveWall: true, retentionDays: null, productId: 'event_medium', priceUSD: 14.99 },
+  unlimited: { id: 'unlimited', maxGuests: null, photoCap: null, video: true, notes: true, voices: true, hdExport: true, liveWall: true, retentionDays: null, productId: 'event_unlimited', priceUSD: 29.99 },
 };
 
 export const PAID_PLAN_ORDER: PlanId[] = ['small', 'medium', 'unlimited'];

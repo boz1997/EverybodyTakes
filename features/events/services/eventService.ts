@@ -59,6 +59,8 @@ export interface Event {
   notesEnabled: boolean;      // host toggle (default true) — guests can leave notes
   voices: boolean;            // resolved from plan — "Voice memories" capability
   voicesEnabled: boolean;     // host toggle (default true) — guests can leave a voice
+  retentionDays: number | null; // resolved from plan — free auto-deletes N days after first photo
+  retentionExempt?: boolean;  // grandfathered events (pre-retention) are never auto-deleted
   endsAt: string | null;      // for reveal timing
   shortCode: string;
   isActive: boolean;
@@ -201,6 +203,8 @@ export const EventService = {
       notesEnabled: true,
       voices: limits.voices,
       voicesEnabled: true,
+      retentionDays: limits.retentionDays,
+      retentionExempt: false,
       endsAt,
       shortCode,
       isActive: true,
@@ -494,6 +498,7 @@ export const EventService = {
     const p = getPlan(planId);
     await updateDoc(doc(db, 'events', eventId), {
       plan: p.id, maxGuests: p.maxGuests, photoCap: p.photoCap, video: p.video, notes: p.notes, voices: p.voices,
+      retentionDays: p.retentionDays,
     });
   },
 

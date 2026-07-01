@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 // CommonJS helper from the Cloud Functions package (no Firebase init inside).
-import { ymdInTz, dailyTickPlan } from '../../functions/lib/schedule';
+import { ymdInTz, dailyTickPlan, retentionPlan } from '../../functions/lib/schedule';
 
 const TZ = 'Europe/Istanbul'; // permanent UTC+3, no DST
 const DAY = 24 * 60 * 60 * 1000;
@@ -57,5 +57,55 @@ describe('dailyTickPlan', () => {
 
   it('an undated event with no photos yet does nothing', () => {
     expect(dailyTickPlan(base, new Date('2026-06-20T09:00:00.000Z'), TZ)).toEqual({ remind: false, wrap: false });
+  });
+});
+
+describe('retentionPlan (free-tier auto-delete)', () => {
+  const now = new Date('2026-07-01T12:00:00.000Z');
+  const daysAgo = (n: number) => now.getTime() - n * DAY;
+  // A free event 7-day plan, first photo N days ago, not yet warned.
+  const free = (firstPhotoDaysAgo: number, warned = false) => ({
+    plan: 'free', retentionExempt: false, retentionDays: 7,
+    firstPhotoAtMs: daysAgo(firstPhotoDaysAgo), warned,
+  });
+
+  it('warns (never purges) the first time, even once past the deadline', () => {
+    // 8 days after the first photo we are already past purgeAt — but with no prior
+    // warning we must WARN, not delete. This is the "never delete without notice" rule.
+    expect(retentionPlan(free(8, false), now)).toEqual({ warn: true, purge: false });
+  });
+
+  it('purges only after a warning was sent and the deadline passed', () => {
+    expect(retentionPlan(free(8, true), now)).toEqual({ warn: false, purge: true });
+  });
+
+  it('warns once in the final 24h, then goes quiet until the deadline', () => {
+    // 6.5 days in: inside the 24h warning window, before the 7-day deadline.
+    expect(retentionPlan(free(6.5, false), now)).toEqual({ warn: true, purge: false });
+    // already warned, deadline not reached → nothing (no repeat warning, no purge).
+    expect(retentionPlan(free(6.5, true), now)).toEqual({ warn: false, purge: false });
+  });
+
+  it('does nothing before the final 24h', () => {
+    expect(retentionPlan(free(3, false), now)).toEqual({ warn: false, purge: false });
+  });
+
+  it('NEVER touches a paid event (retentionDays null), however old or warned', () => {
+    const paid = { plan: 'small', retentionExempt: false, retentionDays: null, firstPhotoAtMs: daysAgo(365), warned: true };
+    expect(retentionPlan(paid, now)).toEqual({ warn: false, purge: false });
+  });
+
+  it('NEVER touches a grandfathered (retentionExempt) event', () => {
+    expect(retentionPlan({ ...free(365, true), retentionExempt: true }, now)).toEqual({ warn: false, purge: false });
+  });
+
+  it('NEVER touches an event with no first photo', () => {
+    expect(retentionPlan({ ...free(0, true), firstPhotoAtMs: null }, now)).toEqual({ warn: false, purge: false });
+  });
+
+  it('NEVER touches a pre-retention event (no retentionDays field) — protects existing users', () => {
+    // Events created before this feature have no retentionDays: undefined == null → ineligible.
+    const legacy = { plan: 'free', retentionExempt: false, firstPhotoAtMs: daysAgo(365), warned: true } as any;
+    expect(retentionPlan(legacy, now)).toEqual({ warn: false, purge: false });
   });
 });

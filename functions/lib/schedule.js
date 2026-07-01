@@ -39,4 +39,27 @@ function dailyTickPlan(ev, now, timeZone) {
   return { remind, wrap };
 }
 
-module.exports = { ymdInTz, dailyTickPlan };
+// Free-tier retention. A free event's photos are deleted `retentionDays` after
+// its first photo — but ONLY after a single 24h warning, and NEVER for a paid,
+// grandfathered (retentionExempt), or photo-less event. Two stages so nothing is
+// ever deleted without notice; the host can upgrade in between to keep it.
+// Pure → testable.  ev = { plan, retentionExempt, retentionDays, firstPhotoAtMs, warned }
+function retentionPlan(ev, now) {
+  const DAY = 24 * 60 * 60 * 1000;
+
+  // `retentionDays == null` covers paid plans AND pre-retention events (the field
+  // is absent → undefined == null), so old free events are never eligible.
+  const eligible = ev.plan === 'free'
+    && !ev.retentionExempt
+    && ev.retentionDays != null
+    && ev.firstPhotoAtMs != null;
+  if (!eligible) return { warn: false, purge: false };
+
+  const t = now.getTime();
+  const purgeAt = ev.firstPhotoAtMs + ev.retentionDays * DAY;
+  const warn = !ev.warned && t >= purgeAt - DAY;    // once, from 24h before the deadline
+  const purge = !!ev.warned && t >= purgeAt;         // only after a warning was sent
+  return { warn, purge };
+}
+
+module.exports = { ymdInTz, dailyTickPlan, retentionPlan };

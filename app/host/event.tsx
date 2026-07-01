@@ -147,7 +147,7 @@ export default function EventManage() {
             <Icon name="crown" size={20} color={colors.gold.DEFAULT} />
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>{t(`paywall.planNames.${getPlan(event.plan).id}`)} · {event.video ? t('paywall.videoOn') : t('paywall.videoOff')}</Text>
-              <Text style={styles.settingDesc}>{event.video ? t('host.upgradeHintGuests') : t('host.upgradeHint')}</Text>
+              <Text style={styles.settingDesc}>{event.retentionDays != null ? t('host.upgradeKeepMemories') : (event.video ? t('host.upgradeHintGuests') : t('host.upgradeHint'))}</Text>
             </View>
             <Icon name="arrowRight" size={16} color={colors.text.muted} />
           </TouchableOpacity>

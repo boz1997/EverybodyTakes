@@ -371,7 +371,7 @@ export default function EventHubScreen() {
                 : t('guest.shotsShort', { count: event.shotsPerGuest })}
             </Text>
           </View>
-          {event.disposableMode && <View style={styles.statChip}><Icon name="film" size={14} color={colors.text.secondary} /><Text style={styles.statText}>Disposable</Text></View>}
+          {event.disposableMode && <View style={styles.statChip}><Icon name="film" size={14} color={colors.text.secondary} /><Text style={styles.statText}>{t('host.disposableTag')}</Text></View>}
         </View>
 
         {/* Nickname (remembered) */}

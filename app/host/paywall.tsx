@@ -53,12 +53,17 @@ export default function PaywallScreen() {
 
   // Only advertise features that are actually implemented: guests, photos, video.
   // `ok` drives the icon — a missing feature (no video) shows a cross, not a tick.
-  const featureLines = (plan: Plan): { label: string; ok: boolean }[] => [
-    { label: plan.maxGuests == null ? t('paywall.unlimitedGuests') : t('paywall.upToGuests', { n: plan.maxGuests }), ok: true },
-    { label: plan.photoCap == null ? t('paywall.unlimitedPhotos') : t('paywall.photoCap', { n: plan.photoCap }), ok: true },
-    { label: plan.video ? t('paywall.videoOn') : t('paywall.videoOff'), ok: plan.video },
-    { label: plan.notes ? t('notes.bookTitle') : t('notes.featureOff'), ok: plan.notes },
-  ];
+  // Everything the plan HAS is listed first; the crosses sink to the bottom.
+  const featureLines = (plan: Plan): { label: string; ok: boolean }[] => {
+    const lines = [
+      { label: plan.maxGuests == null ? t('paywall.unlimitedGuests') : t('paywall.upToGuests', { n: plan.maxGuests }), ok: true },
+      { label: plan.photoCap == null ? t('paywall.unlimitedPhotos') : t('paywall.photoCap', { n: plan.photoCap }), ok: true },
+      { label: plan.video ? t('paywall.videoOn') : t('paywall.videoOff'), ok: plan.video },
+      { label: plan.notes ? t('notes.bookTitle') : t('notes.featureOff'), ok: plan.notes },
+      { label: plan.retentionDays == null ? t('paywall.storageForever') : t('paywall.storageDays', { n: plan.retentionDays }), ok: plan.retentionDays == null },
+    ];
+    return [...lines.filter((l) => l.ok), ...lines.filter((l) => !l.ok)];
+  };
 
   // Unlocks the selected plan: upgrades the event or creates it, then routes on.
   // Shared by the paid (App Store) and promo-code paths — neither pays twice.

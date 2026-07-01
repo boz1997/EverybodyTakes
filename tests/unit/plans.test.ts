@@ -54,6 +54,13 @@ describe('plans', () => {
     expect(PLANS.small.voices).toBe(false);
   });
 
+  it('only the free plan has a retention window (7 days); paid is kept forever', () => {
+    expect(PLANS.free.retentionDays).toBe(7);
+    expect(PLANS.small.retentionDays).toBeNull();
+    expect(PLANS.medium.retentionDays).toBeNull();
+    expect(PLANS.unlimited.retentionDays).toBeNull();
+  });
+
   it('getPlan falls back to free for unknown / empty ids', () => {
     expect(getPlan('free')).toBe(PLANS.free);
     expect(getPlan('unlimited')).toBe(PLANS.unlimited);

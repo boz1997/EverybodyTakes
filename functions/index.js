@@ -6,8 +6,8 @@ const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { getStorage } = require('firebase-admin/storage');
 const { randomUUID } = require('crypto');
 const archiver = require('archiver');
-const { deleteEventGuarded, deleteAccountGuarded, PurgeError } = require('./lib/purge');
-const { dailyTickPlan } = require('./lib/schedule');
+const { purgeEvent, deleteEventGuarded, deleteAccountGuarded, PurgeError } = require('./lib/purge');
+const { dailyTickPlan, retentionPlan } = require('./lib/schedule');
 
 initializeApp();
 const db = getFirestore();
@@ -41,6 +41,7 @@ const STR = {
     hostTomorrow: 'Your event is tomorrow — share your QR so guests are ready 🎉',
     nudge: 'No guests yet — share your QR or code to get the photos rolling 📷',
     wrapPrompt: 'Has your event wrapped up? Keep the gallery open, or close it whenever you like 🎉',
+    retentionWarn: 'Your free event will be deleted in 24h — upgrade to keep your photos forever.',
   },
   tr: {
     newPhoto: (w, v) => `${w} bir ${v ? 'video' : 'fotoğraf'} ekledi 📸`,
@@ -57,6 +58,7 @@ const STR = {
     hostTomorrow: 'Etkinliğin yarın — QR kodunu paylaş, misafirler hazır olsun 🎉',
     nudge: 'Henüz misafir yok — QR veya kodu paylaş, fotoğraflar gelmeye başlasın 📷',
     wrapPrompt: 'Etkinliğin bitti mi? Galerini açık tutabilir ya da istediğin zaman kapatabilirsin 🎉',
+    retentionWarn: 'Ücretsiz etkinliğin 24 saat içinde silinecek — fotoğraflarını kalıcı tutmak için paketini yükselt.',
   },
   es: {
     newPhoto: (w, v) => `${w} añadió ${v ? 'un vídeo' : 'una foto'} 📸`,
@@ -73,6 +75,7 @@ const STR = {
     hostTomorrow: 'Tu evento es mañana — comparte tu QR para que los invitados estén listos 🎉',
     nudge: 'Aún no hay invitados — comparte tu QR o código para empezar 📷',
     wrapPrompt: '¿Tu evento ha terminado? Mantén la galería abierta o ciérrala cuando quieras 🎉',
+    retentionWarn: 'Tu evento gratis se eliminará en 24 h — mejora para conservar tus fotos para siempre.',
   },
   fr: {
     newPhoto: (w, v) => `${w} a ajouté ${v ? 'une vidéo' : 'une photo'} 📸`,
@@ -89,6 +92,7 @@ const STR = {
     hostTomorrow: 'Votre événement est demain — partagez votre QR pour que les invités soient prêts 🎉',
     nudge: 'Aucun invité pour l\'instant — partagez votre QR ou code 📷',
     wrapPrompt: 'Ton événement est terminé ? Garde la galerie ouverte ou ferme-la quand tu veux 🎉',
+    retentionWarn: 'Ton événement gratuit sera supprimé dans 24 h — améliore pour garder tes photos pour toujours.',
   },
   de: {
     newPhoto: (w, v) => `${w} hat ${v ? 'ein Video' : 'ein Foto'} hinzugefügt 📸`,
@@ -105,6 +109,7 @@ const STR = {
     hostTomorrow: 'Dein Event ist morgen — teile deinen QR-Code, damit die Gäste bereit sind 🎉',
     nudge: 'Noch keine Gäste — teile deinen QR-Code oder Code 📷',
     wrapPrompt: 'Ist dein Event vorbei? Lass die Galerie offen oder schließe sie, wann du willst 🎉',
+    retentionWarn: 'Dein kostenloses Event wird in 24 Std. gelöscht — upgrade, um deine Fotos dauerhaft zu behalten.',
   },
 };
 const strings = (lang) => STR[(lang || 'en').slice(0, 2)] || STR.en;
@@ -358,6 +363,36 @@ exports.eventDailyTick = onSchedule({ schedule: '0 12 * * *', timeZone: TICK_TZ 
       const ctx = await loadHost(doc.id);
       if (ctx && ctx.token && ctx.ev.uploadNotify !== false) await sendPush(ctx, strings(ctx.lang).wrapPrompt);
       await doc.ref.update({ wrapPromptSentAt: FieldValue.serverTimestamp() }).catch(() => {});
+    }
+  }
+});
+
+// ---- Free-tier retention: delete a free event 1 week after its first photo ----
+// One 24h warning ("upgrade to keep your data"), then deletion — never a silent
+// delete. Paid and grandfathered (retentionExempt) events are never touched, and
+// events created before this feature have no `retentionDays` field so they are
+// ineligible → existing users are unaffected. Runs daily at 03:00 Istanbul.
+exports.eventRetentionTick = onSchedule({ schedule: '0 3 * * *', timeZone: TICK_TZ }, async () => {
+  const now = new Date();
+  const bucket = getStorage().bucket('everybodytakes.firebasestorage.app');
+  const snap = await db.collection('events').where('plan', '==', 'free').get();
+  for (const doc of snap.docs) {
+    const ev = doc.data();
+    const plan = retentionPlan({
+      plan: ev.plan,
+      retentionExempt: !!ev.retentionExempt,
+      retentionDays: ev.retentionDays != null ? ev.retentionDays : null,
+      firstPhotoAtMs: ev.firstPhotoAt && ev.firstPhotoAt.toMillis ? ev.firstPhotoAt.toMillis() : null,
+      warned: !!ev.retentionWarnedAt,
+    }, now);
+
+    if (plan.warn) {
+      const ctx = await loadHost(doc.id);
+      if (ctx && ctx.token) await sendPush(ctx, strings(ctx.lang).retentionWarn, upgrade(ctx));
+      await doc.ref.update({ retentionWarnedAt: FieldValue.serverTimestamp() }).catch(() => {});
+    }
+    if (plan.purge) {
+      await purgeEvent(db, bucket, doc.id).catch((e) => console.error('retention purge failed', doc.id, e));
     }
   }
 });
