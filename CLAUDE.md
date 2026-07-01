@@ -210,6 +210,29 @@ Commit mesajı ne yaptığını değil **neden** yaptığını açıklar.
 
 ---
 
+## 12.2 Deploy güvenliği — YÜZLERCE ESKİ KULLANICI VAR (her deploy'dan önce oku)
+
+**`firebase deploy` ne yapar:** Lokal ayarları **canlı** Firebase projesine (`everybodytakes`) anında iter:
+- `--only firestore:rules` → canlı Firestore güvenlik kurallarını `firestore.rules` ile **değiştirir**.
+- `--only storage` → canlı Storage kurallarını `storage.rules` ile **değiştirir**.
+- `--only functions` → `functions/`'daki Cloud Functions'ı **yükler ve aktifleştirir**.
+
+**Neden tehlikeli:** Kurallar ve fonksiyonlar **sunucu tarafında**dır — app binary'sine gömülü değil. Yani deploy, App Store güncellemesinin aksine **eski/yeni TÜM kullanıcıları anında** etkiler (App Store'da hâlâ 1.0.x kullanan yüzlerce kişi dahil). Kötü bir deploy hepsini aynı anda kırar.
+
+**DEMİR KURAL — asla ihlal etme:** Her deploy **geriye dönük uyumlu / SADECE-EKLEME (additive)** olmalı. Eski app install'larının kullandığı hiçbir kural/fonksiyon davranışı değişmez/silinmez. Deploy öncesi kanıtla:
+- `git diff main -- firestore.rules storage.rules functions/` → çıktıda **`-` satırı olmamalı** (yalnız `+`). Mevcut bir kuralı/fonksiyonu değiştiriyorsan DUR, önce geriye-uyumu düşün.
+- Yeni alanlara gate koyarken eski dokümanları unutma: eski event'lerde alan **yok** → `event.voices == true` gibi kontrol `undefined` → **false** olur (eski event kırılmaz, yeni özellik onlarda kapalı kalır). Bu deseni koru.
+
+**Fonksiyon deploy'unda tuzak:** `--only functions` (isimsiz) **TÜM** fonksiyonları `functions/index.js`'in mevcut hâlinden yeniden deploy eder. Eğer bu branch'in `index.js`'i **canlıdakinden farklıysa** (deploy edilmemiş bir değişiklik ya da branch farkı), blanket deploy canlı bir fonksiyonu **geri alabilir** → eski kullanıcılar zarar görür. Bu yüzden **yeni fonksiyonu tek tek deploy et:** `--only functions:<isim>`. Yeni bir fonksiyonu deploy etmek mevcut hiçbirini etkileyemez.
+
+**Voice notes (bu özellik) — güvenli deploy:** rules + `createVoicesZip` %100 additive (git diff ile doğrulandı, tek `-` yok). Test/yayın için güvenli komut:
+```
+firebase deploy --only firestore:rules,storage,functions:createVoicesZip
+```
+(Not: `functions/lib/purge.js`'teki 2 satırlık ses-temizliği `deleteAccountData`'yı ilgilendirir, özellik için ŞART DEĞİL — istersen sonra `--only functions:deleteAccountData` ile, ama önce onun canlı hâliyle aynı olduğundan emin ol.)
+
+---
+
 ## 13. MVP Scope
 
 MVP'de olmayan şeyler MVP'de yazılmaz:
