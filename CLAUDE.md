@@ -411,6 +411,13 @@ Hedef: `app/guest/join.tsx` (632), `app/host/event.tsx` (519), `app/guest/camera
 - Fonksiyon deploy: `firebase deploy --only functions`. Rules: `firebase deploy --only firestore:rules,storage` (Blaze aktif).
 - Stale/yarım bundle çökmesi olursa Metro'yu temiz başlat: `npx expo start -c`.
 
+### Ücretsiz LOKAL build — EAS cloud kotası bitince (elimizin altında dursun)
+Ayrı bir sistem değil: aynı **EAS CLI**, `--local` bayrağıyla **bulut yerine kendi Mac'inde** derler → **cloud build kotası harcamaz** (bedava, sınırsız). Kendi Xcode'unla imzalı `.ipa` üretir, `eas submit` ile App Store Connect/TestFlight'a gider. (1.0.2'yi kota bitince böyle çıkardık.)
+- **Build** (repo kökünde imzalı `build-<ts>.ipa` üretir):
+  `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 SENTRY_DISABLE_AUTO_UPLOAD=true npx eas build --platform ios --profile production --local --non-interactive`
+- **Submit** (TestFlight'a): `npx eas submit --platform ios --path build-<ts>.ipa --profile production --non-interactive`
+- **4 gotcha — hepsi build'i bloke etmişti:** (1) `brew install fastlane cocoapods`; (2) **Apple WWDR G3 ara sertifikası** login keychain'de olmalı — yoksa cert `CSSMERR_TP_NOT_TRUSTED` → "Distribution certificate ... imported successfully değil"; kur: `curl -fsSL https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer -o w.cer && security import w.cer -k ~/Library/Keychains/login.keychain-db`; (3) **`--non-interactive`** (headless'te Apple-login sorusu stdin'siz çöker); (4) **`SENTRY_DISABLE_AUTO_UPLOAD=true` sadece local komutta** (yoksa Xcode Sentry source-map upload token'sız → ARCHIVE FAILED exit 65; **`eas.json`'a KOYMA**). Detay: kişisel memory `project-ios-local-build`.
+
 ## Gotcha'lar
 - Native modüller (apple-auth, crypto, google-signin, purchases, live-activity, video, view-shot) **lazy/try-catch** ile yükleniyor → eski build'de çökmesin diye. Yeni özelliği KULLANMAK için yeni build gerekir.
 - Simülatörde: video kaydı, Live Activity, push **çalışmaz** (gerçek cihaz). Apple/Google/e-posta giriş + kart + galeri simülatörde test edilebilir.
