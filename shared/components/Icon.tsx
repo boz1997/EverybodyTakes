@@ -4,7 +4,7 @@ import {
   Film, Mail, QrCode, Users, Calendar, Sparkles, Gem, Cake, PartyPopper,
   Sailboat, Music, Tent, Building2, Lock, Plus, RefreshCw, CircleAlert,
   Keyboard, Download, MoreHorizontal, Play, Video, Bell, Heart,
-  Mic, Pause, Square,
+  Mic, Pause, Square, Pen,
 } from 'lucide-react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors } from '@constants/theme';
@@ -45,6 +45,7 @@ const REGISTRY = {
   pause: Pause,
   stop: Square,
   mic: Mic,
+  pen: Pen,
   video: Video,
   bell: Bell,
   heart: Heart,

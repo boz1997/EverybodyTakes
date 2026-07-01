@@ -397,7 +397,7 @@ export default function EventHubScreen() {
           <View style={styles.memoryRow}>
             {event.notes && event.notesEnabled !== false && (
               <TouchableOpacity onPress={() => { Haptics.selectionAsync(); setNoteOpen(true); }} style={styles.memoryBtn} activeOpacity={0.85}>
-                <Text style={styles.noteBtnEmoji}>📖</Text>
+                <Icon name="pen" size={17} color={colors.brand.DEFAULT} strokeWidth={2.2} />
                 <Text style={styles.memoryBtnText} numberOfLines={1}>{hasNote ? t('notes.edit') : t('notes.leave')}</Text>
               </TouchableOpacity>
             )}
@@ -648,7 +648,6 @@ const styles = StyleSheet.create({
   usedText: { fontSize: typography.sizes.base, fontFamily: fonts.bodySemibold, color: colors.brand.dark },
   memoryRow: { flexDirection: 'row', gap: spacing.sm },
   memoryBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, paddingHorizontal: spacing.sm, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },
-  noteBtnEmoji: { fontSize: 17 },
   memoryBtnText: { fontSize: typography.sizes.sm, fontFamily: fonts.bodySemibold, color: colors.brand.DEFAULT, flexShrink: 1 },
   galleryHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm },
   galleryTitle: { fontSize: typography.sizes.lg, fontFamily: fonts.displayBold, color: colors.text.primary },

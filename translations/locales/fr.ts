@@ -405,7 +405,7 @@ export default {
     rerecord: 'Réenregistrer',
     send: 'Laisser la voix',
     update: 'Mettre à jour',
-    sent: 'Ta voix a été ajoutée 🎙️',
+    sent: 'Ta voix a été ajoutée',
     delete: 'Supprimer',
     maxHint: 'Jusqu\'à {{s}} s',
     permissionTitle: 'Micro nécessaire',

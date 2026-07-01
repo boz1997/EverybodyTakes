@@ -405,7 +405,7 @@ export default {
     rerecord: 'Neu aufnehmen',
     send: 'Stimme hinterlassen',
     update: 'Aktualisieren',
-    sent: 'Deine Stimme wurde hinzugefügt 🎙️',
+    sent: 'Deine Stimme wurde hinzugefügt',
     delete: 'Löschen',
     maxHint: 'Bis zu {{s}} s',
     permissionTitle: 'Mikrofon nötig',

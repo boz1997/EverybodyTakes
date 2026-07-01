@@ -56,7 +56,7 @@ export function NotesModal({ visible, onClose, eventId, eventName }: Props) {
       <LinearGradient colors={gradients.page} style={styles.container}>
         <View style={[styles.head, { paddingTop: spacing.lg }]}>
           <View style={styles.titleWrap}>
-            <Text style={styles.titleEmoji}>📖</Text>
+            <Icon name="pen" size={22} color={colors.brand.DEFAULT} strokeWidth={2.2} />
             <Text style={styles.title}>{t('notes.bookTitle')}</Text>
           </View>
           <TouchableOpacity onPress={onClose} hitSlop={12} style={styles.closeBtn} activeOpacity={0.7}>
@@ -97,7 +97,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  titleEmoji: { fontSize: 24 },
   title: { fontSize: typography.sizes['2xl'], fontFamily: fonts.displayBold, color: colors.text.primary },
   closeBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg.card, borderWidth: 1, borderColor: colors.border.DEFAULT },
   dlBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, alignSelf: 'center', marginBottom: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: 8, borderRadius: radius.full, borderWidth: 1, borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.glow },

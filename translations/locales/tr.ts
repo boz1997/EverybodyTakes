@@ -405,7 +405,7 @@ export default {
     rerecord: 'Yeniden kaydet',
     send: 'Sesi bırak',
     update: 'Güncelle',
-    sent: 'Sesin eklendi 🎙️',
+    sent: 'Sesin eklendi',
     delete: 'Sil',
     maxHint: 'En fazla {{s}} sn',
     permissionTitle: 'Mikrofon gerekli',
